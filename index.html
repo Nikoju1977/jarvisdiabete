@@ -538,14 +538,22 @@
             transform: translateX(-50%) translateY(-5px);
             box-shadow: 0 15px 60px rgba(0, 242, 255, 0.5);
         }
-    </style>
+    
+/* ── Skeleton Loader ─────────────────────────── */
+.skeleton{background:linear-gradient(90deg,rgba(0,255,157,.07) 25%,rgba(0,255,157,.15) 50%,rgba(0,255,157,.07) 75%);background-size:200% 100%;animation:skel-wave 1.4s infinite;border-radius:6px;min-height:1em}
+@keyframes skel-wave{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+</style>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <meta property="og:title" content="Jarvis Diabète | Studio Niko Design">
   <meta property="og:description" content="Assistant vocal IA diabète — suivi glycémique, intégration Nightscout, agents spécialisés">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#00d4ff">
 </head>
-<body>
+<body role="application" aria-label="Jarvis Diabète — Assistant vocal diabète">
+<main id="app" tabindex="-1">
+<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Jarvis Diabète</h1>
+
 
 <div class="particles" id="particles"></div>
 
@@ -1093,8 +1101,6 @@ const DailyReport = {
         
         const msUntil8AM = next8AM - now;
         
-        console.log(`Prochain rapport dans ${Math.round(msUntil8AM / 1000 / 60)} minutes`);
-        
         setTimeout(() => {
             this.generateAndSpeak();
             // Programme le suivant
@@ -1104,13 +1110,11 @@ const DailyReport = {
     
     async generateAndSpeak() {
         if (!Jarvis.state.key) {
-            console.log("Pas de clé API, rapport annulé");
             return;
         }
         
         const report = this.generateReport();
         if (!report) {
-            console.log("Pas assez de données pour le rapport");
             return;
         }
         
@@ -1611,6 +1615,25 @@ const PWA = {
         this.deferredPrompt = null;
     }
 };
+</script>
+
+</main>
+
+<script>
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swCode = `
+const CACHE='niko-v1';
+const ASSETS=['./','/index.html'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
+    `;
+    const blob = new Blob([swCode],{type:'text/javascript'});
+    const swURL = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swURL).catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
