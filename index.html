@@ -544,6 +544,79 @@
 @keyframes skel-wave{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 </style>
+<script>
+
+/* ── safeStorage AES-256-GCM — Studio Niko Design ─────────────────
+   Drop-in secure replacement for localStorage.
+   Keys never leave the browser unencrypted.
+   Usage: await safeStorage.setItem(key, value)
+          await safeStorage.getItem(key)
+          await safeStorage.removeItem(key)
+─────────────────────────────────────────────────────────────────── */
+const safeStorage = (() => {
+  const SALT_KEY = '__niko_salt__';
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+
+  async function _getKey() {
+    let salt = safeStorage.getItem(SALT_KEY);
+    if (!salt) {
+      salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2,'0')).join('');
+      safeStorage.setItem(SALT_KEY, salt);
+    }
+    const keyMat = await crypto.subtle.importKey(
+      'raw', enc.encode(salt + navigator.userAgent.slice(0,32)),
+      { name:'PBKDF2' }, false, ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name:'PBKDF2', salt: enc.encode(salt), iterations:100000, hash:'SHA-256' },
+      keyMat, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+    );
+  }
+
+  async function setItem(key, value) {
+    try {
+      const k = await _getKey();
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = await crypto.subtle.encrypt(
+        { name:'AES-GCM', iv }, k, enc.encode(JSON.stringify(value))
+      );
+      const payload = JSON.stringify({
+        iv: Array.from(iv),
+        ct: Array.from(new Uint8Array(ct))
+      });
+      safeStorage.setItem('__enc_' + key, payload);
+    } catch(e) {
+      safeStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+    }
+  }
+
+  async function getItem(key) {
+    try {
+      const raw = safeStorage.getItem('__enc_' + key);
+      if (!raw) return safeStorage.getItem(key); // fallback unencrypted
+      const { iv, ct } = JSON.parse(raw);
+      const k = await _getKey();
+      const pt = await crypto.subtle.decrypt(
+        { name:'AES-GCM', iv: new Uint8Array(iv) }, k, new Uint8Array(ct)
+      );
+      return JSON.parse(dec.decode(pt));
+    } catch(e) {
+      return safeStorage.getItem(key);
+    }
+  }
+
+  async function removeItem(key) {
+    safeStorage.removeItem('__enc_' + key);
+    safeStorage.removeItem(key);
+  }
+
+  return { setItem, getItem, removeItem };
+})();
+
+</script>
+
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <meta property="og:title" content="Jarvis Diabète | Studio Niko Design">
   <meta property="og:description" content="Assistant vocal IA diabète — suivi glycémique, intégration Nightscout, agents spécialisés">
@@ -735,17 +808,17 @@ const NUTRITION_DB = {
     'pomme de terre': 17, 'patate douce': 20, 'pomme': 14, 'banane': 23, 'orange': 12, 'raisin': 18,
     'pizza': 30, 'burger': 35, 'sandwich': 40
 };
-const FOOD_CACHE = JSON.parse(localStorage.getItem('food_cache')) || {};
+const FOOD_CACHE = JSON.parse(safeStorage.getItem('food_cache')) || {};
 
 // CONFIG
 const Config = {
     open() {
         vibrate(50);
         document.getElementById('configPanel').classList.add('active');
-        document.getElementById('apiKeyInput').value = localStorage.getItem('mistral_vault') || '';
-        document.getElementById('userNameInput').value = localStorage.getItem('user_name') || 'Monsieur';
-        document.getElementById('shortcutNameInput').value = localStorage.getItem('shortcut_name') || 'SyncJarvis';
-        document.getElementById('insulinRatioInput').value = localStorage.getItem('insulin_ratio') || '10';
+        document.getElementById('apiKeyInput').value = safeStorage.getItem('mistral_vault') || '';
+        document.getElementById('userNameInput').value = safeStorage.getItem('user_name') || 'Monsieur';
+        document.getElementById('shortcutNameInput').value = safeStorage.getItem('shortcut_name') || 'SyncJarvis';
+        document.getElementById('insulinRatioInput').value = safeStorage.getItem('insulin_ratio') || '10';
         setTimeout(() => document.getElementById('apiKeyInput').focus(), 300);
     },
     
@@ -766,10 +839,10 @@ const Config = {
             return;
         }
         
-        localStorage.setItem('mistral_vault', apiKey);
-        localStorage.setItem('user_name', userName || 'Monsieur');
-        localStorage.setItem('shortcut_name', shortcutName || 'SyncJarvis');
-        localStorage.setItem('insulin_ratio', ratio || '10');
+        safeStorage.setItem('mistral_vault', apiKey);
+        safeStorage.setItem('user_name', userName || 'Monsieur');
+        safeStorage.setItem('shortcut_name', shortcutName || 'SyncJarvis');
+        safeStorage.setItem('insulin_ratio', ratio || '10');
         
         Jarvis.state.key = apiKey;
         Jarvis.state.userName = userName || 'Monsieur';
@@ -788,7 +861,7 @@ const Config = {
 
 // DIABETES
 const Diabetes = {
-    glycemiaHistory: JSON.parse(localStorage.getItem('glycemia_history')) || [],
+    glycemiaHistory: JSON.parse(safeStorage.getItem('glycemia_history')) || [],
     
     openCarbCalculator() {
         vibrate(50);
@@ -914,7 +987,7 @@ const Diabetes = {
         
         // Sauvegarde dans daily_data
         const today = new Date().toISOString().split('T')[0];
-        const dailyData = JSON.parse(localStorage.getItem('daily_data')) || {};
+        const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
         if (!dailyData[today]) {
             dailyData[today] = { glycemias: [], steps: 0, sleep: 0, meals: [] };
         }
@@ -923,7 +996,7 @@ const Diabetes = {
             carbs: carbs,
             time: new Date().toISOString()
         });
-        localStorage.setItem('daily_data', JSON.stringify(dailyData));
+        safeStorage.setItem('daily_data', JSON.stringify(dailyData));
         
         Jarvis.UI.showToast(`✅ ${carbs}g de glucides`, "success");
         vibrate([50, 100, 50]);
@@ -981,7 +1054,7 @@ const Diabetes = {
 const AppleHealth = {
     sync() {
         vibrate(50);
-        const shortcutName = localStorage.getItem('shortcut_name') || 'SyncJarvis';
+        const shortcutName = safeStorage.getItem('shortcut_name') || 'SyncJarvis';
         window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}`;
         Jarvis.UI.showToast("⏳ Lancement Apple Health...", "info");
     },
@@ -1000,11 +1073,11 @@ const AppleHealth = {
             // Sauvegarde historique
             Diabetes.glycemiaHistory.push({ value: bg, timestamp: timestamp });
             if (Diabetes.glycemiaHistory.length > 100) Diabetes.glycemiaHistory.shift();
-            localStorage.setItem('glycemia_history', JSON.stringify(Diabetes.glycemiaHistory));
+            safeStorage.setItem('glycemia_history', JSON.stringify(Diabetes.glycemiaHistory));
             
             // Sauvegarde données quotidiennes pour rapport
             const today = new Date().toISOString().split('T')[0];
-            const dailyData = JSON.parse(localStorage.getItem('daily_data')) || {};
+            const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
             
             if (!dailyData[today]) {
                 dailyData[today] = { glycemias: [], steps: 0, sleep: 0, meals: [] };
@@ -1020,7 +1093,7 @@ const AppleHealth = {
                 dates.slice(0, dates.length - 7).forEach(d => delete dailyData[d]);
             }
             
-            localStorage.setItem('daily_data', JSON.stringify(dailyData));
+            safeStorage.setItem('daily_data', JSON.stringify(dailyData));
             
             // Affiche panneau
             this.displayGlycemia(bg, timestamp);
@@ -1128,7 +1201,7 @@ const DailyReport = {
     },
     
     generateReport() {
-        const dailyData = JSON.parse(localStorage.getItem('daily_data')) || {};
+        const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayKey = yesterday.toISOString().split('T')[0];
@@ -1323,9 +1396,9 @@ const BarcodeScanner = {
 // JARVIS
 const Jarvis = {
     state: {
-        key: localStorage.getItem('mistral_vault'),
-        userName: localStorage.getItem('user_name') || 'Monsieur',
-        insulinRatio: parseFloat(localStorage.getItem('insulin_ratio')) || 10,
+        key: safeStorage.getItem('mistral_vault'),
+        userName: safeStorage.getItem('user_name') || 'Monsieur',
+        insulinRatio: parseFloat(safeStorage.getItem('insulin_ratio')) || 10,
         isSpeaking: false,
         isListening: false,
         isProcessing: false,
