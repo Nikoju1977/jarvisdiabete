@@ -13,7 +13,18 @@
     <title>JARVIS DIABÈTE PRO</title>
     <link rel="preconnect" href="https://api.mistral.ai">
     <link rel="preconnect" href="https://world.openfoodfacts.org">
-    <script defer src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+    <script>/* Studio Niko · helpers vague C */
+window.safeStorage = window.safeStorage || (function(){var mem=new Map(),ls=null;try{ls=window.localStorage;var t='__niko__';ls.setItem(t,'1');ls.removeItem(t);}catch(e){ls=null;}
+return{getItem:function(k){try{return ls?ls.getItem(k):(mem.has(k)?mem.get(k):null);}catch(e){return mem.has(k)?mem.get(k):null;}},
+setItem:function(k,v){try{if(ls){ls.setItem(k,String(v));return;}}catch(e){}mem.set(k,String(v));},
+removeItem:function(k){try{if(ls)ls.removeItem(k);}catch(e){}mem.delete(k);},
+clear:function(){try{if(ls)ls.clear();}catch(e){}mem.clear();},
+key:function(i){try{if(ls)return ls.key(i);}catch(e){}var a=Array.from(mem.keys());return i<a.length?a[i]:null;},
+get length(){try{if(ls)return ls.length;}catch(e){}return mem.size;}};})();
+window.nikoFetch = window.nikoFetch || function(url,opts){function xhr(){opts=opts||{};return new Promise(function(res,rej){var x=new XMLHttpRequest();x.open((opts.method||'GET'),url,true);if(opts.headers){Object.keys(opts.headers).forEach(function(h){try{x.setRequestHeader(h,opts.headers[h]);}catch(e){}});}x.onload=function(){res({ok:x.status>=200&&x.status<300,status:x.status,statusText:x.statusText,url:url,text:function(){return Promise.resolve(x.responseText);},json:function(){return Promise.resolve(JSON.parse(x.responseText));},headers:{get:function(n){return x.getResponseHeader(n);}}});};x.onerror=function(){rej(new TypeError('Network request failed'));};x.send(opts.body||null);});}
+if(window.fetch){return window.fetch(url,opts).catch(function(){return xhr();});}return xhr();};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 <script>
 
 /* ── AbortController + Retry + Debounce — Studio Niko Design ── */
@@ -25,7 +36,7 @@ const nikoFetch = (() => {
     opts.signal = _ctrl.signal;
     for(let i=0; i<retries; i++) {
       try {
-        const r = await fetch(url, opts);
+        const r = await nikoFetch(url, opts);
         if(!r.ok) throw new Error(`HTTP ${r.status}`);
         return r;
       } catch(e) {
@@ -607,7 +618,7 @@ function nikoRetryBtn(container, fn) {
 <script>
 
 /* ── safeStorage AES-256-GCM — Studio Niko Design ─────────────────
-   Drop-in secure replacement for localStorage.
+   Drop-in secure replacement for safeStorage.
    Keys never leave the browser unencrypted.
    Usage: await safeStorage.setItem(key, value)
           await safeStorage.getItem(key)
@@ -983,7 +994,7 @@ const Diabetes = {
             }
             
             const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchTerm)}&search_simple=1&action=process&json=1&page_size=3`;
-            const response = await fetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
+            const response = await nikoFetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
             
             if (!response.ok) return null;
             
@@ -1420,7 +1431,7 @@ const BarcodeScanner = {
         
         try {
             const url = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
-            const response = await fetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
+            const response = await nikoFetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
             
             if (!response.ok) throw new Error('Produit non trouvé');
             
@@ -1595,7 +1606,7 @@ const Jarvis = {
             Jarvis.UI.showStatus("🧠 Réflexion", "thinking");
             
             try {
-                const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                const response = await nikoFetch('https://api.mistral.ai/v1/chat/completions', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json', 
@@ -1759,7 +1770,7 @@ if('serviceWorker' in navigator) {
 const CACHE='niko-v1';
 const ASSETS=['./','/index.html'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
-self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||nikoFetch(e.request))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
     `;
     const blob = new Blob([swCode],{type:'text/javascript'});
@@ -1772,17 +1783,17 @@ self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.a
 <!-- ── Disclaimer médical — Studio Niko Design ── -->
 <div id="nikoDisclaimer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10000;background:rgba(5,10,13,.97);border-top:1px solid rgba(0,212,255,.3);padding:12px 20px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,.7);text-align:center;backdrop-filter:blur(8px)">
   ⚕️ <strong>Avis médical :</strong> Cette application est un outil d'aide — elle ne remplace pas l'avis d'un professionnel de santé qualifié. En cas d'urgence, appelez le <strong>15 (SAMU)</strong>.
-  &nbsp;|&nbsp; <a href="#" onclick="document.getElementById('nikoDisclaimer').style.display='none';localStorage.setItem('disclaimer_ok','1');return false" style="color:#00ff9d;text-decoration:none">J'ai compris ✕</a>
+  &nbsp;|&nbsp; <a href="#" onclick="document.getElementById('nikoDisclaimer').style.display='none';safeStorage.setItem('disclaimer_ok','1');return false" style="color:#00ff9d;text-decoration:none">J'ai compris ✕</a>
 </div>
-<script>if(!localStorage.getItem('disclaimer_ok'))document.getElementById('nikoDisclaimer').style.display='block';</script>
+<script>if(!safeStorage.getItem('disclaimer_ok'))document.getElementById('nikoDisclaimer').style.display='block';</script>
 
 
 <!-- ── Notice RGPD — Studio Niko Design ── -->
 <div id="nikoRGPD" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(5,10,13,.97);border-top:1px solid rgba(0,255,157,.25);padding:14px 20px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,.75);backdrop-filter:blur(8px)">
   <strong style="color:#00ff9d">🔒 Confidentialité</strong> — Vos données restent sur votre appareil (stockage local chiffré AES-256-GCM). Aucune donnée personnelle n'est transmise à des tiers. Conforme RGPD.
-  &nbsp;<a href="#" onclick="document.getElementById('nikoRGPD').style.display='none';localStorage.setItem('rgpd_ok','1');return false" style="color:#00d4ff;text-decoration:none;margin-left:12px">Accepter ✕</a>
+  &nbsp;<a href="#" onclick="document.getElementById('nikoRGPD').style.display='none';safeStorage.setItem('rgpd_ok','1');return false" style="color:#00d4ff;text-decoration:none;margin-left:12px">Accepter ✕</a>
 </div>
-<script>if(!localStorage.getItem('rgpd_ok'))document.getElementById('nikoRGPD').style.display='block';</script>
+<script>if(!safeStorage.getItem('rgpd_ok'))document.getElementById('nikoRGPD').style.display='block';</script>
 
 
 <div id="nikoOffline" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#ff4444;color:#fff;text-align:center;padding:8px;font-family:monospace;font-size:13px">
