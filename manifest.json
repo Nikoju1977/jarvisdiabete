@@ -1,15 +1,15 @@
 {
- "name": "jarvisdiabete",
- "short_name": "jarvisdiabet",
- "start_url": ".",
- "display": "standalone",
- "background_color": "#050a0d",
- "theme_color": "#050a0d",
- "icons": [
-  {
-   "src": "icon.svg",
-   "sizes": "any",
-   "type": "image/svg+xml"
-  }
- ]
+  "name": "Jarvis Diabète",
+  "short_name": "Jarvis Diabète",
+  "description": "Suivi du diabète avec agents de contrôle et données chiffrées sur l'appareil",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F6F9",
+  "theme_color": "#0A1628",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
 }

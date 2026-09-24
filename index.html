@@ -1,1747 +1,1604 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="JARVIS Diabète">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#010203" media="(prefers-color-scheme: dark)">
-    <meta name="description" content="Assistant vocal IA pour la gestion du diabète Type 1">
-    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkpBUlZJUyBEaWFiw6h0ZSIsCiAgInNob3J0X25hbWUiOiAiSkFSVklTIiwKICAic3RhcnRfdXJsIjogIi8iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMTAyMDMiLAogICJ0aGVtZV9jb2xvciI6ICIjMDFmMmZmIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpTWpRd0lpQm9aV2xuYUhROUlqSTBNQ0lnZG1sbGQwSnZlRDBpTUNBd0lESTBNQ0F5TkRBaUlIaHRiRzV6UFNKb2RIUndPaTh2ZDNkM0xuY3pMbTl5Wnk4eU1EQXdMM04yWnlJK1BHTnBjbU5zWlNCamVEMGlNVEl3SWlCamVUMGlNVEl3SWlCeVBTSTRNQ0lnWm1sc2JEMGlJekF3WmpKbVppSXZQanh3WVhSb0lHUTlJazB4TWpBZ05EQk1NVFl3SURnd01Fd3lNREFnTVRJd1dqSXdNQ0EwTUVneE5qQWdJaUJtYVd4c1BTSWpabVptSWlBdlBqd3ZjM1puUGc9PSIsCiAgICAgICJzaXplcyI6ICIyNDB4MjQwIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIKICAgIH0KICBdCn0=">
-    <title>JARVIS DIABÈTE PRO</title>
-    <link rel="preconnect" href="https://api.mistral.ai">
-    <link rel="preconnect" href="https://world.openfoodfacts.org">
-    <script>/* Studio Niko · helpers vague C */
-window.safeStorage = window.safeStorage || (function(){var mem=new Map(),ls=null;try{ls=window.localStorage;var t='__niko__';ls.setItem(t,'1');ls.removeItem(t);}catch(e){ls=null;}
-return{getItem:function(k){try{return ls?ls.getItem(k):(mem.has(k)?mem.get(k):null);}catch(e){return mem.has(k)?mem.get(k):null;}},
-setItem:function(k,v){try{if(ls){ls.setItem(k,String(v));return;}}catch(e){}mem.set(k,String(v));},
-removeItem:function(k){try{if(ls)ls.removeItem(k);}catch(e){}mem.delete(k);},
-clear:function(){try{if(ls)ls.clear();}catch(e){}mem.clear();},
-key:function(i){try{if(ls)return ls.key(i);}catch(e){}var a=Array.from(mem.keys());return i<a.length?a[i]:null;},
-get length(){try{if(ls)return ls.length;}catch(e){}return mem.size;}};})();
-window.nikoFetch = window.nikoFetch || function(url,opts){function xhr(){opts=opts||{};return new Promise(function(res,rej){var x=new XMLHttpRequest();x.open((opts.method||'GET'),url,true);if(opts.headers){Object.keys(opts.headers).forEach(function(h){try{x.setRequestHeader(h,opts.headers[h]);}catch(e){}});}x.onload=function(){res({ok:x.status>=200&&x.status<300,status:x.status,statusText:x.statusText,url:url,text:function(){return Promise.resolve(x.responseText);},json:function(){return Promise.resolve(JSON.parse(x.responseText));},headers:{get:function(n){return x.getResponseHeader(n);}}});};x.onerror=function(){rej(new TypeError('Network request failed'));};x.send(opts.body||null);});}
-if(window.fetch){return window.fetch(url,opts).catch(function(){return xhr();});}return xhr();};
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
-<script>
-
-/* ── AbortController + Retry + Debounce — Studio Niko Design ── */
-const nikoFetch = (() => {
-  let _ctrl = null;
-  return async function(url, opts={}, retries=3) {
-    if(_ctrl) _ctrl.abort();
-    _ctrl = new AbortController();
-    opts.signal = _ctrl.signal;
-    for(let i=0; i<retries; i++) {
-      try {
-        const r = await (window.nikoFetch||window.fetch)(url, opts);
-        if(!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r;
-      } catch(e) {
-        if(e.name==='AbortError') throw e;
-        if(i===retries-1) throw e;
-        await new Promise(res=>setTimeout(res, 800*(i+1)));
-      }
-    }
-  };
-})();
-
-function nikoDebounce(fn, ms=400) {
-  let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), ms); };
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F6F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1628" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Jarvis Diabète">
+<meta name="description" content="Suivi du diabète : capteur Nightscout, glucides, estimation de bolus sous garde-fous, agents de contrôle et assistant IA. Données chiffrées sur l'appareil.">
+<meta property="og:title" content="Jarvis Diabète | Studio Niko Design">
+<meta property="og:description" content="Suivi glycémique, agents de contrôle, données chiffrées sur l'appareil.">
+<meta property="og:type" content="website">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>Jarvis Diabète</title>
+<style>
+:root{
+  --paper:#F3F6F9; --surface:#FFFFFF; --ink:#0F1B2D; --muted:#5A6B80; --line:#D6DEE7;
+  --range:#0E8C7F; --range-soft:rgba(14,140,127,.12); --low:#C62839; --low-soft:rgba(198,40,57,.10);
+  --high:#B86E00; --high-soft:rgba(184,110,0,.12); --insulin:#4B3F9E; --insulin-soft:rgba(75,63,158,.10);
+  --focus:#1B5FD6; --radius-l:18px; --radius-s:10px;
+  --font:'Syne',ui-sans-serif,system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0A1628; --surface:#11213A; --ink:#E6EDF5; --muted:#93A4B8; --line:#243A56;
+  --range:#2BB3A3; --range-soft:rgba(43,179,163,.14); --low:#FF5A6A; --low-soft:rgba(255,90,106,.14);
+  --high:#F0A43A; --high-soft:rgba(240,164,58,.14); --insulin:#9A8CF0; --insulin-soft:rgba(154,140,240,.14); --focus:#7FB0FF;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{min-height:100dvh;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{font-size:16px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h2{font-size:1.05rem;font-weight:700;letter-spacing:-.01em;margin-bottom:.75rem}
+p.hint{color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-function nikoRetryBtn(container, fn) {
-  const btn = document.createElement('button');
-  btn.textContent = '↺ Réessayer';
-  btn.style.cssText='margin-top:8px;padding:6px 14px;background:rgba(0,255,157,.15);border:1px solid #00ff9d;color:#00ff9d;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px';
-  btn.onclick = () => { btn.remove(); fn(); };
-  if(container) container.appendChild(btn);
+/* Boutons et champs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:46px;padding:.6rem 1.1rem;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--ink)}
+.btn-main{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn-main:hover{opacity:.9}
+.btn-danger{color:var(--low);border-color:var(--low)}
+.btn-block{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.field{display:block;margin-bottom:.9rem}
+.field>span{display:block;font-size:.85rem;color:var(--muted);margin-bottom:.3rem;font-weight:500}
+.field input,.field select{width:100%;min-height:46px;padding:.55rem .8rem;border:1.5px solid var(--line);border-radius:var(--radius-s);background:var(--surface)}
+.field input:focus,.field select:focus{border-color:var(--focus);outline:none}
+.check{display:flex;gap:.6rem;align-items:flex-start;margin-bottom:.9rem;font-size:.92rem}
+.check input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--range)}
+.row{display:flex;gap:.6rem;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 .8rem}
+@media (max-width:480px){.row>.btn{flex-basis:100%}.pill{font-size:.72rem;padding:.2rem .55rem}}
+
+/* Écran de verrouillage */
+.lock{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:calc(24px + var(--safe-t)) 20px calc(24px + var(--safe-b))}
+.lock-card{width:100%;max-width:420px}
+.lock-title{font-size:2.1rem;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:1rem 0 .4rem}
+.lock-card p{color:var(--muted);margin-bottom:1.2rem}
+.lock-err{color:var(--low);font-weight:600;min-height:1.5em;margin:.4rem 0}
+.notice{border-left:4px solid var(--high);background:var(--high-soft);padding:.8rem 1rem;border-radius:0 var(--radius-s) var(--radius-s) 0;font-size:.88rem;margin-bottom:1rem}
+
+/* Structure */
+.app{min-height:100dvh;padding-bottom:calc(76px + var(--safe-b))}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:calc(10px + var(--safe-t)) 18px 10px;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.55rem;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.top-actions{display:flex;align-items:center;gap:.4rem}
+.pill{font-size:.78rem;font-weight:600;padding:.25rem .65rem;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill[data-s="ok"]{color:var(--range);border-color:var(--range)}
+.pill[data-s="err"]{color:var(--low);border-color:var(--low)}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer}
+main{max-width:760px;margin:0 auto;padding:0 18px}
+.view{display:none;padding:18px 0 24px}
+.view.is-active{display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-l);padding:18px;margin-bottom:14px}
+
+/* Héros glycémie */
+.hero{padding:10px 0 4px}
+.reading{display:flex;align-items:baseline;gap:.5rem;line-height:.95}
+#bgValue{font-size:clamp(4.2rem,20vw,6.4rem);font-weight:800;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+#bgArrow{font-size:2.6rem;font-weight:700}
+.reading-meta{display:flex;flex-wrap:wrap;gap:.3rem .9rem;color:var(--muted);font-size:.92rem;margin-top:.35rem}
+#bgVerdict{margin-top:.6rem;font-weight:600;font-size:1.02rem}
+.hero[data-z="low"] #bgValue,.hero[data-z="low"] #bgArrow,.hero[data-z="low"] #bgVerdict{color:var(--low)}
+.hero[data-z="high"] #bgValue,.hero[data-z="high"] #bgArrow,.hero[data-z="high"] #bgVerdict{color:var(--high)}
+.hero[data-z="ok"] #bgVerdict{color:var(--range)}
+.hero[data-stale="1"] #bgValue{opacity:.4}
+
+.chart-card{padding:12px 6px 6px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;gap:2px;margin:0 8px 8px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:.3rem .8rem;min-height:34px;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+#chart svg{display:block;width:100%;height:auto}
+#chart .empty{padding:40px 14px;color:var(--muted);text-align:center}
+
+.stat-line{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;padding:.55rem 0;border-bottom:1px solid var(--line)}
+.stat-line:last-child{border-bottom:0}
+.stat-line b{font-weight:700}
+.stat-line .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;text-align:right}
+.stat-line .t{color:var(--muted);font-size:.8rem}
+.v.bad{color:var(--low)} .v.good{color:var(--range)}
+.tir-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:.4rem 0 .8rem;background:var(--line)}
+.tir-bar i{display:block;height:100%}
+
+/* Agents */
+.agents li{list-style:none;display:grid;grid-template-columns:14px 1fr;gap:.2rem .7rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.agents li:last-child{border-bottom:0}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:.35rem;background:var(--line)}
+.dot[data-l="ok"]{background:var(--range)} .dot[data-l="info"]{background:var(--focus)}
+.dot[data-l="warn"]{background:var(--high)} .dot[data-l="alert"],.dot[data-l="critical"]{background:var(--low)}
+.agents .an{font-weight:700;font-size:.95rem}
+.agents .am{grid-column:2;color:var(--muted);font-size:.85rem}
+
+/* Listes, repas, bolus */
+.list{list-style:none}
+.list li{display:flex;justify-content:space-between;align-items:center;gap:.8rem;padding:.65rem 0;border-bottom:1px solid var(--line)}
+.list li:last-child{border-bottom:0}
+.list .meta{color:var(--muted);font-size:.82rem}
+.list .btn{min-height:40px;padding:.35rem .9rem;flex:none}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:1.3rem;padding-top:.6rem}
+.result{border-radius:var(--radius-l);padding:18px;margin-top:14px;border:2px solid var(--line)}
+.result[data-s="ok"]{border-color:var(--insulin);background:var(--insulin-soft)}
+.result[data-s="warn"]{border-color:var(--high);background:var(--high-soft)}
+.result[data-s="blocked"]{border-color:var(--low);background:var(--low-soft)}
+.dose{font-size:3.2rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.breakdown{font-family:var(--mono);font-size:.82rem;color:var(--muted);margin:.5rem 0}
+.msgs{list-style:none;margin-top:.6rem}
+.msgs li{padding:.35rem 0 .35rem 1.1rem;position:relative;font-size:.92rem}
+.msgs li::before{content:"";position:absolute;left:0;top:.8rem;width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.msgs li[data-l="critical"]::before{background:var(--low)} .msgs li[data-l="warn"]::before{background:var(--high)}
+
+/* Assistant */
+.chat{display:flex;flex-direction:column;gap:.7rem;min-height:40vh;margin-bottom:12px}
+.msg{max-width:88%;padding:.7rem .95rem;border-radius:16px;font-size:.97rem}
+.msg.user{align-self:flex-end;background:var(--ink);color:var(--paper);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.trace{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem}
+.trace span{font-size:.72rem;padding:.12rem .5rem;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.chat-form{position:sticky;bottom:calc(84px + var(--safe-b));display:flex;gap:.5rem;background:var(--paper);padding:6px 0}
+.chat-form input{flex:1;min-height:50px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);padding:0 1.1rem}
+.mic{width:50px;height:50px;flex:none;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer}
+.mic[aria-pressed="true"]{background:var(--insulin);border-color:var(--insulin);color:#fff}
+
+/* Navigation */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+.tabs button{border:0;background:transparent;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button svg{width:24px;height:24px}
+.tabs button[aria-current="page"]{color:var(--ink)}
+.tabs button[aria-current="page"] svg{stroke:var(--range)}
+
+/* Alertes, toast, dialogues */
+.alert{position:fixed;left:12px;right:12px;top:calc(10px + var(--safe-t));z-index:60;max-width:640px;margin:0 auto;border-radius:var(--radius-l);padding:16px 18px;background:var(--low);color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.alert[data-l="warn"]{background:var(--high)}
+.alert b{display:block;font-size:1.1rem;margin-bottom:.25rem}
+.alert .btn{margin-top:.7rem;background:#fff;color:#111;border-color:#fff;min-height:42px}
+.toast{position:fixed;left:50%;bottom:calc(84px + var(--safe-b));transform:translateX(-50%) translateY(20px);opacity:0;z-index:70;max-width:min(92vw,520px);padding:.7rem 1.1rem;border-radius:12px;background:var(--ink);color:var(--paper);font-weight:600;font-size:.92rem;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast[data-t="error"]{background:var(--low);color:#fff}
+dialog{margin:auto;border:0;border-radius:var(--radius-l);padding:22px;width:min(92vw,480px);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(5,12,24,.55)}
+dialog h2{margin-bottom:.4rem}
+.audit{list-style:none;max-height:55vh;overflow:auto;margin:.8rem 0}
+.audit li{padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.84rem}
+.audit time{font-family:var(--mono);color:var(--muted);margin-right:.4rem}
+
+/* Scanner */
+.scanner{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px}
+.scanner video{width:100%;max-width:520px;border-radius:16px}
+.scan-frame{position:absolute;width:min(70vw,340px);height:150px;border:3px solid #fff;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.scanner p{color:#fff;text-align:center}
+.scanner .btn{background:#fff;color:#111}
+
+details.set{border:1px solid var(--line);border-radius:var(--radius-l);background:var(--surface);margin-bottom:12px}
+details.set summary{cursor:pointer;padding:16px 18px;font-weight:700;list-style:none;display:flex;justify-content:space-between}
+details.set summary::after{content:"+";color:var(--muted)}
+details.set[open] summary::after{content:"–"}
+details.set>div{padding:0 18px 16px}
+.set-msg{font-weight:600;margin:.6rem 0;min-height:1.4em}
+.set-msg[data-t="error"]{color:var(--low)} .set-msg[data-t="ok"]{color:var(--range)}
+.sources li{margin:.3rem 0 .3rem 1.1rem;font-size:.88rem}
+.sources a{color:var(--focus)}
+
+.print-only{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .app,.lock,.alert,.toast,.scanner,dialog{display:none!important}
+  .print-only{display:block;padding:10mm;font-family:Georgia,serif}
+  .print-only h1{font-size:20pt;margin-bottom:4mm}
+  .print-only table{width:100%;border-collapse:collapse;margin:4mm 0}
+  .print-only td,.print-only th{border:1px solid #999;padding:2mm;text-align:left;font-size:10pt}
 }
-
-</script>
-    <style>
-        :root { 
-            --neon: #00f2ff; 
-            --accent: #7f5af0; 
-            --bg: #010203; 
-            --health: #ff2d55; 
-            --warning: #ffd60a;
-            --success: #30d158;
-            --hypo: #ff453a;
-            --hyper: #ff9f0a;
-        }
-        
-        * { 
-            -webkit-tap-highlight-color: transparent; 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box;
-        }
-        
-        body { 
-            background: var(--bg); 
-            color: white; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; 
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            overflow: hidden; 
-            background: radial-gradient(circle at center, #001a2c 0%, #010203 100%);
-            position: fixed;
-            width: 100%;
-            overscroll-behavior: none;
-            -webkit-font-smoothing: antialiased;
-        }
-        
-        /* ANIMATIONS */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
-        @keyframes ripple { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
-        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.3); opacity: 0.5; } }
-        @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse-smooth { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(0.96); } }
-        @keyframes pulse-speak { 0%, 100% { transform: scale(1.08); } 50% { transform: scale(1.14); } }
-        
-        /* PARTICULES */
-        .particles { position: absolute; width: 100%; height: 100%; overflow: hidden; pointer-events: none; z-index: 1; }
-        .particle { position: absolute; width: 2px; height: 2px; background: var(--neon); border-radius: 50%; opacity: 0; animation: float 8s infinite; }
-        @keyframes float { 
-            0% { transform: translateY(100dvh) translateX(0); opacity: 0; }
-            50% { opacity: 0.5; }
-            100% { transform: translateY(-100px) translateX(100px); opacity: 0; }
-        }
-        
-        /* ORBE */
-        .orb-portal { 
-            position: relative; 
-            width: 280px; 
-            height: 280px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            touch-action: manipulation;
-            z-index: 10;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .orb-portal:active { transform: scale(0.95); }
-        
-        .nebula { 
-            position: absolute; 
-            width: 100%; 
-            height: 100%; 
-            border-radius: 50%; 
-            background: radial-gradient(circle, rgba(0, 242, 255, 0.15) 0%, transparent 70%); 
-            animation: breathe 6s infinite ease-in-out; 
-            pointer-events: none; 
-        }
-        
-        .ring { 
-            position: absolute; 
-            border: 1px solid var(--neon); 
-            border-radius: 50%; 
-            opacity: 0.2; 
-            animation: ripple-ring 4s infinite;
-        }
-        .ring:nth-child(1) { width: 140%; height: 140%; }
-        .ring:nth-child(2) { width: 170%; height: 170%; animation-delay: 1.3s; }
-        .ring:nth-child(3) { width: 200%; height: 200%; animation-delay: 2.6s; }
-        @keyframes ripple-ring { 0% { transform: scale(0.8); opacity: 0.3; } 100% { transform: scale(1.2); opacity: 0; } }
-        
-        .core { 
-            width: 85px; 
-            height: 85px; 
-            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%); 
-            border-radius: 50%; 
-            box-shadow: 0 0 50px var(--neon), inset 0 0 30px rgba(255,255,255,0.2); 
-            z-index: 10; 
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        .core::before {
-            content: '';
-            position: absolute;
-            inset: -50%;
-            background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: rotate 3s linear infinite;
-        }
-        
-        .idle .core { background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%); box-shadow: 0 0 50px var(--neon); }
-        .listening .core { 
-            background: linear-gradient(135deg, var(--accent) 0%, #9d7fff 100%); 
-            box-shadow: 0 0 70px var(--accent); 
-            transform: scale(0.92);
-            animation: pulse-smooth 2s infinite;
-        }
-        .speaking .core { 
-            background: linear-gradient(135deg, var(--neon) 0%, #00d4ff 100%); 
-            box-shadow: 0 0 100px var(--neon); 
-            transform: scale(1.08);
-            animation: pulse-speak 1.2s infinite;
-        }
-        .thinking .core { 
-            background: linear-gradient(135deg, var(--warning) 0%, #ffed4e 100%); 
-            box-shadow: 0 0 80px var(--warning); 
-            animation: pulse-smooth 1s infinite;
-        }
-        .syncing .core {
-            background: linear-gradient(135deg, var(--health) 0%, #ff6482 100%);
-            box-shadow: 0 0 80px var(--health);
-            animation: pulse-smooth 0.8s infinite;
-        }
-        .success .core {
-            background: linear-gradient(135deg, var(--success) 0%, #5ae584 100%);
-            box-shadow: 0 0 80px var(--success);
-            animation: pulse-smooth 1s ease-in-out 3;
-        }
-        .hypo .core {
-            background: linear-gradient(135deg, var(--hypo) 0%, #ff6961 100%);
-            box-shadow: 0 0 100px var(--hypo);
-            animation: pulse-smooth 0.5s infinite;
-        }
-        .hyper .core {
-            background: linear-gradient(135deg, var(--hyper) 0%, #ffb340 100%);
-            box-shadow: 0 0 90px var(--hyper);
-            animation: pulse-smooth 0.7s infinite;
-        }
-        
-        /* RIPPLE */
-        .ripple-effect {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(0, 242, 255, 0.4);
-            pointer-events: none;
-            animation: ripple 0.6s ease-out;
-        }
-        
-        /* INTERFACE */
-        .interface { 
-            position: fixed; 
-            bottom: 6%; 
-            width: 90%; 
-            max-width: 650px; 
-            text-align: center; 
-            z-index: 100; 
-        }
-        .dialogue-container { 
-            min-height: 140px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            gap: 15px; 
-            padding: 0 15px; 
-        }
-        #jarvis-voice { 
-            font-size: 1.25rem; 
-            font-weight: 300; 
-            line-height: 1.7; 
-            color: #f0fdfa; 
-            text-shadow: 0 2px 20px rgba(0,0,0,0.9); 
-            min-height: 3.5rem; 
-            transition: all 0.4s ease;
-        }
-        #user-input { 
-            font-size: 1.1rem; 
-            font-weight: 400; 
-            line-height: 1.6; 
-            color: var(--accent); 
-            text-shadow: 0 2px 12px rgba(127, 90, 240, 0.7); 
-            min-height: 2rem; 
-            font-style: italic; 
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        #user-input.active { opacity: 1; transform: translateY(0); }
-        #user-input.interim { opacity: 0.6; }
-        .status-indicator { 
-            font-size: 0.8rem; 
-            letter-spacing: 1.5px; 
-            color: var(--neon); 
-            opacity: 0; 
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-        }
-        .status-indicator.active { opacity: 0.8; }
-        .progress-bar { 
-            position: absolute; 
-            bottom: 0; 
-            left: 0; 
-            height: 3px; 
-            background: linear-gradient(90deg, var(--neon), var(--accent));
-            width: 0%; 
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px var(--neon);
-        }
-        
-        /* MENU DIABÈTE */
-        .diabetes-menu {
-            position: fixed;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 85;
-        }
-        .diabetes-btn {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            background: rgba(0, 26, 44, 0.85);
-            backdrop-filter: blur(15px);
-            border: 2px solid var(--neon);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
-        }
-        .diabetes-btn:hover {
-            background: rgba(0, 242, 255, 0.25);
-            transform: scale(1.15) translateX(5px);
-            box-shadow: 0 6px 25px rgba(0, 242, 255, 0.5);
-        }
-        .diabetes-btn:active { transform: scale(1.05) translateX(5px); }
-        .diabetes-btn-label {
-            position: absolute;
-            left: 70px;
-            background: rgba(0, 26, 44, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid var(--neon);
-            white-space: nowrap;
-            font-size: 0.82rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            transform: translateX(-10px);
-            box-shadow: 0 5px 20px rgba(0, 242, 255, 0.3);
-        }
-        .diabetes-btn:hover .diabetes-btn-label {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        /* OVERLAYS */
-        .overlay { 
-            position: fixed; 
-            inset: 0; 
-            background: rgba(0,0,0,0.96); 
-            backdrop-filter: blur(20px);
-            z-index: 3000; 
-            display: none; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 30px; 
-            overflow-y: auto;
-        }
-        .overlay.active { display: flex; animation: fadeIn 0.3s ease; }
-        .calc-container { 
-            background: rgba(0, 26, 44, 0.85); 
-            backdrop-filter: blur(20px);
-            border: 2px solid var(--neon); 
-            border-radius: 20px; 
-            padding: 35px; 
-            max-width: 550px; 
-            width: 100%; 
-            box-shadow: 0 20px 60px rgba(0, 242, 255, 0.3);
-            max-height: 85vh; 
-            overflow-y: auto;
-            animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .food-input {
-            background: rgba(0, 242, 255, 0.08);
-            border: 2px solid rgba(0, 242, 255, 0.4);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            width: 100%;
-            margin-bottom: 15px;
-            font-size: 0.95rem;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            font-family: inherit;
-        }
-        .food-input:focus {
-            outline: none;
-            border-color: var(--neon);
-            background: rgba(0, 242, 255, 0.15);
-            box-shadow: 0 0 25px rgba(0, 242, 255, 0.3);
-            transform: scale(1.02);
-        }
-        
-        .btn-primary { 
-            padding: 14px 32px; 
-            border-radius: 50px; 
-            background: linear-gradient(135deg, var(--neon) 0%, #00d4ff 100%);
-            border: none; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            color: #000;
-            font-size: 0.95rem;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 20px rgba(0, 242, 255, 0.4);
-            width: 100%;
-            margin-top: 15px;
-            font-family: inherit;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--accent) 0%, #9d7fff 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(127, 90, 240, 0.5);
-        }
-        .btn-primary:active { transform: translateY(0); }
-        
-        .btn-secondary { 
-            padding: 11px 20px; 
-            border-radius: 50px; 
-            background: rgba(0, 242, 255, 0.1); 
-            border: 2px solid var(--neon); 
-            color: var(--neon); 
-            cursor: pointer; 
-            font-family: inherit; 
-            font-size: 0.8rem; 
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            margin: 5px;
-            font-weight: 500;
-        }
-        .btn-secondary:hover { 
-            background: rgba(0, 242, 255, 0.25);
-            transform: scale(1.05);
-        }
-        .btn-secondary:active { transform: scale(0.98); }
-        
-        .carb-result {
-            background: rgba(48, 209, 88, 0.15);
-            border: 2px solid var(--success);
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 20px;
-            text-align: center;
-            animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .carb-value {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--success);
-            text-shadow: 0 0 20px var(--success);
-        }
-        
-        /* SCANNER CAMÉRA */
-        .camera-scanner {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.98);
-            z-index: 5000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .camera-scanner.active { display: flex; }
-        #camera-viewport {
-            position: relative;
-            width: 100%;
-            max-width: 640px;
-            height: 480px;
-            background: #000;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 10px 50px rgba(0, 242, 255, 0.3);
-        }
-        #camera-viewport video, #camera-viewport canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .scan-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-        .scan-line {
-            width: 80%;
-            height: 2px;
-            background: var(--neon);
-            box-shadow: 0 0 20px var(--neon);
-            animation: scan-animation 2s ease-in-out infinite;
-        }
-        @keyframes scan-animation {
-            0%, 100% { transform: translateY(-100px); opacity: 0.5; }
-            50% { transform: translateY(100px); opacity: 1; }
-        }
-        
-        /* TOAST */
-        .toast { 
-            position: fixed; 
-            top: 80px; 
-            right: 20px; 
-            background: rgba(0, 26, 44, 0.95); 
-            backdrop-filter: blur(15px);
-            border: 2px solid var(--neon); 
-            border-radius: 15px; 
-            padding: 16px 22px; 
-            color: white; 
-            font-size: 0.9rem; 
-            z-index: 4000; 
-            opacity: 0; 
-            transform: translateX(400px); 
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 10px 40px rgba(0, 242, 255, 0.3);
-            max-width: 300px;
-            font-weight: 500;
-        }
-        .toast.show { opacity: 1; transform: translateX(0); }
-        
-        /* HUD */
-        .hud-top { 
-            position: absolute; 
-            top: env(safe-area-inset-top, 30px); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            width: 90%; 
-            max-width: 650px; 
-            font-size: 0.7rem; 
-            letter-spacing: 2px; 
-            color: var(--neon); 
-            opacity: 0.7;
-            z-index: 50;
-        }
-        .hud-item { display: flex; align-items: center; gap: 8px; }
-        .status-dot { 
-            width: 8px; 
-            height: 8px; 
-            border-radius: 50%; 
-            background: var(--success); 
-            box-shadow: 0 0 10px var(--success); 
-            animation: pulse-dot 2s infinite;
-        }
-        
-        /* LOADING */
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(0, 242, 255, 0.2);
-            border-top-color: var(--neon);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 20px auto;
-        }
-        
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .orb-portal { width: 240px; height: 240px; }
-            .core { width: 70px; height: 70px; }
-            .diabetes-btn { width: 50px; height: 50px; font-size: 1.2rem; }
-            #jarvis-voice { font-size: 1.1rem; }
-            #camera-viewport { height: 320px; }
-            .glycemia-panel { min-width: 260px; padding: 15px 25px; }
-        }
-        
-        /* PANNEAU GLYCÉMIE */
-        .glycemia-panel {
-            position: fixed;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 26, 44, 0.9);
-            backdrop-filter: blur(20px);
-            border: 2px solid var(--neon);
-            border-radius: 20px;
-            padding: 20px 30px;
-            min-width: 280px;
-            z-index: 90;
-            box-shadow: 0 10px 50px rgba(0, 242, 255, 0.4);
-            animation: slideInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            transition: all 0.3s ease;
-        }
-        .glycemia-panel:hover {
-            transform: translateX(-50%) translateY(-5px);
-            box-shadow: 0 15px 60px rgba(0, 242, 255, 0.5);
-        }
-    
-/* ── Skeleton Loader ─────────────────────────── */
-.skeleton{background:linear-gradient(90deg,rgba(0,255,157,.07) 25%,rgba(0,255,157,.15) 50%,rgba(0,255,157,.07) 75%);background-size:200% 100%;animation:skel-wave 1.4s infinite;border-radius:6px;min-height:1em}
-@keyframes skel-wave{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
-
-/* ── GPU acceleration hints ── */
-@media (prefers-reduced-motion: no-preference) {
-  [class*="btn"],[class*="button"],[class*="card"],[class*="modal"],[class*="tab"],[class*="panel"] {
-    will-change: transform, opacity;
-    transform: translateZ(0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
-}
-
-
-/* ── Dark mode system preference — Studio Niko Design ── */
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f0f4f8;
-    --bg2: #e2e8f0;
-    --text: #1a202c;
-    --accent: #0070f3;
-  }
-  body { background: var(--bg); color: var(--text); }
-}
-
 </style>
-<script>
-
-/* ── safeStorage AES-256-GCM — Studio Niko Design ─────────────────
-   Drop-in secure replacement for safeStorage.
-   Keys never leave the browser unencrypted.
-   Usage: await safeStorage.setItem(key, value)
-          await safeStorage.getItem(key)
-          await safeStorage.removeItem(key)
-─────────────────────────────────────────────────────────────────── */
-const safeStorage = window.safeStorage; /* facade synchrone Studio Niko — l'implémentation AES async était incompatible avec les lectures synchrones */
-
-</script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <meta property="og:title" content="Jarvis Diabète | Studio Niko Design">
-  <meta property="og:description" content="Assistant vocal IA diabète — suivi glycémique, intégration Nightscout, agents spécialisés">
-  <meta property="og:type" content="website">
-  <meta name="theme-color" content="#00d4ff">
 </head>
-<body role="application" aria-label="Jarvis Diabète — Assistant vocal diabète">
-<main id="app" tabindex="-1">
-<h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap">Jarvis Diabète</h1>
+<body>
 
+<!-- ─────────── Verrouillage / première ouverture ─────────── -->
+<div id="lock" class="lock">
+  <div class="lock-card">
+    <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6C32 6 14 28 14 40a18 18 0 0 0 36 0C50 28 32 6 32 6z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M20 42h8l4-8 5 14 4-6h4" fill="none" stroke="#0E8C7F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h1 class="lock-title" id="lockTitle">Jarvis Diabète</h1>
+    <p id="lockIntro">Vos données de santé sont chiffrées sur cet appareil avec votre code.</p>
 
-<div class="particles" id="particles"></div>
+    <form id="unlockForm" hidden>
+      <label class="field"><span>Code de déverrouillage</span><input id="unlockCode" type="password" autocomplete="current-password" required></label>
+      <div class="lock-err" id="unlockErr" role="alert"></div>
+      <button class="btn btn-main btn-block" type="submit" id="unlockBtn">Déverrouiller</button>
+    </form>
 
-<!-- HUD -->
-<div class="hud-top">
-    <div class="hud-item">
-        <div class="status-dot" id="statusDot"></div>
-        <div id="status-text">DIABÈTE MODE</div>
+    <form id="setupForm" hidden>
+      <div class="notice"><strong>Prototype non certifié.</strong> Cette application n'est pas un dispositif médical marqué CE. Elle ne remplace ni votre équipe soignante, ni votre lecteur ou votre pompe. En cas d'urgence, appelez le 15.</div>
+      <label class="field"><span>Choisissez un code (6 caractères minimum)</span><input id="setupCode" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label class="field"><span>Confirmez le code</span><input id="setupCode2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label class="check"><input type="checkbox" id="setupConsent" required><span>J'ai compris que les estimations sont indicatives, que mes données restent chiffrées sur cet appareil et que les questions posées à l'assistant IA sont envoyées au fournisseur que je choisis.</span></label>
+      <div class="lock-err" id="setupErr" role="alert"></div>
+      <button class="btn btn-main btn-block" type="submit">Créer mon coffre chiffré</button>
+      <p class="hint" style="margin-top:.8rem">Code oublié = données irrécupérables. Aucune copie n'existe ailleurs.</p>
+    </form>
+  </div>
+</div>
+
+<!-- ─────────── Application ─────────── -->
+<div id="app" class="app" hidden>
+  <header class="top">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6C32 6 14 28 14 40a18 18 0 0 0 36 0C50 28 32 6 32 6z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 42h8l4-8 5 14 4-6h4" fill="none" stroke="var(--range)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Jarvis Diabète</span>
     </div>
-    <div style="display: flex; gap: 15px;">
-        <div class="hud-item" style="cursor:pointer; display: none;" onclick="PWA.install()" id="installBtn">
-            [ INSTALLER ]
+    <div class="top-actions">
+      <span class="pill" id="syncPill" data-s="off">Capteur non relié</span>
+      <button class="icon-btn" id="btnLock" aria-label="Verrouiller l'application" title="Verrouiller"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- SUIVI -->
+    <section class="view is-active" id="view-suivi" aria-labelledby="tab-suivi">
+      <div class="hero" id="hero" data-z="none">
+        <div class="reading"><span id="bgValue">—</span><span id="bgArrow" aria-hidden="true"></span></div>
+        <div class="reading-meta"><span id="bgUnit">mg/dL</span><span id="bgDelta"></span><span id="bgAge">Aucune mesure</span></div>
+        <p id="bgVerdict">Reliez Nightscout ou saisissez une mesure.</p>
+      </div>
+
+      <div class="card chart-card">
+        <div class="seg" role="group" aria-label="Période du graphique">
+          <button type="button" data-h="3" aria-pressed="true">3 h</button>
+          <button type="button" data-h="12" aria-pressed="false">12 h</button>
+          <button type="button" data-h="24" aria-pressed="false">24 h</button>
         </div>
-        <div class="hud-item" style="cursor:pointer;" onclick="Config.open()">
-            [ CONFIG ]
+        <div id="chart"></div>
+      </div>
+
+      <div class="card">
+        <form id="manualForm" class="row" style="align-items:flex-end">
+          <label class="field" style="margin:0"><span id="manualLabel">Mesure capillaire (mg/dL)</span><input id="manualBg" inputmode="decimal" autocomplete="off" placeholder="Ex. 124"></label>
+          <button class="btn btn-main" type="submit" style="flex:0 0 auto">Ajouter la mesure</button>
+        </form>
+        <div class="row" style="margin-top:.8rem">
+          <button class="btn" type="button" id="btnNsRefresh">Actualiser le capteur</button>
+          <button class="btn" type="button" id="btnHealth">Importer de Santé (iOS)</button>
         </div>
-    </div>
-</div>
+        <div class="stat-line" style="margin-top:.6rem"><b>Insuline active</b><span class="v" id="iobValue">0,0 U</span></div>
+      </div>
 
-<!-- MENU DIABÈTE -->
-<div class="diabetes-menu">
-    <div class="diabetes-btn" onclick="Diabetes.openCarbCalculator()">
-        <span>🍞</span>
-        <div class="diabetes-btn-label">Calculer glucides</div>
-    </div>
-    <div class="diabetes-btn" onclick="BarcodeScanner.start()">
-        <span>📷</span>
-        <div class="diabetes-btn-label">Scanner produit</div>
-    </div>
-    <div class="diabetes-btn" onclick="Diabetes.openInsulinCalculator()">
-        <span>💉</span>
-        <div class="diabetes-btn-label">Calculer insuline</div>
-    </div>
-    <div class="diabetes-btn" onclick="AppleHealth.sync()">
-        <span>❤️</span>
-        <div class="diabetes-btn-label">Sync Apple Health</div>
-    </div>
-</div>
+      <section class="card agents" aria-labelledby="agentsTitle">
+        <h2 id="agentsTitle">Agents de contrôle</h2>
+        <ul id="agentList"></ul>
+        <button class="btn btn-block" type="button" id="btnAudit" style="margin-top:.6rem">Ouvrir le journal d'audit</button>
+      </section>
 
-<!-- ORBE -->
-<div class="orb-portal idle" id="trigger">
-    <div class="ring"></div>
-    <div class="ring"></div>
-    <div class="ring"></div>
-    <div class="nebula"></div>
-    <div class="core" id="orbCore"></div>
-</div>
-
-<!-- PANNEAU GLYCÉMIE -->
-<div id="glycemiaPanel" class="glycemia-panel" style="display: none;">
-    <div style="font-size: 3rem; font-weight: 700; text-align: center; color: var(--success);" id="glycemiaValue">---</div>
-    <div style="text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.7); margin-top: 8px;" id="glycemiaStatus">En attente des données</div>
-    <div style="text-align: center; font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-top: 8px;" id="glycemiaTime">---</div>
-</div>
-
-<!-- INTERFACE -->
-<div class="interface">
-    <div class="dialogue-container">
-        <div id="user-input"></div>
-        <div id="jarvis-voice">Initialisation des systèmes...</div>
-        <div id="status-indicator" class="status-indicator"></div>
-    </div>
-    <div class="progress-bar" id="progressBar"></div>
-</div>
-
-<!-- PANNEAU CONFIG -->
-<div id="configPanel" class="overlay">
-    <div class="calc-container">
-        <h2 style="color:var(--neon); font-weight: 300; letter-spacing: 4px; margin-bottom: 25px; text-align: center;">⚙️ CONFIGURATION</h2>
-        
-        <label style="display: block; margin-bottom: 8px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">🤖 Clé API Mistral *</label>
-        <input type="password" class="food-input" id="apiKeyInput" placeholder="sk-..." autocomplete="off">
-        
-        <label style="display: block; margin-bottom: 8px; margin-top: 15px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">👤 Votre prénom</label>
-        <input type="text" class="food-input" id="userNameInput" placeholder="Comment vous appeler ?" value="Monsieur">
-        
-        <label style="display: block; margin-bottom: 8px; margin-top: 15px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">📱 Nom Shortcut iOS (Apple Health)</label>
-        <input type="text" class="food-input" id="shortcutNameInput" placeholder="SyncJarvis" value="SyncJarvis">
-        
-        <label style="display: block; margin-bottom: 8px; margin-top: 15px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">💉 Ratio insuline/glucides (1U pour X g)</label>
-        <input type="number" class="food-input" id="insulinRatioInput" placeholder="10" value="10">
-        
-        <button class="btn-primary" onclick="Config.save()">💾 SAUVEGARDER</button>
-        
-        <div style="margin-top: 15px; text-align: center;">
-            <button class="btn-secondary" onclick="Config.close()">Annuler</button>
+      <section class="card" aria-labelledby="metricsTitle">
+        <h2 id="metricsTitle">Équilibre glycémique</h2>
+        <div class="seg" role="group" aria-label="Période des indicateurs" id="metricRange" style="margin:0 0 .6rem">
+          <button type="button" data-d="1" aria-pressed="false">24 h</button>
+          <button type="button" data-d="7" aria-pressed="false">7 j</button>
+          <button type="button" data-d="14" aria-pressed="true">14 j</button>
         </div>
-    </div>
+        <div id="metrics"></div>
+        <div class="row" style="margin-top:.8rem">
+          <button class="btn" type="button" id="btnReport">Rapport pour le médecin</button>
+          <button class="btn" type="button" id="btnCsv">Exporter en CSV</button>
+        </div>
+      </section>
+    </section>
+
+    <!-- REPAS -->
+    <section class="view" id="view-repas" aria-labelledby="tab-repas">
+      <form id="foodForm" class="card">
+        <label class="field"><span>Aliment et quantité</span><input id="foodQuery" autocomplete="off" placeholder="Ex. 150 g de riz, 2 tranches de pain, 1 banane"></label>
+        <div class="row">
+          <button class="btn btn-main" type="submit">Chercher les glucides</button>
+          <button class="btn" type="button" id="btnScan">Scanner un code-barres</button>
+        </div>
+      </form>
+      <div class="card" id="foodResultsCard" hidden>
+        <h2>Résultats</h2>
+        <ul class="list" id="foodResults"></ul>
+      </div>
+      <div class="card">
+        <h2>Repas en cours</h2>
+        <ul class="list" id="mealList"></ul>
+        <div class="total"><span>Total glucides</span><span class="num" id="mealTotal">0 g</span></div>
+        <div class="row" style="margin-top:1rem">
+          <button class="btn btn-main" type="button" id="btnMealToBolus">Estimer le bolus</button>
+          <button class="btn" type="button" id="btnSaveMeal">Enregistrer le repas</button>
+          <button class="btn" type="button" id="btnClearMeal">Vider</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOLUS -->
+    <section class="view" id="view-bolus" aria-labelledby="tab-bolus">
+      <div class="notice"><strong>Estimation, pas prescription.</strong> Le calcul applique uniquement les paramètres fixés par votre équipe soignante. Vérifiez toujours avant d'injecter.</div>
+      <form id="bolusForm" class="card">
+        <div class="grid2">
+          <label class="field"><span>Glucides du repas (g)</span><input id="bolusCarbs" inputmode="decimal" autocomplete="off" placeholder="0"></label>
+          <label class="field"><span id="bolusBgLabel">Glycémie (mg/dL)</span><input id="bolusBg" inputmode="decimal" autocomplete="off"></label>
+        </div>
+        <p class="hint" id="bolusBgHint"></p>
+        <button class="btn btn-main btn-block" type="submit" style="margin-top:.6rem">Vérifier et estimer</button>
+        <div id="bolusResult" class="result" hidden aria-live="polite"></div>
+      </form>
+      <form id="bolusLogForm" class="card">
+        <h2>Consigner une injection</h2>
+        <div class="row" style="align-items:flex-end">
+          <label class="field" style="margin:0"><span>Unités réellement injectées</span><input id="bolusDone" inputmode="decimal" autocomplete="off"></label>
+          <button class="btn btn-main" type="submit" style="flex:0 0 auto">Consigner</button>
+        </div>
+        <p class="hint" style="margin-top:.5rem">Sert au calcul de l'insuline active. Si votre pompe ou votre stylo connecté l'enregistre déjà dans Nightscout, ne la saisissez pas deux fois.</p>
+        <ul class="list" id="bolusList" style="margin-top:.6rem"></ul>
+      </form>
+    </section>
+
+    <!-- ASSISTANT -->
+    <section class="view" id="view-assistant" aria-labelledby="tab-assistant">
+      <div class="chat" id="chatLog" aria-live="polite">
+        <div class="msg bot">Posez une question sur le diabète, votre glycémie ou un repas. Je ne donne jamais de dose : chaque réponse passe par les agents de triage et de contrôle.</div>
+      </div>
+      <form class="chat-form" id="chatForm">
+        <button class="mic" type="button" id="btnMic" aria-pressed="false" aria-label="Parler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <input id="chatInput" autocomplete="off" placeholder="Votre question" aria-label="Votre question">
+        <button class="mic" type="submit" aria-label="Envoyer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-7z"/></svg></button>
+      </form>
+    </section>
+
+    <!-- RÉGLAGES -->
+    <section class="view" id="view-reglages" aria-labelledby="tab-reglages">
+      <form id="settingsForm" novalidate>
+        <details class="set" open>
+          <summary>Profil et unités</summary>
+          <div>
+            <div class="grid2">
+              <label class="field"><span>Prénom (reste sur l'appareil)</span><input id="setName" autocomplete="given-name"></label>
+              <label class="field"><span>Unité de glycémie</span><select id="setUnit"><option value="mg">mg/dL</option><option value="mmol">mmol/L</option></select></label>
+            </div>
+            <label class="field"><span>Type de diabète</span><select id="setType"><option value="T1">Type 1</option><option value="T2">Type 2 sous insuline</option><option value="autre">Autre</option></select></label>
+          </div>
+        </details>
+
+        <details class="set" id="setTherapy">
+          <summary>Paramètres du traitement</summary>
+          <div>
+            <p class="hint" style="margin-bottom:.9rem">À recopier depuis votre prescription. Toute modification désactive l'estimation jusqu'à nouvelle validation.</p>
+            <div class="grid2">
+              <label class="field"><span>Ratio glucides (g pour 1 U)</span><input id="setIcr" class="th" inputmode="decimal"></label>
+              <label class="field"><span id="setIsfLabel">Sensibilité (mg/dL par U)</span><input id="setIsf" class="th" inputmode="decimal"></label>
+              <label class="field"><span id="setTargetLabel">Glycémie cible (mg/dL)</span><input id="setTarget" class="th" inputmode="decimal"></label>
+              <label class="field"><span>Plafond par bolus (U)</span><input id="setMax" class="th" inputmode="decimal"></label>
+              <label class="field"><span>Insuline rapide</span><select id="setPeak" class="th"><option value="75">Rapide (NovoRapid, Humalog, Apidra)</option><option value="55">Ultra-rapide (Fiasp, Lyumjev)</option></select></label>
+              <label class="field"><span>Durée d'action (h)</span><input id="setDia" class="th" inputmode="decimal"></label>
+              <label class="field"><span>Pas d'injection (U)</span><select id="setStep" class="th"><option value="0.5">0,5 U</option><option value="1">1 U</option><option value="0.1">0,1 U (pompe)</option></select></label>
+              <label class="field"><span>Validé par (médecin, service)</span><input id="setValidatedBy" autocomplete="off"></label>
+            </div>
+            <label class="check"><input type="checkbox" id="setValidated"><span>Ces paramètres correspondent à ma prescription actuelle, validée par mon équipe soignante.</span></label>
+          </div>
+        </details>
+
+        <details class="set">
+          <summary>Seuils d'alerte</summary>
+          <div>
+            <div class="grid2">
+              <label class="field"><span id="setLowLabel">Seuil bas (mg/dL)</span><input id="setLow" inputmode="decimal"></label>
+              <label class="field"><span id="setHighLabel">Seuil haut (mg/dL)</span><input id="setHigh" inputmode="decimal"></label>
+            </div>
+            <label class="check"><input type="checkbox" id="setVoice"><span>Annoncer les alertes et les réponses à voix haute</span></label>
+          </div>
+        </details>
+
+        <details class="set">
+          <summary>Capteur (Nightscout)</summary>
+          <div>
+            <label class="field"><span>Adresse de votre site Nightscout</span><input id="setNsUrl" inputmode="url" autocomplete="off" placeholder="https://monsite.herokuapp.com"></label>
+            <label class="field"><span>Jeton d'accès en lecture</span><input id="setNsToken" type="password" autocomplete="off"></label>
+            <button class="btn" type="button" id="btnNsTest">Tester la connexion</button>
+            <label class="field" style="margin-top:.9rem"><span>Nom du Raccourci iOS (Santé)</span><input id="setShortcut" autocomplete="off"></label>
+            <p class="hint">Le Raccourci doit rouvrir cette page avec <span class="num">?bg=VALEUR&amp;unit=mg</span> (ou <span class="num">mmol</span>).</p>
+          </div>
+        </details>
+
+        <details class="set">
+          <summary>Assistant IA</summary>
+          <div>
+            <p class="hint" style="margin-bottom:.9rem">Chaîne de repli : Mistral, puis Groq, puis Cerebras, puis le modèle local. Seule votre question est envoyée, sans prénom. Le contexte glycémique n'est joint que si vous l'autorisez.</p>
+            <label class="field"><span>Clé Mistral</span><input id="setKeyMistral" type="password" autocomplete="off"></label>
+            <label class="field"><span>Modèle Mistral</span><input id="setModelMistral" autocomplete="off"></label>
+            <label class="field"><span>Clé Groq</span><input id="setKeyGroq" type="password" autocomplete="off"></label>
+            <label class="field"><span>Modèle Groq</span><input id="setModelGroq" autocomplete="off"></label>
+            <label class="field"><span>Clé Cerebras</span><input id="setKeyCerebras" type="password" autocomplete="off"></label>
+            <label class="field"><span>Modèle Cerebras</span><input id="setModelCerebras" autocomplete="off"></label>
+            <label class="check"><input type="checkbox" id="setLocalOn"><span>Utiliser un modèle local (Ollama, LM Studio) : Diabetica, MedGemma…</span></label>
+            <label class="field"><span>Adresse du serveur local</span><input id="setLocalUrl" autocomplete="off"></label>
+            <label class="field"><span>Modèle local</span><input id="setLocalModel" list="localModels" autocomplete="off"></label>
+            <datalist id="localModels">
+              <option value="hf.co/mradermacher/Diabetica-Qwen3-4B-GGUF:Q4_K_M">Diabetica Qwen3 4B — spécialisé diabète</option>
+              <option value="hf.co/mradermacher/Diabetica-o1-GGUF:Q4_K_M">Diabetica o1 7B — multilingue, raisonnement</option>
+              <option value="hf.co/unsloth/medgemma-1.5-4b-it-GGUF:Q4_K_M">MedGemma 1.5 4B — médical généraliste</option>
+            </datalist>
+            <p class="hint">Ollama : lancez <span class="num">OLLAMA_ORIGINS=https://jarvisdiabete.vercel.app ollama serve</span> puis <span class="num">ollama pull</span> le modèle choisi.</p>
+            <label class="check" style="margin-top:.9rem"><input type="checkbox" id="setCritic"><span>Relecture de chaque réponse par un second modèle (agent de contrôle critique)</span></label>
+            <label class="check"><input type="checkbox" id="setShare"><span>Joindre un contexte anonymisé (dernière glycémie, temps dans la cible)</span></label>
+          </div>
+        </details>
+
+        <div class="set-msg" id="settingsMsg" role="status"></div>
+        <button class="btn btn-main btn-block" type="submit">Enregistrer les réglages</button>
+      </form>
+
+      <details class="set" style="margin-top:14px">
+        <summary>Mes données</summary>
+        <div>
+          <div class="row">
+            <button class="btn" type="button" id="btnExportJson">Exporter toutes mes données</button>
+            <button class="btn btn-danger" type="button" id="btnWipe">Effacer toutes mes données</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="set">
+        <summary>Sources et références</summary>
+        <div>
+          <ul class="sources">
+            <li>Cibles de temps dans la cible : consensus international Battelino et al., Diabetes Care 2019, repris par l'ADA Standards of Care 2026.</li>
+            <li>GMI : Bergenstal et al., Diabetes Care 2018 (3,31 + 0,02392 × moyenne en mg/dL).</li>
+            <li>Insuline active : modèle exponentiel d'OpenAPS oref0 (open source).</li>
+            <li>Capteur : API Nightscout (projet open source cgm-remote-monitor).</li>
+            <li>Produits : Open Food Facts (base ouverte). Table interne : valeurs moyennes approximatives.</li>
+            <li>Modèles locaux : Diabetica (WaltonFuture, licence MIT), MedGemma 1.5 (Google).</li>
+          </ul>
+          <p class="hint" style="margin-top:.6rem">Studio Niko Design — prototype non certifié dispositif médical.</p>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Navigation principale">
+    <button type="button" id="tab-suivi" data-view="suivi" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-6 4 3 6-8 3 4"/></svg>Suivi</button>
+    <button type="button" id="tab-repas" data-view="repas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11h16a8 8 0 0 1-16 0zM8 7c0-2 2-2 2-4M13 7c0-2 2-2 2-4"/></svg>Repas</button>
+    <button type="button" id="tab-bolus" data-view="bolus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2l4 4M20 4l-9 9M14 6l4 4M13 11l-7 7-3 1 1-3 7-7"/></svg>Bolus</button>
+    <button type="button" id="tab-assistant" data-view="assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>Assistant</button>
+    <button type="button" id="tab-reglages" data-view="reglages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Réglages</button>
+  </nav>
 </div>
 
-<!-- CALCULATEUR GLUCIDES -->
-<div id="carbCalculator" class="overlay">
-    <div class="calc-container">
-        <h2 style="color:var(--neon); font-weight: 300; letter-spacing: 4px; margin-bottom: 25px; text-align: center;">🍞 CALCULATEUR GLUCIDES</h2>
-        
-        <label style="display: block; margin-bottom: 8px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">Aliment ou repas</label>
-        <input type="text" class="food-input" id="foodInput" placeholder="Ex: 100g de riz, pomme, pizza...">
-        
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button class="btn-secondary" style="flex: 1;" onclick="BarcodeScanner.start()">📷 SCANNER</button>
-        </div>
-        
-        <button class="btn-primary" onclick="Diabetes.calculateCarbs()">🧮 CALCULER</button>
-        
-        <div id="carbResult" style="display: none;"></div>
-        
-        <div style="margin-top: 20px; text-align: center;">
-            <button class="btn-secondary" onclick="Diabetes.closeCarbCalculator()">Fermer</button>
-        </div>
-    </div>
+<div id="alertBanner" class="alert" role="alert" hidden><b id="alertTitle"></b><span id="alertText"></span><br><button class="btn" type="button" id="btnAlertOk">J'ai compris</button></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="scanner" class="scanner" hidden>
+  <video id="scanVideo" playsinline muted></video>
+  <div class="scan-frame" aria-hidden="true"></div>
+  <p id="scanMsg">Placez le code-barres dans le cadre.</p>
+  <button class="btn" type="button" id="btnScanClose">Fermer la caméra</button>
 </div>
 
-<!-- CALCULATEUR INSULINE -->
-<div id="insulinCalculator" class="overlay">
-    <div class="calc-container">
-        <h2 style="color:var(--accent); font-weight: 300; letter-spacing: 4px; margin-bottom: 25px; text-align: center;">💉 CALCULATEUR INSULINE</h2>
-        
-        <label style="display: block; margin-bottom: 8px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">Glucides consommés (g)</label>
-        <input type="number" class="food-input" id="mealCarbs" placeholder="Ex: 60">
-        
-        <label style="display: block; margin-bottom: 8px; margin-top: 15px; color: rgba(255,255,255,0.7); font-size: 0.85rem;">Glycémie actuelle (mg/dL)</label>
-        <input type="number" class="food-input" id="currentBGInsulin" placeholder="Ex: 150">
-        
-        <button class="btn-primary" onclick="Diabetes.calculateInsulin()">💉 CALCULER LA DOSE</button>
-        
-        <div id="insulinResult" style="display: none;"></div>
-        
-        <div style="margin-top: 20px; text-align: center;">
-            <button class="btn-secondary" onclick="Diabetes.closeInsulinCalculator()">Fermer</button>
-        </div>
+<dialog id="portionDlg" aria-labelledby="portionTitle">
+  <form id="portionForm" method="dialog">
+    <h2 id="portionTitle">Portion</h2>
+    <p id="portionInfo" class="hint" style="margin-bottom:.9rem"></p>
+    <label class="field"><span>Quantité consommée (g ou mL)</span><input id="portionGrams" inputmode="decimal" autocomplete="off"></label>
+    <p class="num" id="portionCarbs" style="font-weight:600;margin-bottom:1rem"></p>
+    <div class="row">
+      <button class="btn btn-main" type="submit" id="portionOk">Ajouter au repas</button>
+      <button class="btn" type="button" id="portionCancel">Annuler</button>
     </div>
-</div>
+  </form>
+</dialog>
 
-<!-- SCANNER CAMÉRA -->
-<div id="cameraScanner" class="camera-scanner">
-    <div id="camera-viewport">
-        <video id="camera-video" autoplay playsinline></video>
-        <canvas id="camera-canvas"></canvas>
-        <div class="scan-overlay">
-            <div class="scan-line"></div>
-        </div>
-    </div>
-    
-    <div style="margin-top: 30px; color: white; text-align: center; font-size: 1.1rem;" id="scanInstructions">
-        📷 Placez le code-barre dans le cadre
-    </div>
-    
-    <div style="margin-top: 30px; display: flex; gap: 15px;">
-        <button class="btn-secondary" onclick="BarcodeScanner.stop()">❌ Fermer</button>
-    </div>
-</div>
+<dialog id="auditDlg" aria-labelledby="auditTitle">
+  <h2 id="auditTitle">Journal d'audit des agents</h2>
+  <p class="hint">200 dernières décisions, conservées chiffrées sur l'appareil.</p>
+  <ol class="audit" id="auditList"></ol>
+  <button class="btn btn-block" type="button" id="btnAuditClose">Fermer</button>
+</dialog>
 
-<div id="toast" class="toast"></div>
+<div id="printReport" class="print-only"></div>
 
+<!-- ─────────── Noyau métier (pur, testable, sans DOM) ─────────── -->
 <script>
-// VIBRATION
-const vibrate = (pattern = 50) => {
-    if (navigator.vibrate) navigator.vibrate(pattern);
-};
+/*CORE-START*/
+var Core = (function(){
+  'use strict';
+  var MMOL = 18.0182;
+  var U = {
+    toMg: function(v,u){ return u==='mmol' ? v*MMOL : v; },
+    fromMg: function(mg,u){ return u==='mmol' ? mg/MMOL : mg; },
+    fmt: function(mg,u){ if(mg==null||!isFinite(mg)) return '—'; return u==='mmol' ? (mg/MMOL).toFixed(1).replace('.',',') : String(Math.round(mg)); },
+    label: function(u){ return u==='mmol' ? 'mmol/L' : 'mg/dL'; }
+  };
+  function parseNum(s){
+    if(s==null) return NaN;
+    var t=String(s).trim().replace(',', '.');
+    if(!/^-?\d+(\.\d+)?$/.test(t)) return NaN;
+    return parseFloat(t);
+  }
 
-// RIPPLE
-const createRipple = (event, element) => {
-    const ripple = document.createElement('span');
-    ripple.classList.add('ripple-effect');
-    const rect = element.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    const x = event.clientX - rect.left - size / 2;
-    const y = event.clientY - rect.top - size / 2;
-    ripple.style.width = ripple.style.height = size + 'px';
-    ripple.style.left = x + 'px';
-    ripple.style.top = y + 'px';
-    element.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-};
+  /* Insuline active — courbe exponentielle OpenAPS oref0 (td = durée, tp = pic, en minutes) */
+  function iobFraction(minutesAgo, diaHours, peakMin){
+    var td=diaHours*60, tp=peakMin, t=minutesAgo;
+    if(!(td>0) || !(tp>0) || tp*2>=td) return t<td ? 1 : 0; /* paramètres invalides : prudence maximale */
+    if(t<=0) return 1;
+    if(t>=td) return 0;
+    var tau = tp*(1-tp/td)/(1-2*tp/td);
+    var a = 2*tau/td;
+    var S = 1/(1-a+(1+a)*Math.exp(-td/tau));
+    var f = 1 - S*(1-a)*((t*t/(tau*td*(1-a)) - t/tau - 1)*Math.exp(-t/tau) + 1);
+    return Math.min(1, Math.max(0, f));
+  }
+  function iobTotal(boluses, now, diaHours, peakMin){
+    var s=0;
+    for(var i=0;i<boluses.length;i++){ var b=boluses[i]; if(b.u>0 && b.t<=now) s += b.u*iobFraction((now-b.t)/60000, diaHours, peakMin); }
+    return s;
+  }
 
-// BASE DONNÉES
-const NUTRITION_DB = {
-    'riz blanc cuit': 28, 'riz complet cuit': 23, 'pâtes cuites': 25, 'pain blanc': 50, 'pain complet': 45,
-    'pomme de terre': 17, 'patate douce': 20, 'pomme': 14, 'banane': 23, 'orange': 12, 'raisin': 18,
-    'pizza': 30, 'burger': 35, 'sandwich': 40
-};
-const FOOD_CACHE = JSON.parse(safeStorage.getItem('food_cache')) || {};
+  function therapyMissing(th){
+    var m=[];
+    if(!(th.icr>0)) m.push('ratio glucides');
+    if(!(th.isf>0)) m.push('sensibilité');
+    if(!(th.target>0)) m.push('glycémie cible');
+    if(!(th.maxBolus>0)) m.push('plafond par bolus');
+    if(!(th.dia>0) || !(th.peak>0) || th.peak*2>=th.dia*60) m.push('durée d\'action cohérente');
+    if(!th.validated) m.push('validation par l\'équipe soignante');
+    return m;
+  }
 
-// CONFIG
-const Config = {
-    open() {
-        vibrate(50);
-        document.getElementById('configPanel').classList.add('active');
-        document.getElementById('apiKeyInput').value = safeStorage.getItem('mistral_vault') || '';
-        document.getElementById('userNameInput').value = safeStorage.getItem('user_name') || 'Monsieur';
-        document.getElementById('shortcutNameInput').value = safeStorage.getItem('shortcut_name') || 'SyncJarvis';
-        document.getElementById('insulinRatioInput').value = safeStorage.getItem('insulin_ratio') || '10';
-        setTimeout(() => document.getElementById('apiKeyInput').focus(), 300);
-    },
-    
-    close() {
-        vibrate(30);
-        document.getElementById('configPanel').classList.remove('active');
-    },
-    
-    save() {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        const userName = document.getElementById('userNameInput').value.trim();
-        const shortcutName = document.getElementById('shortcutNameInput').value.trim();
-        const ratio = document.getElementById('insulinRatioInput').value.trim();
-        
-        if (!apiKey || apiKey.length < 10) {
-            Jarvis.UI.showToast("⚠️ Clé API requise", "error");
-            vibrate([50, 100, 50]);
-            return;
-        }
-        
-        safeStorage.setItem('mistral_vault', apiKey);
-        safeStorage.setItem('user_name', userName || 'Monsieur');
-        safeStorage.setItem('shortcut_name', shortcutName || 'SyncJarvis');
-        safeStorage.setItem('insulin_ratio', ratio || '10');
-        
-        Jarvis.state.key = apiKey;
-        Jarvis.state.userName = userName || 'Monsieur';
-        Jarvis.state.insulinRatio = parseFloat(ratio) || 10;
-        
-        vibrate([50, 100, 50]);
-        this.close();
-        Jarvis.UI.showToast("✅ Configuration sauvegardée", "success");
-        Jarvis.UI.setState('success', 1500);
-        
-        setTimeout(() => {
-            Jarvis.Voice.speak(`Parfait ${Jarvis.state.userName}. Liaison établie. Je suis opérationnel.`);
-        }, 1800);
+  /* Agent Garde-fou bolus : deux calculs indépendants, insuline active, plafonds, blocages */
+  function bolusEstimate(o){
+    var th=o.therapy, unit=o.unit||'mg', now=o.now;
+    var res={status:'ok', dose:0, raw:0, parts:null, msgs:[]};
+    function block(m){ res.status='blocked'; res.msgs.push({level:'critical', text:m}); }
+    function warn(m){ if(res.status==='ok') res.status='warn'; res.msgs.push({level:'warn', text:m}); }
+    var miss=therapyMissing(th);
+    if(miss.length){ block('Paramètres manquants : '+miss.join(', ')+'. Ils doivent venir de votre prescription.'); return res; }
+    if(!(o.carbs>=0) || o.carbs>300){ block('Quantité de glucides invalide (0 à 300 g).'); return res; }
+    if(!(o.bgMg>=20 && o.bgMg<=600)){ block('Glycémie absente ou hors plage mesurable.'); return res; }
+    if(o.bgMg<70){ block('Glycémie basse : aucun bolus. Prenez 15 g de sucre rapide, recontrôlez dans 15 minutes.'); return res; }
+    if(o.bgAgeMin!=null && o.bgAgeMin>15) warn('Glycémie datant de '+Math.round(o.bgAgeMin)+' min : refaites une mesure avant d\'injecter.');
+    var iob=iobTotal(o.boluses||[], now, th.dia, th.peak);
+    var carbDose=o.carbs/th.icr;
+    var corr=(o.bgMg-th.target)/th.isf;
+    var raw=carbDose+corr-iob;
+    /* Second calcul indépendant (arithmétique entière en dixièmes), doit concorder */
+    var carb10=Math.round(o.carbs*10), icr10=Math.round(th.icr*10), bg10=Math.round(o.bgMg*10), tg10=Math.round(th.target*10), isf10=Math.round(th.isf*10);
+    var raw2=(carb10/icr10) + ((bg10-tg10)/isf10) - iob;
+    if(Math.abs(raw-raw2)>0.05){ block('Les deux calculs indépendants divergent : estimation annulée par sécurité.'); return res; }
+    raw=Math.max(0, raw);
+    var step=th.step>0 ? th.step : 0.5;
+    var dose=Math.floor(raw/step+1e-9)*step;
+    dose=Math.round(dose*100)/100;
+    res.parts={carbDose:carbDose, corr:corr, iob:iob};
+    res.raw=raw; res.dose=dose;
+    if(dose>th.maxBolus){ res.status='blocked'; res.msgs.push({level:'critical', text:'Estimation au-dessus de votre plafond de '+th.maxBolus+' U : vérifiez les données et contactez votre équipe soignante.'}); return res; }
+    var recent=(o.boluses||[]).filter(function(b){ return now-b.t < 2*3600e3 && b.u>0; });
+    if(recent.length) warn('Injection dans les 2 dernières heures : '+iob.toFixed(1).replace('.',',')+' U encore actives, déjà déduites.');
+    if(o.slope!=null && isFinite(o.slope)){
+      var pred=o.bgMg+o.slope*30;
+      if(pred<70) warn('Glycémie en baisse : projetée à '+U.fmt(pred,unit)+' '+U.label(unit)+' dans 30 min.');
+      else if(o.slope<=-2) warn('Baisse rapide en cours : soyez prudent.');
     }
-};
+    if(dose===0) res.msgs.push({level:'info', text:'Aucune insuline supplémentaire estimée.'});
+    return res;
+  }
 
-// DIABETES
-const Diabetes = {
-    glycemiaHistory: JSON.parse(safeStorage.getItem('glycemia_history')) || [],
-    
-    openCarbCalculator() {
-        vibrate(50);
-        document.getElementById('carbCalculator').classList.add('active');
-        setTimeout(() => document.getElementById('foodInput').focus(), 300);
-    },
-    
-    closeCarbCalculator() {
-        vibrate(30);
-        document.getElementById('carbCalculator').classList.remove('active');
-    },
-    
-    async calculateCarbs() {
-        const food = document.getElementById('foodInput').value.trim();
-        if (!food) {
-            Jarvis.UI.showToast("⚠️ Entrez un aliment", "error");
-            vibrate([50, 100, 50]);
-            return;
-        }
-        
-        vibrate(50);
-        Jarvis.UI.showStatus("🔍 Recherche...", "thinking");
-        Jarvis.UI.setState('thinking');
-        
-        try {
-            // Recherche OpenFoodFacts
-            const result = await this.searchOpenFoodFacts(food);
-            
-            if (result) {
-                this.displayResult(result);
-            } else {
-                // Fallback base locale
-                const localCarbs = this.searchLocal(food);
-                if (localCarbs) {
-                    this.displayResult({ carbs: localCarbs, name: food, source: 'local' });
-                } else {
-                    throw new Error('Produit non trouvé');
-                }
-            }
-        } catch (error) {
-            console.error(error);
-            Jarvis.UI.clearState();
-            Jarvis.UI.hideStatus();
-            Jarvis.UI.showToast("❌ Produit non trouvé", "error");
-            vibrate([50, 100, 50]);
-        }
-    },
-    
-    async searchOpenFoodFacts(query) {
-        try {
-            const cleanQuery = query.toLowerCase().trim();
-            const quantityMatch = cleanQuery.match(/(\d+)\s*g?\s+(?:de\s+)?(.+)/);
-            let searchTerm = cleanQuery;
-            let quantity = 100;
-            
-            if (quantityMatch) {
-                quantity = parseInt(quantityMatch[1]);
-                searchTerm = quantityMatch[2].trim();
-            }
-            
-            const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(searchTerm)}&search_simple=1&action=process&json=1&page_size=3`;
-            const response = await nikoFetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
-            
-            if (!response.ok) return null;
-            
-            const data = await response.json();
-            if (data.products && data.products.length > 0) {
-                const product = data.products[0];
-                const carbsPer100g = product.nutriments?.carbohydrates_100g;
-                
-                if (carbsPer100g) {
-                    const totalCarbs = Math.round((carbsPer100g * quantity) / 100);
-                    return {
-                        carbs: totalCarbs,
-                        name: product.product_name || searchTerm,
-                        brand: product.brands || '',
-                        quantity: quantity,
-                        source: 'openfoodfacts'
-                    };
-                }
-            }
-            return null;
-        } catch (error) {
-            console.error('OpenFoodFacts error:', error);
-            return null;
-        }
-    },
-    
-    searchLocal(food) {
-        const foodLower = food.toLowerCase();
-        if (NUTRITION_DB[foodLower]) return NUTRITION_DB[foodLower];
-        
-        for (const [key, value] of Object.entries(NUTRITION_DB)) {
-            if (foodLower.includes(key)) return value;
-        }
-        
-        const match = foodLower.match(/(\d+)\s*g?\s+(?:de\s+)?(.+)/);
-        if (match) {
-            const [, qty, item] = match;
-            const carbsPer100g = NUTRITION_DB[item.trim()];
-            if (carbsPer100g) return Math.round((carbsPer100g * parseInt(qty)) / 100);
-        }
-        
-        return null;
-    },
-    
-    displayResult(result) {
-        Jarvis.UI.clearState();
-        Jarvis.UI.hideStatus();
-        
-        const carbs = result.carbs;
-        const sourceIcon = { openfoodfacts: '🌍', local: '📚' };
-        
-        document.getElementById('carbResult').innerHTML = `
-            <div class="carb-result">
-                <div class="carb-value">${carbs}</div>
-                <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-top: 8px;">grammes de glucides</div>
-                ${result.name ? `<div style="margin-top: 10px; font-size: 0.85rem; color: rgba(255,255,255,0.6);">📦 ${result.name}</div>` : ''}
-                <div style="margin-top: 8px; font-size: 0.7rem; color: rgba(255,255,255,0.5);">${sourceIcon[result.source] || ''} ${result.source === 'openfoodfacts' ? 'OpenFoodFacts' : 'Base locale'}</div>
-            </div>
-        `;
-        document.getElementById('carbResult').style.display = 'block';
-        
-        // Sauvegarde dans daily_data
-        const today = new Date().toISOString().split('T')[0];
-        const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
-        if (!dailyData[today]) {
-            dailyData[today] = { glycemias: [], steps: 0, sleep: 0, meals: [] };
-        }
-        dailyData[today].meals.push({
-            name: result.name || 'Repas',
-            carbs: carbs,
-            time: new Date().toISOString()
-        });
-        safeStorage.setItem('daily_data', JSON.stringify(dailyData));
-        
-        Jarvis.UI.showToast(`✅ ${carbs}g de glucides`, "success");
-        vibrate([50, 100, 50]);
-        Jarvis.Voice.speak(`${carbs} grammes de glucides détectés.`);
-    },
-    
-    openInsulinCalculator() {
-        vibrate(50);
-        document.getElementById('insulinCalculator').classList.add('active');
-        setTimeout(() => document.getElementById('mealCarbs').focus(), 300);
-    },
-    
-    closeInsulinCalculator() {
-        vibrate(30);
-        document.getElementById('insulinCalculator').classList.remove('active');
-    },
-    
-    calculateInsulin() {
-        const carbs = parseFloat(document.getElementById('mealCarbs').value);
-        const bg = parseFloat(document.getElementById('currentBGInsulin').value);
-        
-        if (!carbs || !bg) {
-            Jarvis.UI.showToast("⚠️ Remplissez tous les champs", "error");
-            vibrate([50, 100, 50]);
-            return;
-        }
-        
-        vibrate(50);
-        const ratio = Jarvis.state.insulinRatio || 10;
-        const targetBG = 100;
-        const correctionFactor = 50;
-        
-        const carbDose = carbs / ratio;
-        const correctionDose = (bg - targetBG) / correctionFactor;
-        const totalDose = Math.max(0, carbDose + correctionDose).toFixed(1);
-        
-        document.getElementById('insulinResult').innerHTML = `
-            <div class="carb-result">
-                <div class="carb-value">${totalDose} U</div>
-                <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-top: 8px;">Dose d'insuline recommandée</div>
-                <div style="margin-top: 15px; font-size: 0.8rem; color: rgba(255,255,255,0.6);">
-                    Repas: ${carbDose.toFixed(1)}U + Correction: ${correctionDose.toFixed(1)}U
-                </div>
-            </div>
-        `;
-        document.getElementById('insulinResult').style.display = 'block';
-        
-        Jarvis.UI.showToast(`💉 ${totalDose} unités`, "success");
-        vibrate([50, 100, 50]);
-        Jarvis.Voice.speak(`Dose recommandée : ${totalDose} unités d'insuline.`);
+  /* Pente en mg/dL par minute sur les 20 dernières minutes (régression linéaire) */
+  function slope(readings, now){
+    var pts=readings.filter(function(r){ return now-r.t<=20*60000 && r.t<=now; });
+    if(pts.length<2 || pts[pts.length-1].t-pts[0].t<4*60000) return null;
+    var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
+    var t0=pts[0].t;
+    pts.forEach(function(p){ var x=(p.t-t0)/60000; sx+=x; sy+=p.mg; sxx+=x*x; sxy+=x*p.mg; });
+    var den=n*sxx-sx*sx;
+    if(Math.abs(den)<1e-9) return null;
+    return (n*sxy-sx*sy)/den;
+  }
+  function arrow(s){
+    if(s==null) return '';
+    if(s>3) return '⇈'; if(s>2) return '↑'; if(s>1) return '↗';
+    if(s>=-1) return '→'; if(s>=-2) return '↘'; if(s>=-3) return '↓'; return '⇊';
+  }
+
+  /* Indicateurs de consensus international (Battelino 2019) */
+  function metrics(readings, fromT, toT){
+    var r=readings.filter(function(x){ return x.t>=fromT && x.t<=toT; }).map(function(x){ return x.mg; });
+    var n=r.length; if(!n) return null;
+    var mean=r.reduce(function(a,b){ return a+b; },0)/n;
+    var sd=n>1 ? Math.sqrt(r.reduce(function(a,b){ return a+(b-mean)*(b-mean); },0)/(n-1)) : 0;
+    function pct(f){ return 100*r.filter(f).length/n; }
+    var hours=(toT-fromT)/3600e3;
+    return {
+      n:n, mean:mean, sd:sd, cv: mean ? 100*sd/mean : 0, gmi:3.31+0.02392*mean,
+      tir:pct(function(v){ return v>=70 && v<=180; }),
+      tbr1:pct(function(v){ return v>=54 && v<70; }), tbr2:pct(function(v){ return v<54; }),
+      tar1:pct(function(v){ return v>180 && v<=250; }), tar2:pct(function(v){ return v>250; }),
+      coverage:Math.min(100, 100*n/(hours*12))
+    };
+  }
+  function metricChecks(m){
+    return [
+      {label:'Temps dans la cible (70–180)', value:m.tir, target:'> 70 %', ok:m.tir>70},
+      {label:'Sous 70', value:m.tbr1+m.tbr2, target:'< 4 %', ok:(m.tbr1+m.tbr2)<4},
+      {label:'Sous 54', value:m.tbr2, target:'< 1 %', ok:m.tbr2<1},
+      {label:'Au-dessus de 180', value:m.tar1+m.tar2, target:'< 25 %', ok:(m.tar1+m.tar2)<25},
+      {label:'Au-dessus de 250', value:m.tar2, target:'< 5 %', ok:m.tar2<5},
+      {label:'Variabilité (CV)', value:m.cv, target:'≤ 36 %', ok:m.cv<=36}
+    ];
+  }
+
+  /* Agent Veille glycémique */
+  function surveillance(o){
+    var out=[], unit=o.unit||'mg', a=o.alerts, last=o.latest, now=o.now;
+    function f(level,title,detail){ out.push({level:level,title:title,detail:detail}); }
+    if(!last){ f('info','Aucune donnée','Reliez Nightscout ou saisissez une mesure.'); return out; }
+    var age=(now-last.t)/60000, v=last.mg, L=function(x){ return U.fmt(x,unit)+' '+U.label(unit); };
+    if(v<54) f('critical','Hypoglycémie sévère', L(v)+'. Prenez 15 à 20 g de sucre rapide maintenant, recontrôlez dans 15 min. Si la personne ne peut pas avaler : glucagon et 15.');
+    else if(v<a.low) f('alert','Hypoglycémie', L(v)+'. Prenez 15 g de sucre rapide (3 morceaux de sucre ou 150 mL de jus), recontrôlez dans 15 min.');
+    else if(o.slope!=null && v+o.slope*20<a.low && age<=15) f('warn','Hypoglycémie probable', 'Projection à '+L(v+o.slope*20)+' dans 20 min. Anticipez avec une collation.');
+    if(v>250){
+      var since=o.readings.filter(function(r){ return now-r.t<=2*3600e3; });
+      var sustained=since.length>=3 && since.every(function(r){ return r.mg>250; }) && (now-since[0].t)>=90*60000;
+      f('alert','Hyperglycémie importante', L(v)+'.'+(sustained && o.type==='T1' ? ' Au-dessus de 250 depuis 2 h : mesurez vos cétones. Au-delà de 1,5 mmol/L ou en cas de vomissements, contactez votre équipe ou le 15.' : ' Contrôlez de nouveau dans 1 à 2 h.'));
+    } else if(v>a.high) f('info','Au-dessus de la cible', L(v)+'.');
+    if(age>15) f('warn','Données anciennes','Dernière mesure il y a '+Math.round(age)+' min : ne prenez pas de décision sur cette valeur.');
+    if(!out.length) f('ok','Dans la cible', L(v)+'.');
+    var rank={critical:4,alert:3,warn:2,info:1,ok:0};
+    out.sort(function(x,y){ return rank[y.level]-rank[x.level]; });
+    return out;
+  }
+
+  /* Agent Triage : détecte les urgences avant tout appel IA */
+  function triage(text){
+    var t=String(text||'').toLowerCase();
+    if(/suicid|me tuer|en finir avec|envie de mourir|plus envie de vivre/.test(t))
+      return {level:'critical', title:'Détresse', message:'Vous n\'êtes pas seul. Appelez le 3114, numéro national de prévention du suicide, gratuit et joignable 24 h sur 24. En cas de danger immédiat, appelez le 15.'};
+    if(/inconscien|perte de connaissance|évanoui|evanoui|convuls|ne répond plus|ne repond plus|coma|douleur (dans la |à la )?poitrine|douleur thoracique|mal à respirer|respire mal|n'arrive plus à respirer/.test(t))
+      return {level:'critical', title:'Urgence vitale', message:'Appelez le 15 ou le 112 maintenant. Si une personne diabétique sous insuline est inconsciente : ne rien lui donner par la bouche, glucagon si disponible, position latérale de sécurité.'};
+    if(/cétone|cetone|acétone|acetone|vomi|haleine fruitée|acidocétose|acidocetose/.test(t))
+      return {level:'alert', title:'Risque d\'acidocétose', message:'Mesurez vos cétones dans le sang ou les urines et votre glycémie. Cétonémie au-dessus de 1,5 mmol/L, vomissements ou impossibilité de boire : contactez immédiatement votre équipe soignante ou le 15. N\'arrêtez jamais votre insuline basale.'};
+    if(/je tremble|sueurs|en hypo|fais une hypo|malaise|vertige|tête qui tourne/.test(t))
+      return {level:'alert', title:'Symptômes d\'hypoglycémie', message:'Contrôlez votre glycémie. Si elle est sous 70 mg/dL, ou si vous ne pouvez pas la mesurer, prenez 15 g de sucre rapide, puis recontrôlez dans 15 minutes. Si les symptômes s\'aggravent, appelez le 15.'};
+    return null;
+  }
+
+  /* Agent Contrôle des réponses : retire doses et modifications de traitement */
+  var DOSE_RE=/(?:\d+(?:[.,]\d+)?|\b(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze|quinze|vingt|demi))\s*(?:u\b|ui\b|unités?|units?\b)/i;
+  var CHANGE_RE=/\b(arr[êe]t\w*|stopp?\w*|supprim\w*|saut\w*|diminu\w*|augment\w*|doubl\w*|r[ée]dui\w*|modifi\w*|chang\w*|d[ée]cal\w*)\b[^.]{0,40}\b(insuline|basale|lantus|toujeo|tresiba|abasaglar|bolus|traitement|injection|metformine|pompe|dose)/i;
+  function guardOutput(text){
+    var clean=String(text||'').replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/[*#_`>]+/g,'').replace(/\s+/g,' ').trim();
+    var parts=clean.split(/(?<=[.!?])\s+/), removed=0, changed=0, kept=[];
+    for(var i=0;i<parts.length;i++){
+      var s=parts[i];
+      if(DOSE_RE.test(s)){ removed++; continue; }
+      if(CHANGE_RE.test(s)){ changed++; continue; }
+      kept.push(s);
     }
-};
+    var out=kept.join(' ');
+    if(removed) out+=(out?' ':'')+'Pour une dose, utilisez l\'estimation de bolus paramétrée par votre équipe soignante.';
+    if(changed) out+=(out?' ':'')+'Ne modifiez pas votre traitement sans l\'avis de votre équipe soignante.';
+    if(!out) out='Je ne peux pas répondre à cette question en sécurité. Parlez-en à votre équipe soignante.';
+    if(out.length>900) out=out.slice(0,900).replace(/\s+\S*$/,'')+'…';
+    return {text:out, removed:removed+changed};
+  }
 
-// APPLE HEALTH
-const AppleHealth = {
-    sync() {
-        vibrate(50);
-        const shortcutName = safeStorage.getItem('shortcut_name') || 'SyncJarvis';
-        window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}`;
-        Jarvis.UI.showToast("⏳ Lancement Apple Health...", "info");
-    },
-    
-    processCallback() {
-        const params = new URLSearchParams(window.location.search);
-        
-        if (params.has('bg')) {
-            Jarvis.UI.setState('syncing');
-            
-            const bg = parseFloat(params.get('bg'));
-            const sleep = params.get('sleep');
-            const steps = params.get('steps');
-            const timestamp = new Date().toISOString();
-            
-            // Sauvegarde historique
-            Diabetes.glycemiaHistory.push({ value: bg, timestamp: timestamp });
-            if (Diabetes.glycemiaHistory.length > 100) Diabetes.glycemiaHistory.shift();
-            safeStorage.setItem('glycemia_history', JSON.stringify(Diabetes.glycemiaHistory));
-            
-            // Sauvegarde données quotidiennes pour rapport
-            const today = new Date().toISOString().split('T')[0];
-            const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
-            
-            if (!dailyData[today]) {
-                dailyData[today] = { glycemias: [], steps: 0, sleep: 0, meals: [] };
-            }
-            
-            dailyData[today].glycemias.push({ value: bg, time: timestamp });
-            if (sleep) dailyData[today].sleep = parseInt(sleep);
-            if (steps) dailyData[today].steps = parseInt(steps);
-            
-            // Garde seulement 7 derniers jours
-            const dates = Object.keys(dailyData).sort();
-            if (dates.length > 7) {
-                dates.slice(0, dates.length - 7).forEach(d => delete dailyData[d]);
-            }
-            
-            safeStorage.setItem('daily_data', JSON.stringify(dailyData));
-            
-            // Affiche panneau
-            this.displayGlycemia(bg, timestamp);
-            
-            // Détermine état
-            let state = 'success';
-            let message = '';
-            
-            if (bg < 54) {
-                state = 'hypo';
-                message = `URGENCE ! Glycémie à ${bg}. Prenez 20g de sucre IMMÉDIATEMENT et appelez quelqu'un.`;
-            } else if (bg < 70) {
-                state = 'hypo';
-                message = `Attention, glycémie à ${bg}. Prenez 15g de sucre rapide maintenant.`;
-            } else if (bg > 250) {
-                state = 'hyper';
-                message = `Glycémie très élevée à ${bg}. Vérifiez vos cétones et contactez votre médecin si ça persiste.`;
-            } else if (bg > 180) {
-                state = 'hyper';
-                message = `Glycémie un peu haute à ${bg}. ${steps && parseInt(steps) < 5000 ? 'Une marche pourrait aider.' : 'Surveillez dans 2 heures.'}`;
-            } else {
-                message = `Parfait ! Glycémie à ${bg}, c'est dans la cible. ${steps ? `${steps} pas aujourd'hui` : ''}${sleep ? `, ${Math.round(sleep/60)}h de sommeil` : ''}. Continuez comme ça.`;
-            }
-            
-            Jarvis.UI.setState(state, 2000);
-            
-            setTimeout(() => {
-                Jarvis.UI.showToast("✅ Données synchronisées", "success");
-                vibrate([50, 100, 50]);
-                Jarvis.Voice.speak(message);
-            }, 2000);
-            
-            // Nettoyage URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    },
-    
-    displayGlycemia(value, timestamp) {
-        const panel = document.getElementById('glycemiaPanel');
-        const valueEl = document.getElementById('glycemiaValue');
-        const statusEl = document.getElementById('glycemiaStatus');
-        const timeEl = document.getElementById('glycemiaTime');
-        
-        panel.style.display = 'block';
-        valueEl.textContent = value;
-        
-        // Couleur
-        if (value < 70) {
-            valueEl.style.color = 'var(--hypo)';
-            statusEl.textContent = value < 54 ? '🆘 HYPOGLYCÉMIE SÉVÈRE' : '⚠️ Hypoglycémie';
-            statusEl.style.color = 'var(--hypo)';
-        } else if (value > 180) {
-            valueEl.style.color = 'var(--hyper)';
-            statusEl.textContent = value > 250 ? '🆘 HYPERGLYCÉMIE SÉVÈRE' : '⚠️ Hyperglycémie';
-            statusEl.style.color = 'var(--hyper)';
-        } else {
-            valueEl.style.color = 'var(--success)';
-            statusEl.textContent = '✅ Dans la cible';
-            statusEl.style.color = 'var(--success)';
-        }
-        
-        const time = new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        timeEl.textContent = `Dernière mesure: ${time}`;
+  /* Agent Nutrition : lecture de la requête et table interne */
+  var WORDS={'une demie':0.5,'une demi':0.5,'un demi':0.5,'demi':0.5,'demie':0.5,'un':1,'une':1,'deux':2,'trois':3,'quatre':4,'cinq':5,'six':6,'sept':7,'huit':8,'neuf':9,'dix':10};
+  var UNIT_W={bol:150, verre:200, pot:125, boule:50, 'carré':5, 'cuillère':15, 'cuillère à soupe':15, tranche:30, part:100, portion:100, morceau:30};
+  function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[’']/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+  function sing(w){ return w.length>3 ? w.replace(/(s|x)$/,'') : w; }
+  function normSing(s){ return norm(s).split(' ').map(sing).join(' '); }
+  function parseFood(q){
+    var s=String(q||'').toLowerCase().trim().replace(/\s+/g,' ');
+    var re=/^(\d+(?:[.,]\d+)?|une demie?|un demi|demie?|une|un|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)\s*(kg|g|gr|grammes?|ml|cl|l|tranches?|parts?|portions?|morceaux?|bols?|verres?|pots?|boules?|carrés?|cuillères? à soupe|cuillères?)?(?=\s|$)\s*(?:de |d'|d’)?(.*)$/;
+    var m=s.match(re);
+    if(!m || !m[3]) return {qty:null, unit:null, unitWord:null, term:s};
+    var qty=WORDS[m[1]]!=null ? WORDS[m[1]] : parseNum(m[1]);
+    var u=m[2]||'', unit, unitWord=null, grams=null;
+    if(/^(g|gr|grammes?)$/.test(u)){ unit='g'; grams=qty; }
+    else if(u==='kg'){ unit='g'; grams=qty*1000; }
+    else if(u==='ml'){ unit='g'; grams=qty; }
+    else if(u==='cl'){ unit='g'; grams=qty*10; }
+    else if(u==='l'){ unit='g'; grams=qty*1000; }
+    else if(u){ unit='piece'; unitWord=u.replace(/s$/,'').replace(/x$/,'').replace(/s à soupe$/,' à soupe'); }
+    else if(qty>=20){ unit='g'; grams=qty; }
+    else unit='piece';
+    return {qty:qty, unit:unit, unitWord:unitWord, grams:grams, term:m[3].trim()};
+  }
+  /* [noms, glucides / 100 g, poids d'une unité en g] — valeurs moyennes approximatives */
+  var FOODS=[
+    [['riz','riz blanc','riz blanc cuit'],28,null],[['riz complet'],23,null],[['pate','pates','pate cuite','spaghetti','coquillette'],27,null],
+    [['semoule','couscous'],23,null],[['quinoa'],19,null],[['lentille'],14,null],[['pois chiche'],16,null],[['haricot rouge'],14,null],
+    [['pomme de terre','patate'],17,150],[['frite'],33,null],[['puree'],13,null],[['patate douce'],20,200],[['mais'],19,null],[['petit pois'],8,null],
+    [['pain','baguette'],56,30],[['pain de mie'],48,25],[['pain complet'],42,30],[['biscotte'],70,10],[['croissant'],45,60],[['pain au chocolat'],45,70],
+    [['cereale','corn flake'],84,null],[['flocon d avoine','avoine'],58,null],
+    [['pomme'],12,150],[['banane'],20,120],[['orange'],9,150],[['poire'],11,160],[['raisin'],16,null],[['kiwi'],10,80],[['fraise'],6,null],
+    [['mangue'],13,null],[['clementine','mandarine'],9,70],[['ananas'],11,null],[['compote'],16,100],
+    [['yaourt','yaourt nature'],5,125],[['yaourt aux fruit'],13,125],[['lait'],5,null],[['jus d orange','jus'],9,null],[['soda','coca','cola'],11,null],
+    [['pizza'],27,120],[['hamburger','burger'],28,110],[['sandwich'],35,250],[['crepe'],30,60],
+    [['chocolat noir'],30,5],[['chocolat au lait','chocolat'],55,5],[['sucre'],100,5],[['miel'],80,10],[['confiture'],60,15],
+    [['glace'],24,50],[['gateau'],50,80],[['carotte'],7,80],[['tomate'],3,120]
+  ];
+  function findLocalFood(term){
+    var t=normSing(term); if(t.length<3) return null;
+    var best=null, bestLen=0;
+    FOODS.forEach(function(f){
+      f[0].forEach(function(n){
+        var nn=normSing(n);
+        var hit = t===nn || (' '+t+' ').indexOf(' '+nn+' ')>=0;
+        if(hit && nn.length>bestLen){ best={name:f[0][0], per100:f[1], piece:f[2]}; bestLen=nn.length; }
+      });
+    });
+    return best;
+  }
+  function gramsFor(food, p){
+    if(p.unit==='g') return p.grams;
+    if(p.unit==='piece'){
+      var own=['tranche','part','portion','morceau'].indexOf(p.unitWord)>=0;
+      var w = p.unitWord ? (own && food && food.piece ? food.piece : UNIT_W[p.unitWord]) : (food ? food.piece : null);
+      if(!w && p.unitWord && food && food.piece) w=food.piece;
+      return w ? Math.round(w*(p.qty||1)) : null;
     }
-};
+    return null;
+  }
 
-// RAPPORT QUOTIDIEN
-const DailyReport = {
-    scheduleNextReport() {
-        const now = new Date();
-        const next8AM = new Date();
-        next8AM.setHours(8, 0, 0, 0);
-        
-        // Si déjà passé 8h, programme pour demain
-        if (now > next8AM) {
-            next8AM.setDate(next8AM.getDate() + 1);
-        }
-        
-        const msUntil8AM = next8AM - now;
-        
-        setTimeout(() => {
-            this.generateAndSpeak();
-            // Programme le suivant
-            this.scheduleNextReport();
-        }, msUntil8AM);
-    },
-    
-    async generateAndSpeak() {
-        if (!Jarvis.state.key) {
-            return;
-        }
-        
-        const report = this.generateReport();
-        if (!report) {
-            return;
-        }
-        
-        vibrate([50, 100, 50, 100, 50]);
-        Jarvis.UI.showToast("📊 Rapport quotidien prêt", "info");
-        
-        // Attend 2 secondes puis lit le rapport
-        setTimeout(() => {
-            Jarvis.Voice.speak(`Bonjour ${Jarvis.state.userName}. Voici votre rapport de santé. ${report}`);
-        }, 2000);
-    },
-    
-    generateReport() {
-        const dailyData = JSON.parse(safeStorage.getItem('daily_data')) || {};
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayKey = yesterday.toISOString().split('T')[0];
-        
-        const data = dailyData[yesterdayKey];
-        if (!data) return null;
-        
-        let report = [];
-        
-        // Sommeil
-        if (data.sleep) {
-            const hours = Math.floor(data.sleep / 60);
-            const mins = data.sleep % 60;
-            const sleepQuality = data.sleep >= 420 ? 'bon' : data.sleep >= 360 ? 'correct' : 'insuffisant';
-            report.push(`Vous avez dormi ${hours} heures ${mins > 0 ? `et ${mins} minutes` : ''}, c'est ${sleepQuality}.`);
-        }
-        
-        // Glycémie
-        if (data.glycemias && data.glycemias.length > 0) {
-            const values = data.glycemias.map(g => g.value);
-            const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-            const min = Math.min(...values);
-            const max = Math.max(...values);
-            const inRange = values.filter(v => v >= 70 && v <= 180).length;
-            const timeInRange = Math.round((inRange / values.length) * 100);
-            
-            report.push(`Votre glycémie moyenne était de ${avg}. `);
-            
-            if (timeInRange >= 70) {
-                report.push(`Excellent temps dans la cible : ${timeInRange} pourcent. `);
-            } else if (timeInRange >= 50) {
-                report.push(`Temps dans la cible : ${timeInRange} pourcent, pas mal. `);
-            } else {
-                report.push(`Temps dans la cible : ${timeInRange} pourcent, à améliorer. `);
-            }
-            
-            if (min < 70) {
-                const hypos = values.filter(v => v < 70).length;
-                report.push(`Attention, ${hypos} hypoglycémie${hypos > 1 ? 's' : ''} détectée${hypos > 1 ? 's' : ''}. `);
-            }
-            
-            if (max > 180) {
-                const hypers = values.filter(v => v > 180).length;
-                report.push(`${hypers} hyperglycémie${hypers > 1 ? 's' : ''} relevée${hypers > 1 ? 's' : ''}. `);
-            }
-        }
-        
-        // Activité
-        if (data.steps) {
-            if (data.steps >= 10000) {
-                report.push(`Bravo pour vos ${data.steps} pas, objectif largement atteint !`);
-            } else if (data.steps >= 7000) {
-                report.push(`${data.steps} pas hier, bonne activité.`);
-            } else if (data.steps >= 5000) {
-                report.push(`${data.steps} pas, c'est correct.`);
-            } else {
-                report.push(`Seulement ${data.steps} pas, essayez de bouger plus aujourd'hui.`);
-            }
-        }
-        
-        // Repas
-        if (data.meals && data.meals.length > 0) {
-            report.push(`Vous avez enregistré ${data.meals.length} repas.`);
-        }
-        
-        return report.join(' ');
-    },
-    
-    // Fonction manuelle pour tester
-    async testReport() {
-        vibrate(50);
-        const report = this.generateReport();
-        if (report) {
-            Jarvis.Voice.speak(`Rapport de test : ${report}`);
-        } else {
-            Jarvis.Voice.speak("Pas encore de données pour générer un rapport. Synchronisez Apple Health d'abord.");
-        }
-    }
-};
-
-// BARCODE SCANNER
-const BarcodeScanner = {
-    isActive: false,
-    detectedCodes: new Set(),
-    
-    async start() {
-        if (this.isActive || typeof Quagga === 'undefined') {
-            Jarvis.UI.showToast("❌ Scanner non disponible", "error");
-            return;
-        }
-        
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            stream.getTracks().forEach(track => track.stop());
-        } catch (error) {
-            Jarvis.UI.showToast("❌ Autorisez la caméra", "error");
-            return;
-        }
-        
-        this.isActive = true;
-        this.detectedCodes.clear();
-        document.getElementById('cameraScanner').classList.add('active');
-        
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#camera-viewport'),
-                constraints: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'environment'
-                }
-            },
-            decoder: {
-                readers: ["ean_reader", "ean_8_reader", "upc_reader"]
-            }
-        }, (err) => {
-            if (err) {
-                console.error(err);
-                this.stop();
-                Jarvis.UI.showToast("❌ Erreur caméra", "error");
-                return;
-            }
-            Quagga.start();
-            vibrate(50);
-        });
-        
-        Quagga.onDetected((result) => {
-            const code = result.codeResult.code;
-            if (this.detectedCodes.has(code) || !/^[0-9]{8,13}$/.test(code)) return;
-            
-            this.detectedCodes.add(code);
-            vibrate(200);
-            
-            document.getElementById('scanInstructions').textContent = `✅ Code détecté: ${code}`;
-            
-            setTimeout(() => {
-                this.stop();
-                this.searchProduct(code);
-            }, 1500);
-        });
-    },
-    
-    stop() {
-        if (!this.isActive) return;
-        if (typeof Quagga !== 'undefined') Quagga.stop();
-        this.isActive = false;
-        document.getElementById('cameraScanner').classList.remove('active');
-        document.getElementById('scanInstructions').textContent = '📷 Placez le code-barre dans le cadre';
-    },
-    
-    async searchProduct(barcode) {
-        Jarvis.UI.showStatus("🔍 Recherche produit...", "thinking");
-        Jarvis.UI.setState('thinking');
-        
-        try {
-            const url = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
-            const response = await nikoFetch(url, { headers: { 'User-Agent': 'JARVIS-Diabetes' } });
-            
-            if (!response.ok) throw new Error('Produit non trouvé');
-            
-            const data = await response.json();
-            if (data.status === 1 && data.product) {
-                const product = data.product;
-                const carbsPer100g = product.nutriments?.carbohydrates_100g;
-                
-                if (carbsPer100g) {
-                    Diabetes.openCarbCalculator();
-                    document.getElementById('foodInput').value = product.product_name || 'Produit scanné';
-                    Diabetes.displayResult({
-                        carbs: Math.round(carbsPer100g),
-                        name: product.product_name,
-                        brand: product.brands || '',
-                        quantity: 100,
-                        source: 'openfoodfacts'
-                    });
-                    return;
-                }
-            }
-            throw new Error('Données nutritionnelles manquantes');
-        } catch (error) {
-            console.error(error);
-            Jarvis.UI.clearState();
-            Jarvis.UI.hideStatus();
-            Jarvis.UI.showToast("❌ Produit non trouvé", "error");
-            vibrate([50, 100, 50]);
-        }
-    }
-};
-
-// JARVIS
-const Jarvis = {
-    state: {
-        key: safeStorage.getItem('mistral_vault'),
-        userName: safeStorage.getItem('user_name') || 'Monsieur',
-        insulinRatio: parseFloat(safeStorage.getItem('insulin_ratio')) || 10,
-        isSpeaking: false,
-        isListening: false,
-        isProcessing: false,
-        recognition: null
-    },
-
-    Voice: {
-        synth: window.speechSynthesis,
-        speak(text) {
-            if (!text) return;
-            this.synth && this.synth.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = 'fr-FR'; u.pitch = 0.92; u.rate = 1.02;
-            u.onstart = () => {
-                Jarvis.state.isSpeaking = true;
-                Jarvis.UI.setState('speaking');
-                Jarvis.UI.updateDialogue(text, 'jarvis');
-            };
-            u.onend = () => {
-                Jarvis.state.isSpeaking = false;
-                Jarvis.UI.clearState();
-                setTimeout(() => {
-                    if (!Jarvis.state.isListening) Jarvis.Interaction.listen();
-                }, 600);
-            };
-            this.synth && this.synth.speak(u);
-        },
-        stop() { this.synth && this.synth.cancel(); Jarvis.state.isSpeaking = false; Jarvis.UI.clearState(); }
-    },
-
-    Commands: {
-        patterns: {
-            config: /(?:connexion|connection|configure|param[èe]tre)/i,
-            carbs: /(?:calcul|calculer|combien).*(?:glucide|carb)/i,
-            scan: /(?:scan|scanner|code)/i,
-            insulin: /(?:calcul|calculer|dose).*insuline/i,
-            sync: /(?:sync|synchronise|apple.*health|santé|glycémie)/i,
-            report: /(?:rapport|résumé|bilan|journée|nuit)/i
-        },
-        
-        detect(transcript) {
-            if (this.patterns.config.test(transcript)) {
-                Config.open();
-                Jarvis.Voice.speak("J'ouvre la configuration.");
-                return true;
-            }
-            if (this.patterns.carbs.test(transcript)) {
-                Diabetes.openCarbCalculator();
-                Jarvis.Voice.speak("J'ouvre le calculateur de glucides.");
-                return true;
-            }
-            if (this.patterns.scan.test(transcript)) {
-                BarcodeScanner.start();
-                Jarvis.Voice.speak("Activation du scanner.");
-                return true;
-            }
-            if (this.patterns.insulin.test(transcript)) {
-                Diabetes.openInsulinCalculator();
-                Jarvis.Voice.speak("J'ouvre le calculateur d'insuline.");
-                return true;
-            }
-            if (this.patterns.sync.test(transcript)) {
-                AppleHealth.sync();
-                Jarvis.Voice.speak("Synchronisation Apple Health en cours.");
-                return true;
-            }
-            if (this.patterns.report.test(transcript)) {
-                DailyReport.testReport();
-                return true;
-            }
-            return false;
-        }
-    },
-
-    Interaction: {
-        listen() {
-            if (Jarvis.state.isListening || Jarvis.state.isSpeaking) return;
-            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Speech) { Jarvis.UI.showToast("❌ Micro indisponible", "error"); return; }
-            if (Jarvis.state.recognition) try { Jarvis.state.recognition.stop(); } catch(e) {}
-            
-            Jarvis.state.recognition = new Speech();
-            Jarvis.state.recognition.lang = 'fr-FR';
-            Jarvis.state.recognition.interimResults = true;
-            Jarvis.state.recognition.continuous = false;
-            
-            Jarvis.state.recognition.onstart = () => {
-                vibrate(50);
-                Jarvis.state.isListening = true;
-                Jarvis.UI.setState('listening');
-                Jarvis.UI.showStatus("🎤 À l'écoute", "listening");
-            };
-            
-            Jarvis.state.recognition.onresult = (e) => {
-                const result = e.results[e.results.length - 1];
-                const transcript = result[0].transcript;
-                
-                if (result.isFinal) {
-                    vibrate(30);
-                    Jarvis.state.isListening = false;
-                    Jarvis.UI.updateDialogue(transcript, 'user', false);
-                    
-                    if (transcript.trim().length > 0) {
-                        const commandDetected = Jarvis.Commands.detect(transcript);
-                        if (!commandDetected) {
-                            if (Jarvis.state.key) {
-                                Jarvis.Brain.process(transcript);
-                            } else {
-                                Jarvis.Voice.speak("Je ne peux pas répondre sans clé API. Dites 'connexion' pour configurer.");
-                            }
-                        }
-                    }
-                } else {
-                    Jarvis.UI.updateDialogue(transcript, 'user', true);
-                }
-            };
-            
-            Jarvis.state.recognition.onerror = (e) => {
-                Jarvis.state.isListening = false;
-                Jarvis.UI.clearState();
-                if (e.error === 'no-speech') setTimeout(() => Jarvis.Interaction.listen(), 500);
-            };
-            
-            try { Jarvis.state.recognition.start(); } catch(e) {}
-        }
-    },
-
-    Brain: {
-        async process(transcript) {
-            if (!Jarvis.state.key) return;
-            
-            Jarvis.state.isProcessing = true;
-            Jarvis.UI.setState('thinking');
-            Jarvis.UI.showStatus("🧠 Réflexion", "thinking");
-            
-            try {
-                const response = await nikoFetch('https://api.mistral.ai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${Jarvis.state.key}` 
-                    },
-                    body: JSON.stringify({ 
-                        model: "mistral-large-latest", 
-                        messages: [{
-                            role: "system",
-                            content: `Tu es JARVIS, assistant diabète de ${Jarvis.state.userName}. Réponds en 2-3 phrases max, sois empathique et actionnable. JAMAIS d'astérisques.`
-                        }, {
-                            role: "user",
-                            content: transcript
-                        }],
-                        temperature: 0.7,
-                        max_tokens: 200
-                    })
-                });
-                
-                const data = await response.json();
-                const reply = data.choices[0].message.content;
-                
-                Jarvis.state.isProcessing = false;
-                Jarvis.UI.clearState();
-                Jarvis.UI.hideStatus();
-                Jarvis.Voice.speak(reply);
-                
-            } catch (error) {
-                Jarvis.state.isProcessing = false;
-                Jarvis.UI.clearState();
-                Jarvis.UI.hideStatus();
-                Jarvis.Voice.speak("Problème de connexion.");
-            }
-        }
-    },
-
-    UI: {
-        setState(state, duration = 0) {
-            document.getElementById('trigger').className = 'orb-portal ' + state;
-            if (duration > 0) setTimeout(() => this.clearState(), duration);
-        },
-        clearState() { document.getElementById('trigger').className = 'orb-portal idle'; },
-        updateDialogue(text, source, isInterim = false) {
-            if (source === 'user') {
-                const div = document.getElementById('user-input');
-                div.textContent = text;
-                div.className = 'active' + (isInterim ? ' interim' : '');
-                if (!isInterim) setTimeout(() => { div.classList.remove('active', 'interim'); setTimeout(() => div.textContent = '', 400); }, 2500);
-            } else {
-                document.getElementById('jarvis-voice').textContent = text;
-            }
-        },
-        showStatus(text, type) {
-            document.getElementById('status-indicator').textContent = text;
-            document.getElementById('status-indicator').className = 'status-indicator active';
-        },
-        hideStatus() { document.getElementById('status-indicator').classList.remove('active'); },
-        showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast show';
-            const colors = { success: 'var(--success)', error: '#ff3b30', info: 'var(--neon)' };
-            toast.style.borderColor = colors[type] || colors.info;
-            setTimeout(() => toast.classList.remove('show'), 3500);
-        }
-    },
-    
-    Particles: {
-        init() {
-            const container = document.getElementById('particles');
-            for (let i = 0; i < 20; i++) {
-                const p = document.createElement('div');
-                p.className = 'particle';
-                p.style.left = Math.random() * 100 + '%';
-                p.style.animationDelay = Math.random() * 8 + 's';
-                p.style.animationDuration = (8 + Math.random() * 4) + 's';
-                container.appendChild(p);
-            }
-        }
-    }
-};
-
-// EVENTS
-document.getElementById('trigger').addEventListener('click', (e) => {
-    createRipple(e, document.getElementById('trigger'));
-    if (Jarvis.state.isSpeaking) {
-        vibrate(30);
-        Jarvis.Voice.stop();
-    } else if (!Jarvis.state.isListening) {
-        Jarvis.Interaction.listen();
-    }
-});
-
-// INIT
-window.addEventListener('load', () => {
-    Jarvis.Particles.init();
-    
-    // Traite Apple Health callback
-    AppleHealth.processCallback();
-    
-    // Programme rapport quotidien 8h
-    DailyReport.scheduleNextReport();
-    
-    // PWA installation
-    PWA.init();
-    
-    if (!Jarvis.state.key) {
-        setTimeout(() => {
-            Jarvis.Voice.speak("Bonjour. Dites 'connexion' pour configurer.");
-        }, 1000);
-    } else {
-        setTimeout(() => {
-            Jarvis.Voice.speak(`Bonjour ${Jarvis.state.userName}. JARVIS Diabète prêt. Touchez l'orbe pour parler.`);
-        }, 1000);
-    }
-});
-
-// PWA
-const PWA = {
-    deferredPrompt: null,
-    
-    init() {
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            this.deferredPrompt = e;
-            document.getElementById('installBtn').style.display = 'flex';
-        });
-        
-        window.addEventListener('appinstalled', () => {
-            Jarvis.UI.showToast("✅ JARVIS installé avec succès", "success");
-            vibrate([50, 100, 50, 100, 50]);
-            document.getElementById('installBtn').style.display = 'none';
-        });
-    },
-    
-    async install() {
-        if (!this.deferredPrompt) {
-            Jarvis.UI.showToast("ℹ️ Installation déjà effectuée", "info");
-            return;
-        }
-        
-        vibrate(50);
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-            Jarvis.UI.showToast("⏳ Installation en cours...", "info");
-        }
-        
-        this.deferredPrompt = null;
-    }
-};
+  return {U:U, parseNum:parseNum, iobFraction:iobFraction, iobTotal:iobTotal, therapyMissing:therapyMissing, bolusEstimate:bolusEstimate,
+    slope:slope, arrow:arrow, metrics:metrics, metricChecks:metricChecks, surveillance:surveillance, triage:triage,
+    guardOutput:guardOutput, parseFood:parseFood, findLocalFood:findLocalFood, gramsFor:gramsFor, norm:norm};
+})();
+/*CORE-END*/
 </script>
 
-</main>
-
+<!-- ─────────── Application ─────────── -->
 <script>
-if('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const swCode = `
-const CACHE='niko-v1';
-const ASSETS=['./','/index.html'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
-self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
-    `;
-    const blob = new Blob([swCode],{type:'text/javascript'});
-    const swURL = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swURL).catch(()=>{});
+(function(){
+'use strict';
+var C=Core, U=C.U;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function sanitizeKey(s){ return String(s||'').replace(/[^\x21-\x7E]/g,'').trim(); }
+function now(){ return Date.now(); }
+function fr(n,d){ return (n==null||!isFinite(n)) ? '—' : Number(n).toFixed(d==null?0:d).replace('.',','); }
+function hm(t){ return new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function dt(t){ return new Date(t).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+
+/* ── Réseau : XHR uniquement (compatibilité Android, origine null) ── */
+function xhr(o){
+  return new Promise(function(resolve,reject){
+    var x=new XMLHttpRequest();
+    try{ x.open(o.method||'GET', o.url, true); }catch(e){ reject(new Error('adresse invalide')); return; }
+    x.timeout=o.timeout||30000;
+    var h=o.headers||{};
+    Object.keys(h).forEach(function(k){ try{ x.setRequestHeader(k,h[k]); }catch(e){} });
+    x.onload=function(){ resolve({status:x.status, ok:x.status>=200&&x.status<300, text:x.responseText, json:function(){ return JSON.parse(x.responseText); }}); };
+    x.onerror=function(){ reject(new Error('réseau indisponible ou accès refusé (CORS)')); };
+    x.ontimeout=function(){ reject(new Error('délai dépassé')); };
+    x.send(o.body||null);
   });
 }
-</script>
 
-<!-- ── Disclaimer médical — Studio Niko Design ── -->
-<div id="nikoDisclaimer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:10000;background:rgba(5,10,13,.97);border-top:1px solid rgba(0,212,255,.3);padding:12px 20px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,.7);text-align:center;backdrop-filter:blur(8px)">
-  ⚕️ <strong>Avis médical :</strong> Cette application est un outil d'aide — elle ne remplace pas l'avis d'un professionnel de santé qualifié. En cas d'urgence, appelez le <strong>15 (SAMU)</strong>.
-  &nbsp;|&nbsp; <a href="#" onclick="document.getElementById('nikoDisclaimer').style.display='none';safeStorage.setItem('disclaimer_ok','1');return false" style="color:#00ff9d;text-decoration:none">J'ai compris ✕</a>
-</div>
-<script>if(!safeStorage.getItem('disclaimer_ok'))document.getElementById('nikoDisclaimer').style.display='block';</script>
+/* ── Stockage : IndexedDB + repli mémoire ── */
+var Store=(function(){
+  var mem={}, dbp=null;
+  function db(){
+    if(dbp) return dbp;
+    dbp=new Promise(function(res){
+      if(!('indexedDB' in window)) return res(null);
+      try{ var r=indexedDB.open('jarvis-diabete',1); r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ res(null); }; r.onblocked=function(){ res(null); }; }
+      catch(e){ res(null); }
+    });
+    return dbp;
+  }
+  function get(k){ return db().then(function(d){ if(!d) return mem[k]; return new Promise(function(res){ try{ var q=d.transaction('kv','readonly').objectStore('kv').get(k); q.onsuccess=function(){ res(q.result); }; q.onerror=function(){ res(mem[k]); }; }catch(e){ res(mem[k]); } }); }); }
+  function set(k,v){ mem[k]=v; return db().then(function(d){ if(!d) return false; return new Promise(function(res){ try{ var tx=d.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=function(){ res(true); }; tx.onerror=function(){ res(false); }; }catch(e){ res(false); } }); }); }
+  function wipe(){ mem={}; return db().then(function(d){ if(d) d.close(); dbp=null; return new Promise(function(res){ try{ var r=indexedDB.deleteDatabase('jarvis-diabete'); r.onsuccess=r.onerror=r.onblocked=function(){ res(); }; }catch(e){ res(); } }); }); }
+  function persistent(){ return db().then(function(d){ return !!d; }); }
+  return {get:get, set:set, wipe:wipe, persistent:persistent};
+})();
 
+/* ── Coffre AES-256-GCM, clé dérivée PBKDF2 (310 000 itérations) ── */
+var enc=new TextEncoder(), dec=new TextDecoder();
+var cryptoKey=null, vaultSalt=null, S=null;
+function defaults(){
+  return {
+    v:3,
+    profile:{name:'', unit:'mg', type:'T1'},
+    therapy:{icr:null, isf:null, target:null, dia:5, peak:75, step:0.5, maxBolus:null, validated:false, validatedBy:'', validatedAt:null},
+    alerts:{low:70, high:180, voice:true},
+    ns:{url:'', token:'', shortcut:'SyncJarvis', lastOk:null},
+    ai:{keys:{mistral:'', groq:'', cerebras:''},
+        models:{mistral:'mistral-large-latest', groq:'openai/gpt-oss-120b', cerebras:'gpt-oss-120b', local:'hf.co/mradermacher/Diabetica-Qwen3-4B-GGUF:Q4_K_M'},
+        localOn:false, localUrl:'http://localhost:11434/v1', critic:true, share:false},
+    readings:[], boluses:[], meals:[], audit:[]
+  };
+}
+function mergeDeep(base, obj){
+  if(!obj || typeof obj!=='object' || Array.isArray(obj)) return obj===undefined ? base : obj;
+  var out=Array.isArray(base) ? [] : Object.assign({}, base);
+  Object.keys(obj).forEach(function(k){
+    out[k] = (base && typeof base[k]==='object' && base[k]!==null && !Array.isArray(base[k])) ? mergeDeep(base[k], obj[k]) : obj[k];
+  });
+  return out;
+}
+function deriveKey(code, salt){
+  return crypto.subtle.importKey('raw', enc.encode(code), 'PBKDF2', false, ['deriveKey']).then(function(base){
+    return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:310000, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  });
+}
+function encryptState(){
+  var iv=crypto.getRandomValues(new Uint8Array(12));
+  return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, cryptoKey, enc.encode(JSON.stringify(S))).then(function(ct){ return {v:3, salt:vaultSalt, iv:iv, ct:new Uint8Array(ct)}; });
+}
+var saveTimer=null, saveChain=Promise.resolve();
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(function(){
+    saveChain=saveChain.then(function(){ if(!cryptoKey || !S) return; return encryptState().then(function(v){ return Store.set('vault', v); }); })
+      .catch(function(e){ toast('Enregistrement impossible : '+e.message,'error'); });
+  }, 300);
+}
 
-<!-- ── Notice RGPD — Studio Niko Design ── -->
-<div id="nikoRGPD" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(5,10,13,.97);border-top:1px solid rgba(0,255,157,.25);padding:14px 20px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,.75);backdrop-filter:blur(8px)">
-  <strong style="color:#00ff9d">🔒 Confidentialité</strong> — Vos données restent sur votre appareil (stockage local chiffré AES-256-GCM). Aucune donnée personnelle n'est transmise à des tiers. Conforme RGPD.
-  &nbsp;<a href="#" onclick="document.getElementById('nikoRGPD').style.display='none';safeStorage.setItem('rgpd_ok','1');return false" style="color:#00d4ff;text-decoration:none;margin-left:12px">Accepter ✕</a>
-</div>
-<script>if(!safeStorage.getItem('rgpd_ok'))document.getElementById('nikoRGPD').style.display='block';</script>
+/* ── Interface de base ── */
+var toastTimer=null;
+function toast(msg, type){
+  var t=$('toast'); t.textContent=msg; t.dataset.t=type||'info'; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 3800);
+}
+function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+function unit(){ return S.profile.unit; }
+function L(mg){ return U.fmt(mg, unit())+' '+U.label(unit()); }
 
+/* ── Agents : registre et journal d'audit ── */
+var AGENTS={
+  triage:{name:'Triage des urgences', idle:'Analyse chaque question avant toute IA.'},
+  veille:{name:'Veille glycémique', idle:'En attente de mesures.'},
+  qualite:{name:'Qualité des données', idle:'Valide plages, unités et horodatages.'},
+  dose:{name:'Garde-fou bolus', idle:'Double calcul, insuline active, plafonds.'},
+  nutrition:{name:'Nutrition', idle:'Estime les glucides et signale leur fiabilité.'},
+  metriques:{name:'Consensus temps dans la cible', idle:'Compare vos indicateurs aux cibles internationales.'},
+  conseiller:{name:'Conseiller IA', idle:'Aucun fournisseur configuré.'},
+  controle:{name:'Contrôle des réponses', idle:'Retire toute dose ou modification de traitement.'}
+};
+var agentState={};
+function agent(key, level, msg){
+  agentState[key]={level:level, msg:msg, t:now()};
+  if(S){ S.audit.push({t:now(), a:key, l:level, m:msg}); if(S.audit.length>200) S.audit.splice(0, S.audit.length-200); save(); }
+  renderAgents();
+}
+function renderAgents(){
+  var ul=$('agentList'); if(!ul) return;
+  ul.innerHTML=Object.keys(AGENTS).map(function(k){
+    var s=agentState[k]||{level:'idle', msg:AGENTS[k].idle};
+    return '<li><span class="dot" data-l="'+s.level+'"></span><span class="an">'+esc(AGENTS[k].name)+'</span><span class="am">'+esc(s.msg)+'</span></li>';
+  }).join('');
+}
 
-<div id="nikoOffline" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#ff4444;color:#fff;text-align:center;padding:8px;font-family:monospace;font-size:13px">
-  📡 Connexion perdue — mode hors-ligne activé
-</div>
-<script>
-window.addEventListener('offline',()=>document.getElementById('nikoOffline').style.display='block');
-window.addEventListener('online',()=>document.getElementById('nikoOffline').style.display='none');
+/* ── Données glycémiques ── */
+var lastDirection=null, alertedKey=null;
+var DIR={DoubleUp:'⇈', SingleUp:'↑', FortyFiveUp:'↗', Flat:'→', FortyFiveDown:'↘', SingleDown:'↓', DoubleDown:'⇊'};
+function srcLabel(s){ return {ns:'capteur Nightscout', manual:'saisie manuelle', raccourci:'Raccourci Santé'}[s]||s; }
+function prune(){
+  var lim=now()-15*86400e3;
+  S.readings=S.readings.filter(function(r){ return r.t>=lim; });
+  S.meals=S.meals.filter(function(r){ return r.t>=lim; });
+  S.boluses=S.boluses.filter(function(r){ return r.t>=lim; });
+}
+function addReadings(list, src){
+  var added=0, rejected=0, seen={};
+  S.readings.forEach(function(r){ seen[r.src+Math.round(r.t/60000)]=1; });
+  list.forEach(function(r){
+    if(!(r.mg>=20 && r.mg<=600) || !(r.t>0) || r.t>now()+5*60000){ rejected++; return; }
+    var k=src+Math.round(r.t/60000); if(src!=='manual' && seen[k]) return; seen[k]=1;
+    S.readings.push({t:r.t, mg:Math.round(r.mg), src:src}); added++;
+  });
+  S.readings.sort(function(a,b){ return a.t-b.t; });
+  prune();
+  if(rejected) agent('qualite','warn', rejected+' valeur(s) rejetée(s) : hors plage 20–600 mg/dL ou horodatage invalide.');
+  else if(added) agent('qualite','ok', added+' mesure(s) validée(s), source : '+srcLabel(src)+'.');
+  if(added){ save(); refresh(); }
+  return added;
+}
+function latest(){ return S.readings.length ? S.readings[S.readings.length-1] : null; }
+function cgm(){ return S.readings.filter(function(r){ return r.src==='ns'; }); }
+function currentSlope(){ var l=latest(); if(!l || l.src!=='ns') return null; return C.slope(cgm(), now()); }
+
+function runSurveillance(){
+  var last=latest(), sl=currentSlope();
+  var findings=C.surveillance({latest:last, slope:sl, readings:S.readings, now:now(), alerts:S.alerts, unit:unit(), type:S.profile.type});
+  var top=findings[0];
+  var prev=agentState.veille;
+  if(!prev || prev.msg!==top.title+' : '+top.detail) agent('veille', top.level, top.title+' : '+top.detail);
+  if(last && (top.level==='critical' || top.level==='alert' || (top.level==='warn' && top.title==='Hypoglycémie probable'))){
+    var key=last.t+'|'+top.title;
+    if(alertedKey!==key && (now()-last.t)<20*60000){ alertedKey=key; showAlert(top); }
+  }
+  return findings;
+}
+function showAlert(f){
+  $('alertTitle').textContent=f.title; $('alertText').textContent=f.detail;
+  $('alertBanner').dataset.l=f.level==='warn'?'warn':'critical';
+  $('alertBanner').hidden=false;
+  vibrate([300,120,300,120,300]);
+  speak(f.title+'. '+f.detail);
+}
+
+/* ── Nightscout ── */
+var pollTimer=null;
+function setSync(s, label){ var p=$('syncPill'); p.dataset.s=s; p.textContent=label; }
+function nsBase(){ return (S.ns.url||'').trim().replace(/\/+$/,''); }
+function nsPoll(manual){
+  var base=nsBase();
+  if(!base){ setSync('off','Capteur non relié'); if(manual) toast('Ajoutez l\'adresse Nightscout dans Réglages.','error'); return Promise.resolve(); }
+  if(!/^https:\/\//i.test(base) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(base)){ agent('qualite','warn','L\'adresse Nightscout doit commencer par https://'); setSync('err','Adresse invalide'); return Promise.resolve(); }
+  var since=now()-24*3600e3;
+  var url=base+'/api/v1/entries/sgv.json?count=320&find[date][$gte]='+since+(S.ns.token ? '&token='+encodeURIComponent(S.ns.token) : '');
+  setSync('sync','Synchronisation…');
+  return xhr({url:url, headers:{Accept:'application/json'}}).then(function(r){
+    if(r.status===401) throw new Error('jeton refusé');
+    if(!r.ok) throw new Error('erreur '+r.status);
+    var data=r.json(); if(!Array.isArray(data)) throw new Error('réponse inattendue');
+    var list=data.filter(function(e){ return typeof e.sgv==='number'; }).map(function(e){ return {t:e.date||Date.parse(e.dateString), mg:e.sgv, dir:e.direction}; });
+    list.sort(function(a,b){ return b.t-a.t; });
+    lastDirection=list.length ? {t:list[0].t, dir:list[0].dir} : null;
+    addReadings(list,'ns');
+    S.ns.lastOk=now(); save();
+    setSync('ok','Capteur relié');
+    if(manual) toast('Nightscout : '+list.length+' valeurs lues sur 24 h.','ok');
+    refresh();
+  }).catch(function(e){
+    setSync('err','Capteur injoignable');
+    agent('qualite','warn','Nightscout : '+e.message+'.');
+    if(manual) toast('Nightscout : '+e.message,'error');
+  });
+}
+function startPolling(){ clearInterval(pollTimer); if(nsBase()){ nsPoll(false); pollTimer=setInterval(function(){ if(!document.hidden) nsPoll(false); }, 5*60000); } else setSync('off','Capteur non relié'); }
+
+/* Raccourci iOS : ?bg=…&unit=mg|mmol (&t=ms) — lu avant déverrouillage, puis URL nettoyée */
+var pendingShortcut=null;
+(function(){
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.has('bg')){ pendingShortcut={bg:p.get('bg'), unit:p.get('unit'), t:p.get('t')}; history.replaceState({}, document.title, location.pathname); }
+  }catch(e){}
+})();
+function ingestShortcut(){
+  if(!pendingShortcut) return;
+  var p=pendingShortcut; pendingShortcut=null;
+  var v=C.parseNum(p.bg); var u=p.unit==='mmol' ? 'mmol' : 'mg';
+  var t=C.parseNum(p.t); if(!(t>0)) t=now();
+  if(!isFinite(v)){ agent('qualite','warn','Raccourci Santé : valeur illisible, ignorée.'); return; }
+  var mg=U.toMg(v,u);
+  if(u==='mg' && v<35 && v>1){ agent('qualite','warn','Raccourci Santé : '+v+' ressemble à des mmol/L. Ajoutez unit=mmol. Valeur ignorée.'); toast('Valeur du Raccourci ignorée : unité douteuse.','error'); return; }
+  if(addReadings([{t:t, mg:mg}],'raccourci')) toast('Mesure importée depuis Santé : '+L(mg),'ok');
+}
+
+/* ── Rendu : héros, graphique, indicateurs ── */
+var chartHours=3, metricDays=14;
+function refresh(){ renderHero(); renderChart(); renderMetrics(); renderIob(); renderBolusList(); runSurveillance(); }
+function renderHero(){
+  var last=latest(), h=$('hero');
+  $('bgUnit').textContent=U.label(unit());
+  if(!last){ $('bgValue').textContent='—'; $('bgArrow').textContent=''; $('bgDelta').textContent=''; $('bgAge').textContent='Aucune mesure'; $('bgVerdict').textContent='Reliez Nightscout ou saisissez une mesure.'; h.dataset.z='none'; return; }
+  var age=Math.round((now()-last.t)/60000), sl=currentSlope();
+  var arrow=(lastDirection && lastDirection.t===last.t && DIR[lastDirection.dir]) || C.arrow(sl);
+  $('bgValue').textContent=U.fmt(last.mg, unit());
+  $('bgArrow').textContent=arrow;
+  var cg=cgm(), prev=(last.src==='ns' && cg.length>1) ? cg[cg.length-2] : null;
+  if(prev && last.t-prev.t<=15*60000 && last.t-prev.t>=4*60000){ var d=U.fromMg(last.mg-prev.mg, unit()); $('bgDelta').textContent=(d>=0?'+':'')+(unit()==='mmol'?fr(d,1):fr(d,0)); } else $('bgDelta').textContent='';
+  $('bgAge').textContent= age<1 ? 'à l\'instant' : 'il y a '+age+' min';
+  h.dataset.stale= age>15 ? '1' : '0';
+  var z = last.mg<S.alerts.low ? 'low' : last.mg>S.alerts.high ? 'high' : 'ok';
+  h.dataset.z=z;
+  $('bgVerdict').textContent = age>15 ? 'Donnée ancienne : refaites une mesure.' : z==='low' ? 'Sous votre seuil bas.' : z==='high' ? 'Au-dessus de votre seuil haut.' : 'Dans votre cible.';
+}
+function renderChart(){
+  var box=$('chart'), W=Math.max(300, box.clientWidth||340), H=200, padL=36, padR=10, padT=10, padB=24;
+  var t1=now(), t0=t1-chartHours*3600e3;
+  var pts=S.readings.filter(function(r){ return r.t>=t0; });
+  var yMin=40, yMax=Math.max(300, Math.min(400, pts.reduce(function(m,r){ return Math.max(m,r.mg); },0)+20));
+  function X(t){ return padL+(t-t0)/(t1-t0)*(W-padL-padR); }
+  function Y(v){ v=Math.max(yMin,Math.min(yMax,v)); return padT+(1-(v-yMin)/(yMax-yMin))*(H-padT-padB); }
+  var lo=S.alerts.low, hi=S.alerts.high, u=unit();
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Glycémie sur '+chartHours+' heures">';
+  s+='<rect x="'+padL+'" y="'+Y(hi)+'" width="'+(W-padL-padR)+'" height="'+(Y(lo)-Y(hi))+'" fill="var(--range-soft)"/>';
+  [54,lo,hi,250].forEach(function(v){ var dash=(v===54||v===250)?' stroke-dasharray="3 4"':''; s+='<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--line)"'+dash+'/><text x="'+(padL-6)+'" y="'+(Y(v)+4)+'" text-anchor="end" font-size="10" fill="var(--muted)" font-family="JetBrains Mono,monospace">'+U.fmt(v,u)+'</text>'; });
+  var step=chartHours<=3?1:chartHours<=12?3:6;
+  var first=new Date(t0); first.setMinutes(0,0,0);
+  for(var tt=first.getTime()+3600e3; tt<t1; tt+=3600e3){ var hh=new Date(tt).getHours(); if(hh%step) continue; s+='<text x="'+X(tt)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="JetBrains Mono,monospace">'+hh+' h</text>'; }
+  if(!pts.length){ box.innerHTML=s+'</svg><div class="empty">Aucune mesure sur cette période.</div>'; return; }
+  var d='', prevT=null;
+  pts.filter(function(p){ return p.src==='ns'; }).forEach(function(p){ d+=(prevT===null || p.t-prevT>15*60000 ? 'M' : 'L')+X(p.t).toFixed(1)+' '+Y(p.mg).toFixed(1)+' '; prevT=p.t; });
+  if(d) s+='<path d="'+d+'" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" opacity=".55"/>';
+  pts.forEach(function(p,i){ var c=p.mg<lo?'var(--low)':p.mg>hi?'var(--high)':'var(--range)'; var r=i===pts.length-1?5:2.6; s+='<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.mg).toFixed(1)+'" r="'+r+'" fill="'+c+'"'+(p.src!=='ns'?' stroke="var(--ink)" stroke-width="1.2"':'')+'/>'; });
+  S.meals.filter(function(m){ return m.t>=t0; }).forEach(function(m){ s+='<text x="'+X(m.t)+'" y="'+(padT+10)+'" text-anchor="middle" font-size="11" fill="var(--muted)">'+Math.round(m.g)+' g</text>'; });
+  S.boluses.filter(function(b){ return b.t>=t0; }).forEach(function(b){ s+='<text x="'+X(b.t)+'" y="'+(H-padB-4)+'" text-anchor="middle" font-size="11" fill="var(--insulin)" font-weight="700">'+fr(b.u,1)+' U</text>'; });
+  box.innerHTML=s+'</svg>';
+}
+function renderMetrics(){
+  var m=C.metrics(S.readings, now()-metricDays*86400e3, now()), box=$('metrics');
+  if(!m){ box.innerHTML='<p class="hint">Pas encore de mesures sur cette période.</p>'; if(!agentState.metriques || agentState.metriques.level!=='idle') agent('metriques','idle','Pas assez de données.'); return; }
+  var checks=C.metricChecks(m), okN=checks.filter(function(c){ return c.ok; }).length;
+  var bar='<div class="tir-bar" aria-hidden="true"><i style="width:'+m.tbr2+'%;background:var(--low)"></i><i style="width:'+m.tbr1+'%;background:color-mix(in srgb,var(--low) 55%,transparent)"></i><i style="width:'+m.tir+'%;background:var(--range)"></i><i style="width:'+m.tar1+'%;background:color-mix(in srgb,var(--high) 55%,transparent)"></i><i style="width:'+m.tar2+'%;background:var(--high)"></i></div>';
+  var rows=checks.map(function(c){ return '<div class="stat-line"><span>'+esc(c.label)+'<br><span class="t">cible '+c.target+'</span></span><span class="v '+(c.ok?'good':'bad')+'">'+fr(c.value,1)+' %</span></div>'; }).join('');
+  rows+='<div class="stat-line"><span>Moyenne</span><span class="v">'+L(m.mean)+'</span></div>';
+  var gmiOk=metricDays>=14 && m.coverage>=70;
+  rows+='<div class="stat-line"><span>Indicateur de gestion glycémique (GMI)<br><span class="t">'+(gmiOk?'estimation de l\'HbA1c':'fiable à partir de 14 j et 70 % de données')+'</span></span><span class="v">'+fr(m.gmi,1)+' %</span></div>';
+  rows+='<div class="stat-line"><span>Couverture des données</span><span class="v">'+fr(m.coverage,0)+' %</span></div>';
+  box.innerHTML=bar+rows;
+  var lvl = (m.tbr2>=1||(m.tbr1+m.tbr2)>=4) ? 'alert' : okN===checks.length ? 'ok' : 'warn';
+  var msg=okN+'/'+checks.length+' cibles atteintes sur '+(metricDays===1?'24 h':metricDays+' j')+(m.coverage<70?' (données partielles : '+fr(m.coverage,0)+' %)':'')+'.';
+  if(!agentState.metriques || agentState.metriques.msg!==msg) agent('metriques', lvl, msg);
+}
+function iob(){ return C.iobTotal(S.boluses, now(), S.therapy.dia, S.therapy.peak); }
+function renderIob(){ $('iobValue').textContent=fr(iob(),1)+' U'; }
+
+/* ── Navigation ── */
+function show(view){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.toggle('is-active', v.id==='view-'+view); });
+  document.querySelectorAll('.tabs button').forEach(function(b){ if(b.dataset.view===view) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  window.scrollTo(0,0);
+  if(view==='suivi') refresh();
+  if(view==='bolus') prepareBolus();
+  if(view==='reglages') fillSettings();
+}
+
+/* ── Repas : agent Nutrition ── */
+var meal=[], portionCtx=null;
+function renderMeal(){
+  $('mealList').innerHTML = meal.length ? meal.map(function(m,i){ return '<li><span><b>'+esc(m.name)+'</b><br><span class="meta">'+fr(m.grams,0)+' g · '+esc(m.srcLabel)+'</span></span><span class="num">'+fr(m.carbs,0)+' g</span><button class="btn" type="button" data-rm="'+i+'" aria-label="Retirer '+esc(m.name)+'">Retirer</button></li>'; }).join('') : '<li><span class="meta">Aucun aliment ajouté.</span></li>';
+  $('mealTotal').textContent=fr(mealTotal(),0)+' g';
+}
+function mealTotal(){ return meal.reduce(function(s,m){ return s+m.carbs; },0); }
+function offSearch(term){
+  var url='https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(term)+'&search_simple=1&action=process&json=1&page_size=12&lc=fr&cc=fr';
+  return xhr({url:url, timeout:20000}).then(function(r){
+    if(!r.ok) throw new Error('Open Food Facts indisponible ('+r.status+')');
+    var d=r.json();
+    return (d.products||[]).filter(function(p){ return p.nutriments && typeof p.nutriments.carbohydrates_100g==='number' && p.product_name; }).slice(0,6).map(function(p){
+      return {name:p.product_name+(p.brands?' ('+String(p.brands).split(',')[0]+')':''), per100:p.nutriments.carbohydrates_100g, serving:(p.serving_quantity>0?Number(p.serving_quantity):null), src:'off'};
+    });
+  });
+}
+var foodResults=[];
+function foodSearch(q){
+  q=String(q||'').trim(); if(!q){ toast('Indiquez un aliment.','error'); return; }
+  var p=C.parseFood(q), term=p.term||q;
+  var local=C.findLocalFood(term);
+  foodResults=[];
+  if(local) foodResults.push({name:local.name, per100:local.per100, grams:C.gramsFor(local,p), src:'local'});
+  $('foodResultsCard').hidden=false;
+  $('foodResults').innerHTML='<li><span class="meta">Recherche dans Open Food Facts…</span></li>';
+  renderFoodResults(p, true);
+  offSearch(term).then(function(list){
+    list.forEach(function(x){ x.grams = p.unit==='g' ? p.grams : (x.serving ? Math.round(x.serving*(p.qty||1)) : null); foodResults.push(x); });
+    agent('nutrition', foodResults.length?'ok':'warn', foodResults.length ? foodResults.length+' correspondance(s) pour « '+term+' ». Vérifiez la portion.' : 'Aucun résultat pour « '+term+' ».');
+    renderFoodResults(p, false);
+  }).catch(function(e){
+    agent('nutrition','warn','Open Food Facts : '+e.message+'. Table interne seule.');
+    renderFoodResults(p, false);
+  });
+}
+function renderFoodResults(p, loading){
+  var html=foodResults.map(function(f,i){
+    var carb = f.grams ? ' · '+fr(f.per100*f.grams/100,0)+' g pour '+fr(f.grams,0)+' g' : '';
+    return '<li><span><b>'+esc(f.name)+'</b><br><span class="meta">'+fr(f.per100,1)+' g de glucides / 100 g'+carb+' · '+(f.src==='local'?'table interne, approximatif':'Open Food Facts')+'</span></span><button class="btn" type="button" data-add="'+i+'">Choisir</button></li>';
+  }).join('');
+  if(loading) html+='<li><span class="meta">Recherche dans Open Food Facts…</span></li>';
+  else if(!foodResults.length) html='<li><span class="meta">Aucun résultat. Essayez un nom plus simple ou scannez le code-barres.</span></li>';
+  $('foodResults').innerHTML=html;
+}
+function openPortion(f){
+  portionCtx=f;
+  $('portionTitle').textContent=f.name;
+  $('portionInfo').textContent=fr(f.per100,1)+' g de glucides pour 100 g ('+(f.src==='local'?'valeur moyenne approximative':'Open Food Facts')+').';
+  $('portionGrams').value=f.grams ? String(Math.round(f.grams)) : '';
+  updatePortion();
+  $('portionDlg').showModal();
+  setTimeout(function(){ $('portionGrams').focus(); }, 50);
+}
+function updatePortion(){
+  var g=C.parseNum($('portionGrams').value);
+  $('portionCarbs').textContent = (g>0 && portionCtx) ? '= '+fr(portionCtx.per100*g/100,0)+' g de glucides' : 'Indiquez le poids consommé.';
+}
+function lookupBarcode(code){
+  toast('Recherche du produit '+code+'…');
+  var url='https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,nutriments,serving_quantity';
+  return xhr({url:url}).then(function(r){
+    var d=r.ok ? r.json() : null;
+    if(!d || d.status!==1 || !d.product) throw new Error('produit inconnu');
+    var p=d.product, c=p.nutriments && p.nutriments.carbohydrates_100g;
+    if(typeof c!=='number') throw new Error('glucides non renseignés');
+    agent('nutrition','ok','Code-barres '+code+' : '+(p.product_name||'produit')+'.');
+    show('repas');
+    openPortion({name:(p.product_name||'Produit '+code)+(p.brands?' ('+String(p.brands).split(',')[0]+')':''), per100:c, grams:p.serving_quantity>0?Number(p.serving_quantity):null, src:'off'});
+  }).catch(function(e){ agent('nutrition','warn','Code-barres '+code+' : '+e.message+'.'); toast('Produit : '+e.message,'error'); });
+}
+
+/* ── Scanner : BarcodeDetector natif, sinon Quagga2 chargé à la demande ── */
+var scan={stream:null, timer:null, busy:false, detector:null};
+var quaggaP=null;
+function loadQuagga(){
+  if(window.Quagga) return Promise.resolve();
+  if(quaggaP) return quaggaP;
+  quaggaP=new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js'; s.onload=res; s.onerror=function(){ quaggaP=null; rej(new Error('lecteur de codes indisponible')); }; document.head.appendChild(s); });
+  return quaggaP;
+}
+function scanStart(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast('Caméra indisponible sur cet appareil.','error'); return; }
+  $('scanner').hidden=false; $('scanMsg').textContent='Placez le code-barres dans le cadre.';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false}).then(function(stream){
+    scan.stream=stream; var v=$('scanVideo'); v.srcObject=stream; return v.play();
+  }).then(function(){
+    if('BarcodeDetector' in window){
+      try{ scan.detector=new window.BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']}); }catch(e){ scan.detector=null; }
+    }
+    return scan.detector ? null : loadQuagga();
+  }).then(function(){
+    scan.timer=setInterval(scanTick, 450);
+  }).catch(function(e){ scanStop(); toast(e && e.name==='NotAllowedError' ? 'Autorisez la caméra pour scanner.' : 'Caméra : '+(e.message||e),'error'); });
+}
+function scanTick(){
+  if(scan.busy) return; var v=$('scanVideo'); if(!v.videoWidth) return;
+  scan.busy=true;
+  var done=function(code){ scan.busy=false; if(code && /^\d{8,14}$/.test(code)){ vibrate(150); scanStop(); lookupBarcode(code); } };
+  if(scan.detector){
+    scan.detector.detect(v).then(function(r){ done(r && r[0] && r[0].rawValue); }).catch(function(){ scan.busy=false; });
+  } else if(window.Quagga){
+    var c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+    window.Quagga.decodeSingle({src:c.toDataURL('image/jpeg',0.8), numOfWorkers:0, locate:true, decoder:{readers:['ean_reader','ean_8_reader','upc_reader','upc_e_reader']}}, function(r){ done(r && r.codeResult && r.codeResult.code); });
+  } else scan.busy=false;
+}
+function scanStop(){
+  clearInterval(scan.timer); scan.timer=null; scan.busy=false;
+  if(scan.stream){ scan.stream.getTracks().forEach(function(t){ t.stop(); }); scan.stream=null; }
+  $('scanVideo').srcObject=null; $('scanner').hidden=true;
+}
+
+/* ── Bolus : agent Garde-fou ── */
+function prepareBolus(){
+  var u=unit(), last=latest();
+  $('bolusBgLabel').textContent='Glycémie ('+U.label(u)+')';
+  if(last && (now()-last.t)<=15*60000){ $('bolusBg').value=U.fmt(last.mg,u); $('bolusBgHint').textContent='Dernière mesure ('+srcLabel(last.src)+', '+hm(last.t)+'). Modifiez-la si vous venez de vous contrôler.'; }
+  else { $('bolusBg').value=''; $('bolusBgHint').textContent='Aucune mesure récente : saisissez une glycémie capillaire.'; }
+  if(!$('bolusCarbs').value && meal.length) $('bolusCarbs').value=String(Math.round(mealTotal()));
+  var miss=C.therapyMissing(S.therapy);
+  if(miss.length){ agent('dose','warn','Estimation désactivée : '+miss.join(', ')+'.'); }
+}
+function runBolus(){
+  var u=unit(), carbs=C.parseNum($('bolusCarbs').value||'0'), bgIn=C.parseNum($('bolusBg').value);
+  var bgMg=isFinite(bgIn) ? U.toMg(bgIn,u) : NaN, last=latest();
+  var fromLast = last && isFinite(bgIn) && Math.abs(U.toMg(bgIn,u)-last.mg)<0.6*(u==='mmol'?U.toMg(0.1,'mmol'):1);
+  var r=C.bolusEstimate({carbs:carbs, bgMg:bgMg, bgAgeMin: fromLast ? (now()-last.t)/60000 : 0, slope: fromLast ? currentSlope() : null, therapy:S.therapy, boluses:S.boluses, now:now(), unit:u});
+  var box=$('bolusResult'); box.hidden=false; box.dataset.s=r.status;
+  var html='';
+  if(r.parts){
+    html+='<div class="dose num">'+fr(r.dose,1)+' U</div><div>'+(r.status==='blocked'?'Estimation bloquée':'Estimation à vérifier avant injection')+'</div>';
+    html+='<div class="breakdown">Repas '+fr(r.parts.carbDose,2)+' + correction '+fr(r.parts.corr,2)+' − insuline active '+fr(r.parts.iob,2)+' = '+fr(r.raw,2)+' U, arrondi au pas inférieur de '+fr(S.therapy.step,1)+' U</div>';
+  } else html+='<div style="font-weight:700;font-size:1.1rem">Estimation impossible</div>';
+  html+='<ul class="msgs">'+r.msgs.map(function(m){ return '<li data-l="'+m.level+'">'+esc(m.text)+'</li>'; }).join('')+'</ul>';
+  box.innerHTML=html;
+  agent('dose', r.status==='blocked'?'alert':r.status==='warn'?'warn':'ok', r.status==='blocked' ? 'Bloqué : '+r.msgs[0].text : 'Estimation '+fr(r.dose,1)+' U, double calcul concordant'+(r.msgs.length?', '+r.msgs.length+' avertissement(s)':'')+'.');
+  if(r.status!=='blocked' && r.parts) $('bolusDone').value='';
+}
+function renderBolusList(){
+  var list=S.boluses.slice().reverse().slice(0,8);
+  $('bolusList').innerHTML = list.length ? list.map(function(b){ var i=S.boluses.indexOf(b); return '<li><span><b class="num">'+fr(b.u,1)+' U</b><br><span class="meta">'+dt(b.t)+'</span></span><button class="btn" type="button" data-delbolus="'+i+'">Supprimer</button></li>'; }).join('') : '<li><span class="meta">Aucune injection consignée.</span></li>';
+}
+
+/* ── Assistant : triage → intentions locales → IA → contrôle → critique ── */
+var SYS='Tu es l\'agent Conseiller de Jarvis Diabète, un outil d\'éducation thérapeutique non certifié dispositif médical. Réponds en français, en 2 à 4 phrases courtes, sans markdown ni liste, pour une lecture à voix haute.\n'+
+'Règles absolues : 1) ne donne jamais de dose d\'insuline ni de nombre d\'unités ; 2) ne propose jamais de modifier, arrêter ou décaler un traitement ; 3) pour toute question de dose, renvoie vers l\'estimation de bolus paramétrée par l\'équipe soignante ; 4) appuie-toi sur les recommandations reconnues (ADA Standards of Care 2026, consensus international sur le temps dans la cible, HAS, Société francophone du diabète) et dis-le quand tu n\'es pas sûr ; 5) devant malaise, confusion, vomissements, cétones ou douleur thoracique, oriente vers le 15 ; 6) ne pose pas de diagnostic.';
+var CRITIC='Tu es l\'agent Contrôleur médical. Tu vérifies une réponse destinée à une personne diabétique. Critères : aucune dose ni modification de traitement ; exactitude par rapport aux recommandations actuelles (ADA Standards of Care 2026, consensus sur le temps dans la cible) ; aucun diagnostic ; orientation vers le 15 si signe de gravité ; clarté, 4 phrases maximum, en français. Réponds uniquement avec un objet JSON : {"verdict":"ok" ou "revise","problemes":["…"],"revision":"réponse corrigée complète, ou chaîne vide si ok"}.';
+var chatHistory=[];
+function providers(){
+  var a=S.ai, list=[];
+  if(a.keys.mistral) list.push({id:'mistral', label:'Mistral', base:'https://api.mistral.ai/v1', key:a.keys.mistral, model:a.models.mistral});
+  if(a.keys.groq) list.push({id:'groq', label:'Groq', base:'https://api.groq.com/openai/v1', key:a.keys.groq, model:a.models.groq});
+  if(a.keys.cerebras) list.push({id:'cerebras', label:'Cerebras', base:'https://api.cerebras.ai/v1', key:a.keys.cerebras, model:a.models.cerebras});
+  if(a.localOn && a.localUrl) list.push({id:'local', label:'Local', base:a.localUrl.replace(/\/+$/,''), key:'', model:a.models.local});
+  return list;
+}
+function callProvider(p, messages, maxTokens, temperature){
+  var headers={'Content-Type':'application/json'}; if(p.key) headers.Authorization='Bearer '+p.key;
+  return xhr({method:'POST', url:p.base+'/chat/completions', headers:headers, timeout:60000,
+    body:JSON.stringify({model:p.model, messages:messages, temperature:temperature, max_tokens:maxTokens})}).then(function(r){
+    if(!r.ok){ var m='HTTP '+r.status; try{ var e=r.json(); if(e.error) m+=' '+(e.error.message||e.error); else if(e.message) m+=' '+e.message; }catch(x){} throw new Error(m); }
+    var d=r.json(), c=d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+    if(Array.isArray(c)) c=c.map(function(x){ return x.text||''; }).join('');
+    c=String(c||'').replace(/<think>[\s\S]*?<\/think>/gi,'').trim();
+    if(!c) throw new Error('réponse vide');
+    return c;
+  });
+}
+function chain(list, messages, maxTokens, temperature, trace){
+  var i=0;
+  function next(){
+    if(i>=list.length) return Promise.reject(new Error('aucun fournisseur n\'a répondu'));
+    var p=list[i++];
+    return callProvider(p, messages, maxTokens, temperature).then(function(text){ return {text:text, p:p}; })
+      .catch(function(e){ trace.push(p.label+' indisponible ('+e.message.slice(0,60)+')'); return next(); });
+  }
+  return next();
+}
+function parseJsonLoose(t){ var m=String(t||'').match(/\{[\s\S]*\}/); if(!m) return null; try{ return JSON.parse(m[0]); }catch(e){ return null; } }
+function contextText(){
+  var last=latest(), m=C.metrics(S.readings, now()-14*86400e3, now());
+  var parts=['Contexte anonymisé. Unité : '+U.label(unit())+'. Type : '+(S.profile.type==='T1'?'diabète de type 1':S.profile.type==='T2'?'diabète de type 2 sous insuline':'autre')+'.'];
+  if(last) parts.push('Dernière glycémie : '+L(last.mg)+', il y a '+Math.round((now()-last.t)/60000)+' min, tendance '+(C.arrow(currentSlope())||'inconnue')+'.');
+  if(m) parts.push('Sur 14 jours : temps dans la cible '+fr(m.tir,0)+' %, sous 70 : '+fr(m.tbr1+m.tbr2,1)+' %, CV '+fr(m.cv,0)+' %.');
+  return parts.join(' ');
+}
+function localIntent(t){
+  var s=t.toLowerCase(), last=latest();
+  if(/(dose|bolus|combien d.unit|injecter|piquer)/.test(s)){
+    setTimeout(function(){ show('bolus'); }, 1400);
+    return {text:'Je ne donne pas de dose à l\'oral. J\'ouvre l\'estimation de bolus : elle applique vos paramètres de prescription et ses garde-fous.', trace:['Intention locale : bolus']};
+  }
+  if(/(ma glyc[ée]mie|mon taux|combien.*(suis|ai)|o[uù] en est)/.test(s)){
+    if(!last) return {text:'Je n\'ai aucune mesure. Reliez Nightscout ou saisissez une mesure dans Suivi.', trace:['Intention locale : glycémie']};
+    var age=Math.round((now()-last.t)/60000);
+    return {text:'Votre glycémie est de '+L(last.mg)+', mesurée '+(age<1?'à l\'instant':'il y a '+age+' minute'+(age>1?'s':''))+'. '+(age>15?'Cette donnée est ancienne, refaites une mesure.':(agentState.veille?agentState.veille.msg:'')), trace:['Intention locale : glycémie','Veille glycémique']};
+  }
+  if(/(insuline active|iob|insuline restante)/.test(s)) return {text:'Il reste environ '+fr(iob(),1)+' unité d\'insuline active, selon les injections consignées et le modèle d\'action de votre insuline.', trace:['Intention locale : insuline active']};
+  if(/(temps dans la cible|\btir\b|bilan|rapport|moyenne|hba1c|gmi)/.test(s)){
+    var m=C.metrics(S.readings, now()-14*86400e3, now());
+    if(!m) return {text:'Pas encore assez de mesures pour un bilan.', trace:['Consensus temps dans la cible']};
+    return {text:'Sur 14 jours : temps dans la cible '+fr(m.tir,0)+' % (objectif au-dessus de 70), sous 70 : '+fr(m.tbr1+m.tbr2,1)+' % (objectif sous 4), variabilité '+fr(m.cv,0)+' % (objectif 36 maximum), moyenne '+L(m.mean)+'. Parlez-en avec votre équipe soignante.', trace:['Consensus temps dans la cible']};
+  }
+  if(/(scann|code.?barre)/.test(s)){ setTimeout(scanStart, 1200); return {text:'J\'ouvre la caméra pour scanner le produit.', trace:['Intention locale : scanner']}; }
+  var mf=s.match(/(?:glucides?|sucres?)\s+(?:dans|pour|de|d'|d’|y a-t-il dans)\s*(.+?)\s*\??$/);
+  if(mf){ var q=mf[1]; setTimeout(function(){ show('repas'); $('foodQuery').value=q; foodSearch(q); }, 1200); return {text:'Je cherche les glucides de « '+q+' ». Vérifiez ensuite la portion.', trace:['Intention locale : nutrition']}; }
+  return null;
+}
+function addMsg(who, text, trace){
+  var d=document.createElement('div'); d.className='msg '+(who==='user'?'user':'bot');
+  d.textContent=text;
+  if(trace && trace.length){ var t=document.createElement('div'); t.className='trace'; trace.forEach(function(x){ var s=document.createElement('span'); s.textContent=x; t.appendChild(s); }); d.appendChild(t); }
+  $('chatLog').appendChild(d); d.scrollIntoView({block:'end', behavior:'smooth'});
+  return d;
+}
+function respond(text, trace){ addMsg('bot', text, trace); chatHistory.push({role:'assistant', content:text}); speak(text); }
+function ask(text){
+  text=String(text||'').trim(); if(!text) return;
+  addMsg('user', text); chatHistory.push({role:'user', content:text});
+  var tri=C.triage(text);
+  if(tri){ agent('triage', tri.level, tri.title+' détecté : réponse de sécurité sans IA.'); respond(tri.message, ['Triage : '+tri.title, 'IA non sollicitée']); if(tri.level==='critical') vibrate([300,100,300]); return; }
+  agent('triage','ok','Aucun signe de gravité dans la dernière question.');
+  var li=localIntent(text); if(li){ respond(li.text, li.trace); return; }
+  var list=providers();
+  if(!list.length){ agent('conseiller','idle','Aucun fournisseur configuré.'); respond('L\'assistant IA n\'est pas configuré. Ajoutez une clé Mistral, Groq ou Cerebras, ou un modèle local, dans Réglages.', []); return; }
+  var trace=[], pending=addMsg('bot','Analyse en cours…');
+  var msgs=[{role:'system', content:SYS}];
+  if(S.ai.share) msgs.push({role:'system', content:contextText()});
+  msgs=msgs.concat(chatHistory.slice(-7));
+  chain(list, msgs, 900, 0.3, trace).then(function(gen){
+    trace.push('Conseiller : '+gen.p.label);
+    agent('conseiller','ok','Réponse de '+gen.p.label+' ('+gen.p.model+').');
+    var g=C.guardOutput(gen.text);
+    if(!S.ai.critic) return {g:g, gen:gen};
+    var others=list.filter(function(p){ return p.id!==gen.p.id; });
+    var ctrl=[];
+    return chain(others.length?others:list, [{role:'system', content:CRITIC},{role:'user', content:'Question : '+text+'\n\nRéponse à vérifier : '+g.text}], 900, 0, ctrl).then(function(cr){
+      var v=parseJsonLoose(cr.text);
+      if(v && v.verdict==='revise' && v.revision){ var g2=C.guardOutput(v.revision); g2.removed+=g.removed; trace.push('Critique '+cr.p.label+' : corrigée'); agent('controle','warn','Relecture '+cr.p.label+' : '+((v.problemes||[]).join(' ; ')||'réponse corrigée')); return {g:g2, gen:gen}; }
+      trace.push(v ? 'Critique '+cr.p.label+' : validée' : 'Critique illisible');
+      return {g:g, gen:gen};
+    }).catch(function(){ trace.push('Critique indisponible'); return {g:g, gen:gen}; });
+  }).then(function(o){
+    trace.push(o.g.removed ? 'Contrôle : '+o.g.removed+' passage(s) retiré(s)' : 'Contrôle : conforme');
+    if(o.g.removed) agent('controle','warn', o.g.removed+' passage(s) retiré(s) : dose ou modification de traitement.');
+    else agent('controle','ok','Dernière réponse conforme.');
+    pending.remove(); respond(o.g.text, trace);
+  }).catch(function(e){
+    pending.remove(); agent('conseiller','warn','Échec : '+e.message+'.');
+    respond('Aucun fournisseur IA n\'a répondu. Vérifiez vos clés, la connexion ou le serveur local.', trace);
+  });
+}
+
+/* ── Voix ── */
+var Voice={rec:null, on:false};
+function speak(text){
+  if(!S || !S.alerts.voice || !window.speechSynthesis) return;
+  try{ speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(text); u.lang='fr-FR'; u.rate=1; speechSynthesis.speak(u); }catch(e){}
+}
+function toggleMic(){
+  var R=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!R){ toast('Reconnaissance vocale indisponible sur ce navigateur.','error'); return; }
+  if(Voice.on){ try{ Voice.rec.stop(); }catch(e){} return; }
+  try{ speechSynthesis.cancel(); }catch(e){}
+  var r=new R(); r.lang='fr-FR'; r.interimResults=true; r.continuous=false;
+  r.onstart=function(){ Voice.on=true; $('btnMic').setAttribute('aria-pressed','true'); };
+  r.onresult=function(e){ var res=e.results[e.results.length-1], t=res[0].transcript; $('chatInput').value=t; if(res.isFinal){ $('chatInput').value=''; ask(t); } };
+  r.onerror=function(e){ if(e.error==='not-allowed') toast('Autorisez le micro pour dicter.','error'); };
+  r.onend=function(){ Voice.on=false; $('btnMic').setAttribute('aria-pressed','false'); };
+  Voice.rec=r; try{ r.start(); }catch(e){}
+}
+
+/* ── Réglages ── */
+var formUnit='mg';
+function fillSettings(){
+  var u=unit(), th=S.therapy; formUnit=u;
+  $('setName').value=S.profile.name; $('setUnit').value=u; $('setType').value=S.profile.type;
+  $('setIcr').value=th.icr!=null?String(th.icr).replace('.',','):'';
+  $('setIsf').value=th.isf!=null?(u==='mmol'?fr(th.isf/18.0182,1):fr(th.isf,0)):'';
+  $('setTarget').value=th.target!=null?U.fmt(th.target,u):'';
+  $('setMax').value=th.maxBolus!=null?String(th.maxBolus).replace('.',','):'';
+  $('setPeak').value=String(th.peak); $('setDia').value=String(th.dia).replace('.',','); $('setStep').value=String(th.step);
+  $('setValidatedBy').value=th.validatedBy||''; $('setValidated').checked=!!th.validated;
+  $('setLow').value=U.fmt(S.alerts.low,u); $('setHigh').value=U.fmt(S.alerts.high,u); $('setVoice').checked=!!S.alerts.voice;
+  $('setNsUrl').value=S.ns.url; $('setNsToken').value=S.ns.token; $('setShortcut').value=S.ns.shortcut;
+  var a=S.ai; $('setKeyMistral').value=a.keys.mistral; $('setKeyGroq').value=a.keys.groq; $('setKeyCerebras').value=a.keys.cerebras;
+  $('setModelMistral').value=a.models.mistral; $('setModelGroq').value=a.models.groq; $('setModelCerebras').value=a.models.cerebras;
+  $('setLocalOn').checked=!!a.localOn; $('setLocalUrl').value=a.localUrl; $('setLocalModel').value=a.models.local;
+  $('setCritic').checked=!!a.critic; $('setShare').checked=!!a.share;
+  labelsForUnit(u); $('settingsMsg').textContent='';
+  if(C.therapyMissing(th).length) $('setTherapy').open=true;
+}
+function labelsForUnit(u){
+  var l=U.label(u);
+  $('setIsfLabel').textContent='Sensibilité ('+l+' par U)'; $('setTargetLabel').textContent='Glycémie cible ('+l+')';
+  $('setLowLabel').textContent='Seuil bas ('+l+')'; $('setHighLabel').textContent='Seuil haut ('+l+')';
+  $('manualLabel').textContent='Mesure capillaire ('+l+')'; $('manualBg').placeholder=u==='mmol'?'Ex. 6,9':'Ex. 124';
+}
+function saveSettings(){
+  var msg=$('settingsMsg'), errs=[];
+  var u=$('setUnit').value==='mmol'?'mmol':'mg';
+  function num(id){ var v=$(id).value.trim(); return v==='' ? null : C.parseNum(v); }
+  function toMg(v){ return v==null ? null : U.toMg(v,u); }
+  var icr=num('setIcr'), isf=num('setIsf'), target=num('setTarget'), max=num('setMax'), dia=num('setDia'), low=num('setLow'), high=num('setHigh');
+  var isfMg = isf==null ? null : (u==='mmol' ? isf*18.0182 : isf), tMg=toMg(target), lowMg=toMg(low), highMg=toMg(high);
+  if(icr!=null && !(icr>=1 && icr<=150)) errs.push('ratio glucides entre 1 et 150 g/U');
+  if(isfMg!=null && !(isfMg>=5 && isfMg<=500)) errs.push('sensibilité hors plage plausible');
+  if(tMg!=null && !(tMg>=70 && tMg<=200)) errs.push('cible entre '+U.fmt(70,u)+' et '+U.fmt(200,u));
+  if(max!=null && !(max>=0.5 && max<=30)) errs.push('plafond entre 0,5 et 30 U');
+  if(!(dia>=3 && dia<=8)) errs.push('durée d\'action entre 3 et 8 h');
+  if(!(lowMg>=55 && lowMg<=100)) errs.push('seuil bas entre '+U.fmt(55,u)+' et '+U.fmt(100,u));
+  if(!(highMg>=120 && highMg<=300)) errs.push('seuil haut entre '+U.fmt(120,u)+' et '+U.fmt(300,u));
+  var validated=$('setValidated').checked, by=$('setValidatedBy').value.trim();
+  if(validated && !by) errs.push('indiquez qui a validé les paramètres');
+  var nsUrl=$('setNsUrl').value.trim().replace(/\/+$/,'');
+  if(nsUrl && !/^https:\/\//i.test(nsUrl)) errs.push('adresse Nightscout en https://');
+  var localUrl=$('setLocalUrl').value.trim();
+  if($('setLocalOn').checked && !/^https?:\/\//i.test(localUrl)) errs.push('adresse du serveur local invalide');
+  if(errs.length){ msg.dataset.t='error'; msg.textContent='À corriger : '+errs.join(' ; ')+'.'; return; }
+
+  var th=S.therapy;
+  var changed = icr!==th.icr || (isfMg==null?null:Math.round(isfMg*10)/10)!==(th.isf==null?null:Math.round(th.isf*10)/10) || (tMg==null?null:Math.round(tMg))!==(th.target==null?null:Math.round(th.target)) || max!==th.maxBolus || dia!==th.dia || Number($('setPeak').value)!==th.peak || Number($('setStep').value)!==th.step;
+  S.profile={name:$('setName').value.trim().slice(0,40), unit:u, type:$('setType').value};
+  S.therapy={icr:icr, isf:isfMg==null?null:Math.round(isfMg*10)/10, target:tMg==null?null:Math.round(tMg), maxBolus:max, dia:dia, peak:Number($('setPeak').value), step:Number($('setStep').value),
+    validated:validated, validatedBy:by, validatedAt: validated ? (changed || !th.validatedAt ? now() : th.validatedAt) : null};
+  S.alerts={low:Math.round(lowMg), high:Math.round(highMg), voice:$('setVoice').checked};
+  var urlChanged = nsUrl!==S.ns.url || $('setNsToken').value.trim()!==S.ns.token;
+  S.ns.url=nsUrl; S.ns.token=sanitizeKey($('setNsToken').value); S.ns.shortcut=$('setShortcut').value.trim()||'SyncJarvis';
+  S.ai.keys={mistral:sanitizeKey($('setKeyMistral').value), groq:sanitizeKey($('setKeyGroq').value), cerebras:sanitizeKey($('setKeyCerebras').value)};
+  S.ai.models={mistral:$('setModelMistral').value.trim()||'mistral-large-latest', groq:$('setModelGroq').value.trim()||'openai/gpt-oss-120b', cerebras:$('setModelCerebras').value.trim()||'gpt-oss-120b', local:$('setLocalModel').value.trim()||'hf.co/mradermacher/Diabetica-Qwen3-4B-GGUF:Q4_K_M'};
+  S.ai.localOn=$('setLocalOn').checked; S.ai.localUrl=localUrl; S.ai.critic=$('setCritic').checked; S.ai.share=$('setShare').checked;
+  save();
+  var miss=C.therapyMissing(S.therapy);
+  agent('dose', miss.length?'warn':'ok', miss.length ? 'Estimation désactivée : '+miss.join(', ')+'.' : 'Paramètres validés par '+S.therapy.validatedBy+'.');
+  var pv=providers(); agent('conseiller', pv.length?'ok':'idle', pv.length ? 'Chaîne : '+pv.map(function(p){ return p.label; }).join(' → ')+(S.ai.critic?', relecture critique active':'')+'.' : 'Aucun fournisseur configuré.');
+  msg.dataset.t='ok'; msg.textContent='Réglages enregistrés et chiffrés.';
+  labelsForUnit(u);
+  if(urlChanged) startPolling();
+  refresh();
+}
+
+/* ── Rapport médecin et exports ── */
+function buildReport(){
+  var t1=now(), m=C.metrics(S.readings, t1-14*86400e3, t1), u=unit();
+  var h='<h1>Jarvis Diabète — synthèse sur 14 jours</h1><p>Édité le '+new Date().toLocaleDateString('fr-FR')+'. Document généré par un outil non certifié, à interpréter par un professionnel de santé.</p>';
+  if(m){
+    h+='<table><tr><th>Indicateur</th><th>Valeur</th><th>Cible consensus</th></tr>';
+    C.metricChecks(m).forEach(function(c){ h+='<tr><td>'+esc(c.label)+'</td><td>'+fr(c.value,1)+' %</td><td>'+c.target+'</td></tr>'; });
+    h+='<tr><td>Moyenne</td><td>'+L(m.mean)+'</td><td></td></tr><tr><td>GMI</td><td>'+fr(m.gmi,1)+' %</td><td></td></tr><tr><td>Mesures / couverture</td><td>'+m.n+' / '+fr(m.coverage,0)+' %</td><td>≥ 70 %</td></tr></table>';
+    h+='<table><tr><th>Jour</th><th>Moyenne</th><th>Min</th><th>Max</th><th>Dans la cible</th><th>Glucides</th><th>Insuline consignée</th></tr>';
+    for(var i=13;i>=0;i--){
+      var d0=new Date(); d0.setHours(0,0,0,0); d0.setDate(d0.getDate()-i); var a=d0.getTime(), b=a+86400e3;
+      var r=S.readings.filter(function(x){ return x.t>=a && x.t<b; }).map(function(x){ return x.mg; });
+      var carbs=S.meals.filter(function(x){ return x.t>=a && x.t<b; }).reduce(function(s,x){ return s+x.g; },0);
+      var ins=S.boluses.filter(function(x){ return x.t>=a && x.t<b; }).reduce(function(s,x){ return s+x.u; },0);
+      if(!r.length && !carbs && !ins) continue;
+      var mean=r.length ? r.reduce(function(s,x){ return s+x; },0)/r.length : null;
+      h+='<tr><td>'+d0.toLocaleDateString('fr-FR')+'</td><td>'+(mean?U.fmt(mean,u):'—')+'</td><td>'+(r.length?U.fmt(Math.min.apply(null,r),u):'—')+'</td><td>'+(r.length?U.fmt(Math.max.apply(null,r),u):'—')+'</td><td>'+(r.length?fr(100*r.filter(function(v){ return v>=70&&v<=180; }).length/r.length,0)+' %':'—')+'</td><td>'+fr(carbs,0)+' g</td><td>'+fr(ins,1)+' U</td></tr>';
+    }
+    h+='</table>';
+  } else h+='<p>Aucune mesure sur la période.</p>';
+  var th=S.therapy;
+  h+='<p>Paramètres saisis : ratio '+(th.icr||'—')+' g/U, sensibilité '+(th.isf?L(th.isf):'—')+' par U, cible '+(th.target?L(th.target):'—')+', durée d\'action '+th.dia+' h'+(th.validated?', validés par '+esc(th.validatedBy):', non validés')+'. Unité : '+U.label(u)+'.</p>';
+  return h;
+}
+function download(name, text, type){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type})); a.download=name;
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportCsv(){
+  var rows=['type;date;valeur;unite;source'];
+  S.readings.forEach(function(r){ rows.push('glycemie;'+new Date(r.t).toISOString()+';'+r.mg+';mg/dL;'+r.src); });
+  S.meals.forEach(function(m){ rows.push('glucides;'+new Date(m.t).toISOString()+';'+Math.round(m.g)+';g;"'+String(m.name).replace(/"/g,'""')+'"'); });
+  S.boluses.forEach(function(b){ rows.push('insuline;'+new Date(b.t).toISOString()+';'+b.u+';U;saisie'); });
+  download('jarvis-diabete-'+new Date().toISOString().slice(0,10)+'.csv', '\ufeff'+rows.join('\n'), 'text/csv;charset=utf-8');
+}
+
+/* ── Migration de l'ancienne version (données en clair dans localStorage) ── */
+function migrateLegacy(){
+  var ls=null; try{ ls=window.localStorage; }catch(e){}
+  if(!ls) return 0;
+  var n=0;
+  try{
+    var k=ls.getItem('mistral_vault'); if(k){ S.ai.keys.mistral=sanitizeKey(k); n++; }
+    var name=ls.getItem('user_name'); if(name && name!=='Monsieur'){ S.profile.name=name.slice(0,40); }
+    var ratio=C.parseNum(ls.getItem('insulin_ratio')); if(ratio>=1 && ratio<=150){ S.therapy.icr=ratio; n++; }
+    var gh=JSON.parse(ls.getItem('glycemia_history')||'[]');
+    if(Array.isArray(gh)) gh.forEach(function(g){ var t=Date.parse(g.timestamp), v=Number(g.value); if(t>0 && v>=20 && v<=600){ S.readings.push({t:t, mg:Math.round(v), src:'raccourci'}); n++; } });
+    ['mistral_vault','user_name','shortcut_name','insulin_ratio','glycemia_history','daily_data','food_cache'].forEach(function(x){ ls.removeItem(x); });
+  }catch(e){}
+  S.readings.sort(function(a,b){ return a.t-b.t; });
+  return n;
+}
+
+/* ── Verrouillage ── */
+var failCount=0, lockUntil=0, hiddenAt=0;
+function enterApp(){
+  $('lock').hidden=true; $('app').hidden=false;
+  labelsForUnit(unit());
+  renderAgents(); renderMeal();
+  var miss=C.therapyMissing(S.therapy);
+  agent('dose', miss.length?'warn':'ok', miss.length ? 'Estimation désactivée : '+miss.join(', ')+'.' : 'Paramètres validés par '+S.therapy.validatedBy+'.');
+  var pv=providers(); if(pv.length) agent('conseiller','ok','Chaîne : '+pv.map(function(p){ return p.label; }).join(' → ')+'.');
+  prune(); refresh(); ingestShortcut(); startPolling();
+  setInterval(function(){ if(!document.hidden){ renderHero(); renderIob(); runSurveillance(); } }, 60000);
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+function initLock(){
+  if(!window.crypto || !crypto.subtle){ $('lockIntro').textContent='Ce navigateur ne permet pas le chiffrement (page non sécurisée). Ouvrez l\'application en https.'; return; }
+  Store.get('vault').then(function(v){
+    if(v && v.ct){ $('unlockForm').hidden=false; $('lockIntro').textContent='Entrez votre code pour déchiffrer vos données.'; setTimeout(function(){ $('unlockCode').focus(); }, 100); }
+    else { $('setupForm').hidden=false; $('lockTitle').textContent='Bienvenue'; }
+  });
+  Store.persistent().then(function(ok){ if(!ok){ $('lockIntro').textContent+=' Attention : stockage permanent indisponible (navigation privée ?), les données seront perdues à la fermeture.'; } });
+}
+function doUnlock(e){
+  e.preventDefault();
+  var err=$('unlockErr');
+  if(now()<lockUntil){ err.textContent='Trop d\'essais. Réessayez dans '+Math.ceil((lockUntil-now())/1000)+' s.'; return; }
+  var code=$('unlockCode').value; $('unlockBtn').disabled=true; err.textContent='Déchiffrement…';
+  Store.get('vault').then(function(v){
+    return deriveKey(code, v.salt).then(function(key){
+      return crypto.subtle.decrypt({name:'AES-GCM', iv:v.iv}, key, v.ct).then(function(pt){
+        cryptoKey=key; vaultSalt=v.salt; S=mergeDeep(defaults(), JSON.parse(dec.decode(pt)));
+        $('unlockCode').value=''; err.textContent=''; enterApp();
+      });
+    });
+  }).catch(function(){
+    failCount++; if(failCount>=5){ lockUntil=now()+30000*Math.pow(2,failCount-5); }
+    err.textContent='Code incorrect.';
+  }).then(function(){ $('unlockBtn').disabled=false; });
+}
+function doSetup(e){
+  e.preventDefault();
+  var c1=$('setupCode').value, c2=$('setupCode2').value, err=$('setupErr');
+  if(c1.length<6){ err.textContent='Le code doit faire au moins 6 caractères.'; return; }
+  if(c1!==c2){ err.textContent='Les deux codes ne correspondent pas.'; return; }
+  if(!$('setupConsent').checked){ err.textContent='Cochez la case pour continuer.'; return; }
+  err.textContent='Création du coffre…';
+  vaultSalt=crypto.getRandomValues(new Uint8Array(16));
+  deriveKey(c1, vaultSalt).then(function(key){
+    cryptoKey=key; S=defaults();
+    var n=migrateLegacy();
+    return encryptState().then(function(v){ return Store.set('vault', v); }).then(function(){
+      $('setupCode').value=''; $('setupCode2').value=''; enterApp();
+      if(n) toast(n+' donnée(s) de l\'ancienne version importées et chiffrées.','ok');
+      show('reglages'); toast('Renseignez vos paramètres de traitement et vos accès.','ok');
+    });
+  }).catch(function(x){ err.textContent='Création impossible : '+x.message; });
+}
+function lockNow(){ clearTimeout(saveTimer); var reload=function(){ location.reload(); }; saveChain.then(function(){ return (cryptoKey && S) ? encryptState().then(function(v){ return Store.set('vault',v); }) : null; }).then(reload, reload); }
+
+/* ── Branchements ── */
+$('unlockForm').addEventListener('submit', doUnlock);
+$('setupForm').addEventListener('submit', doSetup);
+$('btnLock').addEventListener('click', lockNow);
+document.addEventListener('visibilitychange', function(){
+  if(!S) return;
+  if(document.hidden) hiddenAt=now();
+  else if(hiddenAt && now()-hiddenAt>10*60000) lockNow();
+  else if(nsBase()) nsPoll(false);
+});
+document.querySelectorAll('.tabs button').forEach(function(b){ b.addEventListener('click', function(){ show(b.dataset.view); }); });
+document.querySelectorAll('.chart-card .seg button').forEach(function(b){ b.addEventListener('click', function(){ chartHours=Number(b.dataset.h); document.querySelectorAll('.chart-card .seg button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); }); renderChart(); }); });
+document.querySelectorAll('#metricRange button').forEach(function(b){ b.addEventListener('click', function(){ metricDays=Number(b.dataset.d); document.querySelectorAll('#metricRange button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); }); renderMetrics(); }); });
+window.addEventListener('resize', function(){ if(S) renderChart(); });
+
+$('manualForm').addEventListener('submit', function(e){
+  e.preventDefault(); var v=C.parseNum($('manualBg').value);
+  if(!isFinite(v)){ toast('Saisissez un nombre.','error'); return; }
+  var mg=U.toMg(v,unit());
+  if(unit()==='mg' && v<35 && v>1){ toast('Valeur très basse pour des mg/dL : vérifiez l\'unité dans Réglages.','error'); agent('qualite','warn','Saisie '+v+' mg/dL suspecte (unité mmol/L ?). Refusée.'); return; }
+  if(addReadings([{t:now(), mg:mg}],'manual')){ $('manualBg').value=''; toast('Mesure ajoutée : '+L(mg),'ok'); }
+});
+$('btnNsRefresh').addEventListener('click', function(){ nsPoll(true); });
+$('btnHealth').addEventListener('click', function(){ location.href='shortcuts://run-shortcut?name='+encodeURIComponent(S.ns.shortcut||'SyncJarvis'); });
+$('btnAudit').addEventListener('click', function(){
+  $('auditList').innerHTML=S.audit.slice().reverse().map(function(x){ return '<li><time>'+dt(x.t)+'</time><b>'+esc((AGENTS[x.a]||{name:x.a}).name)+'</b> — '+esc(x.m)+'</li>'; }).join('') || '<li>Journal vide.</li>';
+  $('auditDlg').showModal();
+});
+$('btnAuditClose').addEventListener('click', function(){ $('auditDlg').close(); });
+$('btnAlertOk').addEventListener('click', function(){ $('alertBanner').hidden=true; try{ speechSynthesis.cancel(); }catch(e){} });
+$('btnReport').addEventListener('click', function(){ $('printReport').innerHTML=buildReport(); window.print(); });
+$('btnCsv').addEventListener('click', exportCsv);
+
+$('foodForm').addEventListener('submit', function(e){ e.preventDefault(); foodSearch($('foodQuery').value); });
+$('btnScan').addEventListener('click', scanStart);
+$('btnScanClose').addEventListener('click', scanStop);
+$('foodResults').addEventListener('click', function(e){ var b=e.target.closest('[data-add]'); if(b) openPortion(foodResults[Number(b.dataset.add)]); });
+$('portionGrams').addEventListener('input', updatePortion);
+$('portionCancel').addEventListener('click', function(){ $('portionDlg').close(); });
+$('portionForm').addEventListener('submit', function(e){
+  var g=C.parseNum($('portionGrams').value);
+  if(!(g>0 && g<=3000)){ e.preventDefault(); $('portionCarbs').textContent='Poids invalide (1 à 3000 g).'; return; }
+  var f=portionCtx, carbs=f.per100*g/100;
+  meal.push({name:f.name, grams:g, carbs:carbs, srcLabel:f.src==='local'?'table interne':'Open Food Facts'});
+  agent('nutrition', f.src==='local'?'info':'ok', fr(carbs,0)+' g ajoutés ('+f.name+', '+fr(g,0)+' g)'+(f.src==='local'?' : valeur approximative.':'.'));
+  renderMeal(); toast(fr(carbs,0)+' g de glucides ajoutés.','ok');
+});
+$('mealList').addEventListener('click', function(e){ var b=e.target.closest('[data-rm]'); if(b){ meal.splice(Number(b.dataset.rm),1); renderMeal(); } });
+$('btnClearMeal').addEventListener('click', function(){ meal=[]; renderMeal(); });
+$('btnSaveMeal').addEventListener('click', function(){
+  if(!meal.length){ toast('Le repas est vide.','error'); return; }
+  S.meals.push({t:now(), g:Math.round(mealTotal()), name:meal.map(function(m){ return m.name; }).join(', ').slice(0,120)}); save();
+  toast('Repas enregistré : '+fr(mealTotal(),0)+' g.','ok'); meal=[]; renderMeal(); refresh();
+});
+$('btnMealToBolus').addEventListener('click', function(){ $('bolusCarbs').value=String(Math.round(mealTotal())); show('bolus'); });
+
+$('bolusForm').addEventListener('submit', function(e){ e.preventDefault(); runBolus(); });
+$('bolusLogForm').addEventListener('submit', function(e){
+  e.preventDefault(); var u=C.parseNum($('bolusDone').value);
+  if(!(u>0 && u<=50)){ toast('Unités invalides (0,1 à 50).','error'); return; }
+  if(S.therapy.maxBolus && u>S.therapy.maxBolus && !confirm('Cette injection dépasse votre plafond de '+S.therapy.maxBolus+' U. La consigner quand même ?')) return;
+  S.boluses.push({t:now(), u:u}); save(); $('bolusDone').value='';
+  agent('dose','info','Injection de '+fr(u,1)+' U consignée. Insuline active : '+fr(iob(),1)+' U.');
+  toast('Injection consignée.','ok'); refresh();
+});
+$('bolusList').addEventListener('click', function(e){ var b=e.target.closest('[data-delbolus]'); if(b && confirm('Supprimer cette injection du journal ?')){ S.boluses.splice(Number(b.dataset.delbolus),1); save(); refresh(); } });
+
+$('chatForm').addEventListener('submit', function(e){ e.preventDefault(); var t=$('chatInput').value; $('chatInput').value=''; ask(t); });
+$('btnMic').addEventListener('click', toggleMic);
+
+$('settingsForm').addEventListener('submit', function(e){ e.preventDefault(); saveSettings(); });
+document.querySelectorAll('.th').forEach(function(el){ el.addEventListener('input', function(){ $('setValidated').checked=false; }); el.addEventListener('change', function(){ $('setValidated').checked=false; }); });
+$('setUnit').addEventListener('change', function(){
+  var from=formUnit, to=$('setUnit').value;
+  ['setTarget','setLow','setHigh'].forEach(function(id){ var v=C.parseNum($(id).value); if(isFinite(v)) $(id).value=U.fmt(U.toMg(v,from),to); });
+  var isf=C.parseNum($('setIsf').value); if(isFinite(isf)) $('setIsf').value = to==='mmol' ? fr(isf/18.0182,1) : fr(isf*18.0182,0);
+  formUnit=to; labelsForUnit(to);
+});
+$('btnNsTest').addEventListener('click', function(){
+  var url=$('setNsUrl').value.trim().replace(/\/+$/,''), tok=sanitizeKey($('setNsToken').value);
+  if(!/^https:\/\//i.test(url)){ toast('Adresse en https:// requise.','error'); return; }
+  xhr({url:url+'/api/v1/status.json'+(tok?'?token='+encodeURIComponent(tok):'')}).then(function(r){
+    if(r.status===401) throw new Error('jeton refusé'); if(!r.ok) throw new Error('erreur '+r.status);
+    var d=r.json(); toast('Connexion réussie : '+(d.name||'Nightscout')+' '+(d.version||''),'ok');
+  }).catch(function(e){ toast('Échec : '+e.message,'error'); });
+});
+$('btnExportJson').addEventListener('click', function(){
+  var copy=JSON.parse(JSON.stringify(S)); copy.ai.keys={mistral:'',groq:'',cerebras:''}; copy.ns.token='';
+  download('jarvis-diabete-donnees.json', JSON.stringify(copy,null,2), 'application/json');
+  toast('Export sans clés ni jeton.','ok');
+});
+$('btnWipe').addEventListener('click', function(){
+  if(!confirm('Effacer définitivement toutes les données de cet appareil ?')) return;
+  cryptoKey=null; S=null; clearTimeout(saveTimer);
+  Store.wipe().then(function(){ try{ localStorage.clear(); }catch(e){} location.reload(); });
+});
+
+initLock();
+})();
 </script>
 </body>
 </html>
