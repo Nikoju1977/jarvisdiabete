@@ -2236,11 +2236,21 @@ function verifyDoses(reply, engine) {
 
 // ── Chaîne de fournisseurs IA (XHR) ──────────────────────────────
 var PROVIDERS = [
-  { id: 'mistral',  name: 'Mistral',  url: 'https://api.mistral.ai/v1/chat/completions',     model: 'mistral-small-latest' },
-  { id: 'groq',     name: 'Groq',     url: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.3-70b-versatile' },
-  { id: 'cerebras', name: 'Cerebras', url: 'https://api.cerebras.ai/v1/chat/completions',     model: 'llama-3.3-70b' }
+  // Plusieurs modèles par fournisseur : l'offre gratuite de Mistral renvoie souvent 429
+  // (capacité saturée) sur un modèle alors qu'un autre répond.
+  { id: 'mistral',  name: 'Mistral',  url: 'https://api.mistral.ai/v1/chat/completions',     models: ['mistral-small-latest', 'open-mistral-nemo', 'ministral-8b-latest'] },
+  { id: 'groq',     name: 'Groq',     url: 'https://api.groq.com/openai/v1/chat/completions', models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'] },
+  { id: 'cerebras', name: 'Cerebras', url: 'https://api.cerebras.ai/v1/chat/completions',     models: ['llama-3.3-70b', 'llama3.1-8b'] }
 ];
-function callProvider(pv, key, msgs, cb) {
+function apiErrorText(x) {
+  try {
+    var d = JSON.parse(x.responseText);
+    var m = (d.error && (d.error.message || d.error)) || d.message || d.detail;
+    if (m && typeof m === 'object') m = JSON.stringify(m);
+    return m ? String(m).slice(0, 120) : '';
+  } catch (e) { return ''; }
+}
+function callModel(pv, key, model, msgs, cb) {
   var x = new XMLHttpRequest();
   x.open('POST', pv.url, true);
   x.setRequestHeader('Content-Type', 'application/json');
@@ -2251,14 +2261,32 @@ function callProvider(pv, key, msgs, cb) {
       try {
         var d = JSON.parse(x.responseText);
         var t = d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
-        return t ? cb(null, t) : cb('réponse vide');
-      } catch (e) { return cb('format'); }
+        return t ? cb(null, t) : cb({ code: 0, text: 'réponse vide' });
+      } catch (e) { return cb({ code: 0, text: 'format' }); }
     }
-    cb(x.status === 401 ? 'clé refusée' : (x.status === 429 ? 'quota atteint' : 'erreur ' + x.status));
+    cb({ code: x.status, text: apiErrorText(x) });
   };
-  x.onerror = function() { cb('connexion'); };
-  x.ontimeout = function() { cb('délai dépassé'); };
-  x.send(JSON.stringify({ model: pv.model, messages: msgs, temperature: 0.2, max_tokens: 450 }));
+  x.onerror = function() { cb({ code: -1, text: 'connexion' }); };
+  x.ontimeout = function() { cb({ code: -2, text: 'délai dépassé' }); };
+  x.send(JSON.stringify({ model: model, messages: msgs, temperature: 0.2, max_tokens: 450 }));
+}
+// Essaie chaque modèle du fournisseur ; sur 429, une nouvelle tentative après 1,5 s avant de changer de modèle.
+function callProvider(pv, key, msgs, cb) {
+  var last = null;
+  (function tryModel(mi, retried) {
+    if (mi >= pv.models.length) {
+      var e = last || { code: 0, text: '' };
+      var label = e.code === 401 ? 'clé refusée' : (e.code === 429 ? 'quota atteint' : (e.code > 0 ? 'erreur ' + e.code : e.text));
+      return cb(label + (e.text && e.code > 0 ? ' — ' + e.text : ''));
+    }
+    callModel(pv, key, pv.models[mi], msgs, function(err, text) {
+      if (!err) return cb(null, text);
+      last = err;
+      if (err.code === 401) return tryModel(pv.models.length, false); // inutile d'essayer d'autres modèles
+      if (err.code === 429 && !retried) return setTimeout(function() { tryModel(mi, true); }, 1500);
+      tryModel(mi + 1, false);
+    });
+  })(0, false);
 }
 function callAI(agentKey, engine) {
   var chain = [];
@@ -2282,7 +2310,9 @@ function callAI(agentKey, engine) {
   (function next(idx) {
     if (idx >= chain.length) {
       hideTyping(); refreshAPIStatus();
-      var fail = 'Les services d\'IA ne répondent pas (' + errors.join(', ') + '). Le calcul, le suivi et les alertes restent disponibles hors connexion.';
+      var fail = 'Les services d\'IA ne répondent pas (' + errors.join(' ; ') + ').' +
+        (chain.length === 1 ? ' Une clé Groq gratuite, ajoutée dans le Profil, servirait de relais.' : '') +
+        ' Le calcul, le suivi et les alertes restent disponibles hors connexion.';
       addMsg('ai', fail, agentKey);
       return;
     }

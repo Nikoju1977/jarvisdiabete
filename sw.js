@@ -1,7 +1,7 @@
 /* J.A.R.V.I.S. Diabète v7 — service worker
    Pages : réseau d'abord (code médical toujours à jour), cache en secours hors ligne.
    Polices Google : cache d'abord. Tout autre domaine (IA, Nightscout) n'est jamais intercepté. */
-const CACHE = 'jarvis-dt1-v7.1';
+const CACHE = 'jarvis-dt1-v7.2';
 const SHELL = ['./', './index.html', './manifest.json', './icons/icon.svg', './icons/icon-192.png',
   './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
