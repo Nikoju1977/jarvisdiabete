@@ -1,15 +1,26 @@
 {
-  "name": "Jarvis Diabète",
-  "short_name": "Jarvis Diabète",
-  "description": "Suivi du diabète avec agents de contrôle et données chiffrées sur l'appareil",
+  "id": "./",
+  "name": "J.A.R.V.I.S. Diabète",
+  "short_name": "JARVIS DT1",
+  "description": "Assistant vocal pour le diabète de type 1 : calcul de bolus vérifié, suivi glycémique, alertes.",
   "lang": "fr",
-  "start_url": "./",
+  "dir": "ltr",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F3F6F9",
-  "theme_color": "#0A1628",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#050a0d",
+  "theme_color": "#050a0d",
+  "categories": ["health", "medical"],
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Calculer un bolus", "short_name": "Bolus", "url": "./?page=bolus", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ajouter une glycémie", "short_name": "Suivi", "url": "./?page=track", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

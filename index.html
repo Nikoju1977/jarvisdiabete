@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5">
-<meta name="theme-color" content="#00ff9d" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#00b86b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050a0d">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <meta name="format-detection" content="telephone=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="JARVIS DT1">
+<meta name="application-name" content="JARVIS DT1">
 <meta name="mobile-web-app-capable" content="yes">
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -1082,6 +1086,12 @@ footer .legal { margin-top: 16px; padding: 12px; background: var(--bg-1); border
 .launch-btn:disabled { opacity: 0.5; }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+.install-box { margin-top: 16px; padding: 14px 16px; border: var(--br-2); border-radius: 10px; background: var(--cyan-w); max-width: 560px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; position: relative; z-index: 1; }
+.install-box[hidden] { display: none; }
+.install-box p { flex: 1 1 240px; margin: 0; font-family: var(--f-mono); font-size: 14px; line-height: 1.5; color: var(--txt); }
+.install-box button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: var(--cyan); color: var(--bg-0); font-family: var(--f-display); font-size: 11px; letter-spacing: 0.08em; cursor: pointer; }
+.install-box button.ghost { background: none; border: var(--br-2); color: var(--cyan); }
+@media (display-mode: standalone) { .launch-bar { display: none; } }
 </style>
 </head>
 
@@ -1103,6 +1113,7 @@ footer .legal { margin-top: 16px; padding: 12px; background: var(--bg-1); border
     <span>⚙ Mistral AI</span>
     <span>🩺 ADA · SFD · ISPAD</span>
   </div>
+  <div class="install-box" id="installBox" hidden></div>
 </header>
 
 <main>
@@ -1356,6 +1367,8 @@ footer .legal { margin-top: 16px; padding: 12px; background: var(--bg-1); border
       <div class="profile-actions">
         <button class="primary" onclick="saveProfile()">💾 Sauvegarder</button>
         <button onclick="exportData()">📥 Exporter JSON</button>
+        <button onclick="importData()">📤 Importer JSON</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden onchange="onImportFile(event)">
         <button class="danger" onclick="clearAll()">🗑 Effacer tout</button>
       </div>
     </div>
@@ -2294,7 +2307,7 @@ function callAI(agentKey, engine) {
 var rec = null, recOn = false;
 function toggleMic() {
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { alertMsg('⚠ Reconnaissance vocale non disponible sur ce navigateur'); return; }
+  if (!SR) { alertMsg(isIOS() ? '⚠ Micro indisponible ici : utilisez la dictée du clavier iOS dans le champ de saisie' : '⚠ Reconnaissance vocale non disponible sur ce navigateur'); return; }
   if (recOn) { try { rec.stop(); } catch (e) {} return; }
   stopSpeak();
   rec = new SR();
@@ -2415,6 +2428,57 @@ function toggleVoiceMute() {
   alertMsg(_voiceMuted ? '🔇 Voix coupée (les alertes restent audibles)' : '🔊 Voix activée');
 }
 
+// ── PWA : installation Android / iOS ─────────────────────────────
+var deferredInstall = null;
+function isStandalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredInstall = e; renderInstall(); });
+window.addEventListener('appinstalled', function() { deferredInstall = null; renderInstall(); alertMsg('✓ Application installée'); });
+function renderInstall() {
+  var box = $('installBox');
+  if (!box || !state) return;
+  if (isStandalone()) { box.hidden = true; return; }
+  if (deferredInstall) {
+    box.hidden = false;
+    box.innerHTML = '<p>Installez J.A.R.V.I.S. sur votre écran d\'accueil : plein écran, lancement direct, calculs et alertes hors connexion.</p><button onclick="doInstall()">Installer l\'application</button>';
+    return;
+  }
+  if (isIOS() && !lsGet('iosHintDismissed', false)) {
+    box.hidden = false;
+    box.innerHTML = '<p>Pour l\'installer sur iPhone ou iPad : dans Safari, touchez <b>Partager</b>, puis <b>Sur l\'écran d\'accueil</b>.</p><button class="ghost" onclick="dismissIosHint()">Compris</button>';
+    return;
+  }
+  box.hidden = true;
+}
+function doInstall() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then(function() { deferredInstall = null; renderInstall(); }, function() { deferredInstall = null; renderInstall(); });
+}
+function dismissIosHint() { lsSet('iosHintDismissed', true); renderInstall(); }
+
+// ── Import des données (ex. passage de Safari à l'app installée sur iOS) ──
+function importData() { $('importFile').click(); }
+function onImportFile(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function() {
+    var d;
+    try { d = JSON.parse(r.result); } catch (e) { d = null; }
+    ev.target.value = '';
+    if (!d || typeof d.profile !== 'object' || !Array.isArray(d.bgLog)) { alertMsg('⚠ Fichier non reconnu : un export J.A.R.V.I.S. est attendu'); return; }
+    if (!confirm('Remplacer le profil, les glycémies et les injections par ceux du fichier ?')) return;
+    var okBG = d.bgLog.filter(function(b) { return b && typeof b.ts === 'number' && typeof b.value === 'number' && b.value > 0.1 && b.value < 7; });
+    var okBolus = (Array.isArray(d.bolusLog) ? d.bolusLog : []).filter(function(b) { return b && typeof b.ts === 'number' && typeof b.units === 'number' && b.units > 0 && b.units <= 50; });
+    lsSet('profile', d.profile); lsSet('bgLog', okBG); lsSet('bolusLog', okBolus);
+    loadState();
+    loadProfileForm(); refreshTracker(); refreshAPIStatus(); renderLive(); prepBolusPage();
+    alertMsg('✓ ' + okBG.length + ' glycémies et ' + okBolus.length + ' injections importées. Vérifiez le profil.');
+  };
+  r.readAsText(f);
+}
+
 // ── UI helpers ───────────────────────────────────────────────────
 function alertMsg(t) {
   var d = document.createElement('div');
@@ -2437,6 +2501,16 @@ function boot() {
   var lb = document.querySelector('.launch-btn');
   if (lb) { lb.disabled = false; }
   renderLive();
+  renderInstall();
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register('./sw.js').catch(function() {});
+  }
+  var qp = null;
+  try { qp = new URLSearchParams(location.search).get('page'); } catch (e) {}
+  if (isStandalone() || qp) {
+    openApp();
+    if (qp && /^(chat|bolus|track|profile)$/.test(qp)) showPage(qp);
+  }
 }
 safeStorage.init(boot);
 
