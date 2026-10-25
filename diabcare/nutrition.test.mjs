@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseFoodQuery,findOffline,carbsFor,fromOffProduct,prepareRecord,searchOpenFoodFacts,barcodeOpenFoodFacts,speakFood} from "./nutrition.mjs";
+import {parseFoodQuery,findOffline,carbsFor,fromOffProduct,prepareRecord,searchOpenFoodFacts,barcodeOpenFoodFacts,speakFood,foodApiUrl} from "./nutrition.mjs";
 test("parole : portion explicitement capturée",()=>{
  assert.deepEqual(parseFoodQuery("Jarvis combien de glucides dans 150 g de riz blanc cuit"),{term:"riz blanc cuit",grams:150});
  assert.deepEqual(parseFoodQuery("200 grammes de pomme"),{term:"pomme",grams:200});
@@ -21,7 +21,7 @@ test("requêtes publiques ne contiennent aucune mesure personnelle",async()=>{
  let seen="";
  const fake=async url=>{seen=url;return {ok:true,json:async()=>({products:[{product_name:"Riz",nutriments:{carbohydrates_100g:28}}]})};};
  const list=await searchOpenFoodFacts("riz",{fetchImpl:fake});
- assert.equal(list.length,1);assert.match(seen,/search_terms=riz/);assert.ok(!seen.includes("glucose"));
+ assert.equal(list.length,1);assert.match(seen,/categories_tags_en=rice/);assert.ok(!seen.includes("glucose"));
 });
 test("recherche code barres validée",async()=>{
  const f=await barcodeOpenFoodFacts("12345678",{fetchImpl:async()=>({ok:true,json:async()=>({status:1,product:{product_name:"Test",nutriments:{carbohydrates_100g:22}}})})});
@@ -46,4 +46,12 @@ test("fiches collaboratives : marques, étiquettes et source distinguées",()=>{
  assert.match(speech,/21 grammes de glucides/);
  assert.match(speech,/Open Food Facts/);
  assert.match(speech,/Aucune dose d.insuline/);
+});
+
+test("l'API structurée officielle prépare le pack OFF, la recherche libre reste explicite",()=>{
+ assert.match(foodApiUrl("pâtes"),/api\/v2\/search/);
+ assert.match(foodApiUrl("céréales"),/categories_tags_en=breakfast-cereals/);
+ assert.match(foodApiUrl("lait"),/categories_tags_en=milk/);
+ assert.match(foodApiUrl("riz basmati"),/cgi\/search\.pl/);
+ assert.match(foodApiUrl("riz basmati"),/search_terms=riz\+basmati/);
 });
