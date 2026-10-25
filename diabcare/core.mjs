@@ -1,5 +1,5 @@
 /* DiabCare 4.0 — moteur hors ligne. Aucune posologie ni prédiction. */
-export const VERSION = "4.1.0";
+export const VERSION = "4.2.0";
 export const AGENTS = [
   ["securite","Sécurité et urgences"],["diabeto","Diabétologie"],["infirmier","Éducation thérapeutique"],
   ["nutrition","Diététique"],["pharmacie","Pharmacie"],["sport","Activité physique"],
