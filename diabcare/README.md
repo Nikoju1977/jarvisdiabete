@@ -99,3 +99,22 @@ La page d'accueil du dépôt renvoie vers cette interface. Le code de l'ancien p
 L'écran d'accueil réunit un bouton vocal central, le dernier résultat **saisi** avec date et provenance, les actions GlucoCheck / Glucides / Urgence et la conversation. Les mesures ne sont jamais affichées comme étant en direct. Les interactions vocales restent conditionnées aux capacités du navigateur.
 
 Les enregistrements de l'ancien prototype ne sont pas importés automatiquement dans le coffre DiabCare : aucun effacement automatique ne les concerne. Sauvegarder toute donnée historique avant de réinitialiser son navigateur.
+
+
+## Voice-first 4.3 : Android, iPhone et dictée hors connexion
+
+Certaines versions de Chrome Android, Samsung Internet et les navigateurs intégrés ne prennent pas en charge \`SpeechRecognition.available({processLocally:true})\`. La disponibilité de cet appel **ne signifie pas** que le microphone ou la reconnaissance vocale générale sont absents. DiabCare n'affiche donc plus de message bloquant :
+
+1. Appuyer sur l'orbe JARVIS ou le microphone.
+2. Si le navigateur sait effectuer une reconnaissance native locale, la dictée locale commence.
+3. Sinon, **le choix apparaît dans l'écran** :
+   - **Micro en ligne**, uniquement avec accord explicite de l'utilisateur pour la session. La reconnaissance vocale peut alors transmettre le son au fournisseur du navigateur, selon sa politique de confidentialité.
+   - **Whisper sur l'appareil**, téléchargement initial de \`onnx-community/whisper-tiny\` via Transformers.js 3.8.1. L'inférence est locale et le fichier audio n'est pas téléversé vers un service de transcription. Les composants du moteur sont mis en cache quand le navigateur l'autorise ; mémoire, espace libre et WebAssembly limitent les appareils compatibles.
+4. Pour Whisper, dicter une phrase jusqu'à 16 secondes, puis appuyer sur **Terminer la dictée**. La reconnaissance peut prendre du temps sur téléphone. L'enregistrement n'est jamais automatiquement inscrit au journal : toute glycémie transcrite nécessite confirmation.
+5. Si aucune méthode vocale n'est disponible, utiliser le clavier et ouvrir le site directement dans Chrome (Android) ou Safari (iPhone), pas dans une fenêtre intégrée restrictive.
+
+La PWA ne peut pas forcer un navigateur à accorder le microphone, garantir une reconnaissance précise des chiffres médicaux, ni enregistrer des commandes vocales en arrière-plan. La disponibilité hors connexion du modèle Whisper après un téléchargement reste soumise au cache et doit être testée en mode avion sur l'appareil.
+
+**Correction visuelle** : le formulaire de chat ne suit plus le défilement par-dessus le bouton micro, la carte GlucoCheck ou la navigation du bas. Les notifications vocales sont plus compactes et les explications de reconnaissance restent dans la page.
+
+**Sécurité** : le son de Whisper reste en mémoire locale de l'application pendant la transcription. Les décisions de traitement et le dosage d'insuline ne sont jamais calculés par la transcription.

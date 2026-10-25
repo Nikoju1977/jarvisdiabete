@@ -1,8 +1,10 @@
 /* Cache applicatif hors ligne, sans synchronisation ni téléversement de données santé. */
-const CACHE="diabcare-pwa-shell-4.2.0";
+const CACHE="diabcare-pwa-shell-4.3.0";
 const RUNTIME="diabcare-runtime-wllama-3.6.1";
+const VOICE_RUNTIME="diabcare-runtime-whisper-3.8.1";
+const VOICE_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 const LIB="https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/";
-const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./model.mjs","./ui.css","./voice.mjs","./nutrition.mjs","./specialists.mjs","./llm-sources.mjs","./manifest.webmanifest","./icon.svg"];
+const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./model.mjs","./ui.css","./voice-ui.css","./speech-policy.mjs","./speech-offline.mjs","./voice.mjs","./nutrition.mjs","./specialists.mjs","./llm-sources.mjs","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));
 });
@@ -17,7 +19,7 @@ self.addEventListener("fetch",event=>{
  if(request.method!=="GET")return;
  const url=new URL(request.url);
  if(url.origin!==self.location.origin){
-  if(request.url.startsWith(LIB))event.respondWith(caches.open(RUNTIME).then(async cache=>{
+  if(request.url.startsWith(LIB)||request.url.startsWith(VOICE_LIB))event.respondWith(caches.open(request.url.startsWith(LIB)?RUNTIME:VOICE_RUNTIME).then(async cache=>{
    const cached=await cache.match(request);if(cached)return cached;
    const response=await fetch(request);if(response.ok){try{await cache.put(request,response.clone());}catch{}}
    return response;
