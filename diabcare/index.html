@@ -29,7 +29,7 @@
 <section class="screen active" id="screen-chat" aria-label="Assistant">
 
  <section class="hero" aria-label="Assistant vocal JARVIS">
-  <div class="hero-head"><span class="eyebrow">Votre assistant vocal</span><span class="pill" id="aiMode">Assistant local disponible</span></div>
+  <div class="hero-head"><span class="eyebrow">Votre assistant vocal</span><span class="pill" id="aiMode">Réponses locales disponibles</span></div>
   <div class="orb-stage"><button class="orb" type="button" id="jarvisOrb" aria-label="Activer le micro pour parler à JARVIS" aria-describedby="jarvisState"><span aria-hidden="true">J</span></button></div>
   <div class="jarvis-ui" id="jarvisState" role="status" aria-live="polite">JARVIS • Prêt</div>
   <h2>Je suis à ton écoute.</h2>
@@ -106,14 +106,39 @@
 </section>
 <section class="screen" id="screen-settings" aria-label="Réglages">
  <div class="card"><h2>Confidentialité</h2><p class="hint">Données de santé chiffrées localement par AES-GCM et PBKDF2. Aucune transmission automatique. Le stockage du navigateur peut néanmoins être supprimé par le système.</p><p id="vaultStatus" class="pill">Verrouillé</p><div class="row"><button id="lockBtn">Verrouiller</button><button id="eraseBtn" class="danger">Effacer le coffre</button></div></div>
- <div class="card"><h2>Moteur connecté Mistral</h2>
- <p class="hint">Mode privé facultatif pour les questions pédagogiques générales. Seule ta question autorisée est transmise au serveur et à Mistral : ni ton journal, ni ta glycémie. Clé API conservée sur Vercel, jamais dans l'application.</p>
- <label for="aiSelect">Mode de réponse</label><select id="aiSelect"><option value="offline">Local (sans réseau)</option><option value="auto">Automatique : Mistral si autorisé</option><option value="mistral">Mistral en ligne uniquement pour questions générales</option></select>
- <label for="accessCode">Code d'accès Mistral (session uniquement)</label><input id="accessCode" type="password" autocomplete="off" placeholder="Code privé configuré sur Vercel">
- <label><input type="checkbox" id="mistralConsent" style="width:auto;min-height:auto"> J'autorise l'envoi de mes questions pédagogiques à Mistral.</label>
- <p id="mistralState" class="hint">Désactivé par défaut. Configuration serveur requise.</p></div>
- <div class="card"><h2>Voix JARVIS</h2><label><input type="checkbox" id="speakToggle" style="width:auto;min-height:auto"> Lire les réponses à voix haute</label><p class="hint">Le mode Whisper utilise le calcul local après téléchargement. La dictée fournie par le navigateur peut envoyer l’audio à un service distant et nécessite ton accord explicite.</p><label><input type="checkbox" id="remoteSpeechOpt" style="width:auto;min-height:auto"> Autoriser, pour cette session, la dictée vocale du navigateur avec Internet</label><p class="hint">L’écoute permanente en arrière-plan n’est pas disponible sur iPhone et Android dans une PWA.</p><button id="voiceInstallBtn" type="button">Préparer Whisper hors connexion</button><p id="voiceInstallStatus" class="hint">La première installation nécessite du réseau. La voix native peut également demander Internet.</p></div>
- <div class="card"><h2>IA open source sur l'appareil</h2><p class="hint">Option locale avec GGUF et wllama. Premier téléchargement important (~500 Mo), téléphone récent recommandé. En cas d'échec, le moteur déterministe hors ligne reste disponible.</p><p id="modelStatus" class="muted mini">Modèle non chargé</p><div id="llmSources" class="hint"></div><button id="modelBtn" class="primary">Télécharger / activer le modèle local</button><button id="modelCheck" style="margin-top:8px">Vérifier la mise à jour du modèle</button><p class="hint">Pas de changement automatique des poids sans contrôle de leur intégrité. Aucune donnée de santé n'est envoyée pour générer une réponse.</p></div>
+ <div class="card" id="aiConfigPanel"><h2>Configuration des IA — état réel</h2>
+ <p class="hint">Les spécialistes DiabCare sont des rôles documentaires, pas sept médecins ni sept modèles distincts. Les règles de sécurité fonctionnent même sans IA générative.</p>
+ <div id="aiHealthSummary" class="ai-health" role="status" aria-live="polite">Assistant local documentaire : disponible. Mistral : non connecté. Qwen et Whisper : à vérifier.</div>
+ <label for="aiSelect">Choisir comment JARVIS répond</label>
+ <select id="aiSelect">
+  <option value="offline">Hors connexion : règles documentaires + Qwen si installé</option>
+  <option value="auto">Automatique : Mistral validé, sinon IA locale</option>
+  <option value="mistral">Mistral : uniquement si la connexion est validée</option>
+ </select>
+ <p id="aiSelectionHelp" class="hint">Mode hors connexion actif par défaut. Aucun appel externe n'est effectué.</p>
+ </div>
+ <div class="card" id="mistralPanel"><h2>1. Mistral — connexion avec un serveur sécurisé</h2>
+ <p class="hint">GitHub Pages ne peut pas exécuter le serveur Mistral. Il faut publier la passerelle du dépôt sur Vercel, y configurer une clé Mistral privée et un code d'accès. Ne colle jamais la clé Mistral ici ni dans le code GitHub.</p>
+ <label for="mistralGatewayUrl">Adresse HTTPS de ta passerelle Vercel</label>
+ <input id="mistralGatewayUrl" type="url" inputmode="url" spellcheck="false" autocomplete="url" placeholder="https://ton-projet.vercel.app/api/diabcare-chat">
+ <button id="mistralDefaultBtn" type="button">Utiliser l'adresse du projet Jarvis sur Vercel</button>
+ <label for="accessCode">Code d'accès privé (DIABCARE_GATE_CODE, pas la clé API)</label>
+ <input id="accessCode" type="password" autocomplete="off" placeholder="Code de 16 caractères minimum">
+ <label class="ai-optin"><input type="checkbox" id="mistralConsent"> J'autorise l'envoi à Mistral de mes questions pédagogiques générales, uniquement quand la connexion est active.</label>
+ <button id="mistralTestBtn" type="button" class="primary">Tester ma connexion Mistral</button>
+ <p id="mistralState" class="hint" role="status" aria-live="polite">Non connecté. Un test de connexion est requis avant utilisation. Ce test ne facture aucune génération.</p>
+ <details id="mistralHelp"><summary>Comment activer Mistral, étape par étape ?</summary>
+ <ol>
+  <li>Crée une clé API dans <a href="https://docs.mistral.ai/fr/getting-started/quickstarts/studio/activate-and-generate-api-key" target="_blank" rel="noopener noreferrer">Mistral Studio</a>.</li>
+  <li>Dans les <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer">réglages du projet Vercel</a>, crée les secrets <code>MISTRAL_API_KEY</code> (ta clé API) et <code>DIABCARE_GATE_CODE</code> (un autre code privé de 16 caractères minimum).</li>
+  <li>Déploie de nouveau le projet qui contient <code>api/diabcare-chat.mjs</code> pour appliquer les secrets. L'application GitHub Pages reste à sa propre adresse.</li>
+  <li>Ici, sélectionne l'adresse HTTPS du serveur et entre seulement le code d'accès, coche le consentement puis touche <strong>Tester ma connexion Mistral</strong>.</li>
+  <li>Après confirmation, choisis le mode Mistral ou automatique. Sans réseau, DiabCare revient au moteur local.</li>
+ </ol>
+ <p class="hint">Le code d'accès est uniquement conservé pendant cette session ; la clé API reste toujours côté serveur. Les données du journal ne sont pas transmises.</p>
+ </details></div>
+ <div class="card"><h2>2. Whisper — reconnaissance vocale locale</h2><label><input type="checkbox" id="speakToggle" style="width:auto;min-height:auto"> Lire les réponses à voix haute</label><p class="hint">Le mode Whisper utilise le calcul local après téléchargement. La dictée fournie par le navigateur peut envoyer l’audio à un service distant et nécessite ton accord explicite.</p><label><input type="checkbox" id="remoteSpeechOpt" style="width:auto;min-height:auto"> Autoriser, pour cette session, la dictée vocale du navigateur avec Internet</label><p class="hint">L’écoute permanente en arrière-plan n’est pas disponible sur iPhone et Android dans une PWA.</p><button id="voiceInstallBtn" type="button">Préparer Whisper hors connexion</button><p id="voiceInstallStatus" class="hint">La première installation nécessite du réseau. La voix native peut également demander Internet.</p></div>
+ <div class="card"><h2>3. Qwen — modèle de langage hors connexion</h2><p class="hint">Modèle Qwen3 0,6B (484 Mo), calculé sur le téléphone avec wllama. Téléchargement initial par Wi-Fi, disponibilité selon la mémoire et le navigateur. Les réponses documentaires locales continuent de fonctionner même sans Qwen.</p><p id="modelStatus" class="muted mini">Modèle non chargé</p><div id="llmSources" class="hint"></div><button id="modelBtn" class="primary">Télécharger et activer Qwen (~484 Mo)</button><button id="modelCheck" style="margin-top:8px">Voir la version de Qwen</button><p class="hint">Pas de changement automatique des poids sans contrôle de leur intégrité. Aucune donnée de santé n'est envoyée pour générer une réponse.</p></div>
  <div class="card"><h2>Application et mises à jour</h2><div class="row"><button id="appUpdate" type="button">Vérifier une nouvelle version</button><button id="reloadAppBtn" type="button" hidden>Actualiser la page</button><button id="installBtn" type="button" hidden>Installer l'application</button></div><p id="appVersion" class="hint">DiabCare</p><p id="updateStatus" class="hint" role="status" aria-live="polite">Les données chiffrées du journal ne sont pas supprimées lors d'une mise à jour.</p></div>
  <div class="card"><h2>Vérification des fonctions</h2><p class="hint">Diagnostic local de ton navigateur Android/iPhone. Aucun résultat n'est transmis à un serveur.</p><button id="diagnosticBtn" type="button">Tester les boutons et les capacités du navigateur</button><div id="diagnosticResults" class="hint" role="status" aria-live="polite"></div></div>
 </section>
