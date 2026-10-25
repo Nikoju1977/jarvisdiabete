@@ -66,7 +66,7 @@ export function prepareRecord(food,grams,now=Date.now()){
   per100:food.per100,carbs:total,source:food.source,code:food.code||"",ts:now};
 }
 export function speakFood(record){
- return record.name+(record.brand?", marque "+record.brand:"")+". Pour "+record.grams+" grammes : environ "+record.carbs.toLocaleString("fr-FR",{maximumFractionDigits:2})+" grammes de glucides. La référence indique "+record.per100.toLocaleString("fr-FR")+" grammes pour 100 grammes. Source : "+record.source+". Vérifie la marque, la préparation et le poids. Aucune dose d’insuline n’est calculée.";
+ return record.name+(record.brand?", marque "+record.brand:"")+". Pour "+record.grams+" grammes : environ "+record.carbs.toLocaleString("fr-FR",{maximumFractionDigits:2})+" grammes de glucides. La référence indique "+record.per100.toLocaleString("fr-FR")+" grammes pour 100 grammes. Source : "+record.source+". Pour une fiche produit, la valeur concerne le produit tel que vendu : cru, sec et cuit peuvent être très différents. Vérifie la marque, la préparation et le poids. Aucune dose d’insuline n’est calculée.";
 }
 /* OFF: recherches structurées v2 pour produits courants ; legacy fulltext sinon.
  * Search API v2 official: https://openfoodfacts.github.io/documentation/docs/Product-Opener/v2/search/get-search/
