@@ -585,12 +585,7 @@ async function dictate(intent="general"){
  }
  voiceIntent=intent==="nutrition"?"nutrition":"general";
  if(voiceIntent==="nutrition")$("foodVoiceStatus").textContent="Préparation du microphone…";
- // Deuxième appui pendant l'enregistrement Whisper : arrêter et transcrire.
- if(voiceSession?.isActive()){
-  if(voiceSession.getStage()==="listening")voiceSession.stop();
-  else voiceSession.cancel();
-  return;
- }
+ // Pendant un enregistrement, les boutons principaux sont désactivés ; arrêter ou annuler depuis le panneau vocal.
  if(recognition){try{recognition.stop();}catch{}return;}
  if(whisperBusy){voiceHint("Whisper est en cours de chargement.");return;}
  if(requestBusy){voiceHint("JARVIS traite la question précédente.");return;}
