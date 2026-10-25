@@ -23,7 +23,7 @@ function constantEqual(a,b){
 export function canSend(q){
  if(typeof q!=="string"||!q.trim()||q.length>1000)return false;
  if(doseQuestion(q)||urgentQuestion(q))return false;
- const s=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete");
+ const s=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete").replace(/\btype\s+1\b/g,"type un");
  // Ne jamais envoyer au modèle les mesures, bilans personnels, médicaments/doses, ni l'analyse d'une situation médicale.
  if(/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s))return false;
  return true;
