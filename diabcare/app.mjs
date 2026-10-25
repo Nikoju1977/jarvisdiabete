@@ -11,7 +11,7 @@ let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=fa
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
 let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
-let voiceIntent="general",foodVoicePending=false;
+let voiceIntent="general",foodVoicePending=false,foodSearchId=0,nativeSpeechReady=false,nativeSpeechChecked=false;
 function setJarvisState(mode,label){
  const orb=$("jarvisOrb"),state=$("jarvisState");
  if(orb)orb.className="orb"+(mode==="listening"?" listening":mode==="speaking"?" speaking":mode==="thinking"?" thinking":"");
@@ -151,9 +151,16 @@ function msg(role,text,small=""){const d=document.createElement("div");d.classNa
  if(small){const e=document.createElement("small");e.textContent=small;d.appendChild(e);}
  $("chat").appendChild(d);$("chat").scrollTop=$("chat").scrollHeight;}
 function renderChat(){const chat=$("chat");chat.replaceChildren();data.chat.slice(-35).forEach(m=>msg(m.role,m.text,m.agent||""));if(!data.chat.length)msg("assistant","Bonjour, je suis DiabCare, compagnon DT1. Je peux t'aider à comprendre le diabète et consulter les mesures que tu as saisies. En cas d'urgence, appelle les secours.","Moteur local • disponible sans Internet");}
-function visibleTab(id){$all("nav [data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
- $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();}
-function requireUnlock(){if(!unlocked){toast("Déverrouille le coffre ou choisis le mode sans stockage.");return false;}return true;}
+function visibleTab(id){
+ $all("nav [data-tab]").forEach(b=>{const active=b.dataset.tab===id;b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");});
+ $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));
+ if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();
+ try{window.scrollTo({top:0,behavior:"instant"});}catch{window.scrollTo(0,0);}
+}
+function requireUnlock(){
+ if(!unlocked){toast("Choisis un coffre chiffré ou le mode Sans stockage pour utiliser DiabCare.");if(!$("entryDialog").open)entry(exists());return false;}
+ return true;
+}
 function reportDownload(name,text,type="text/plain"){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);}
 function renderJournal(){
  const unit=data.profile.unit||"g";$("unit").value=unit;
@@ -170,8 +177,23 @@ function renderJournal(){
  const sum=summary(data.readings);$("journalSummary").textContent=sum?sum.n+" mesures sur 14 jours. Moyenne des saisies : "+formatGlucose(sum.mean,unit)+". Ce n'est PAS un temps dans la cible continu.":"Aucune mesure enregistrée.";
  const box=$("readings");box.replaceChildren();[...data.readings].slice(-30).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";const a=document.createElement("span");a.textContent=new Date(r.ts).toLocaleString("fr-FR");const b=document.createElement("strong");b.textContent=formatGlucose(r.mg,unit);d.append(a,b);box.append(d);});
  const inj=$("injections");inj.replaceChildren();[...data.injections].slice(-12).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";d.textContent=new Date(r.ts).toLocaleString("fr-FR")+" · "+r.u+" U (injection consignée)";inj.append(d);});}
-function activate(loaded,ephem=false){data=loaded;unlocked=true;ephemeral=ephem;$("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";renderChat();renderJournal();renderMeals();$("speakToggle").checked=data.prefs.speak!==false;$("backupBtn").disabled=ephem;$("lockBtn").disabled=ephem;}
-function lock(){if(ephemeral){toast("La session sans stockage ne peut pas être verrouillée : ferme l'application pour l'effacer.");return;}if("speechSynthesis" in window)window.speechSynthesis.cancel();data=fresh();key=null;unlocked=false;model=null;$("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";entry(true);}
+function activate(loaded,ephem=false){
+ data=loaded;unlocked=true;ephemeral=ephem;
+ $("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";
+ renderChat();renderJournal();renderMeals();
+ $("speakToggle").checked=data.prefs.speak!==false;
+ $("backupBtn").disabled=ephem;
+ $("backupBtn").title=ephem?"Le mode sans stockage ne produit aucune sauvegarde.":"Télécharger le coffre chiffré.";
+ $("lockBtn").disabled=false;
+ $("lockBtn").textContent=ephem?"Terminer la session":"Verrouiller";
+ $("eraseBtn").disabled=ephem;
+ $("eraseBtn").title=ephem?"Déverrouille d'abord ton coffre pour le supprimer.":"Effacer définitivement le coffre";
+}
+function lock(){
+ silence();data=fresh();key=null;unlocked=false;ephemeral=false;model=null;
+ $("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";
+ entry(exists());
+}
 function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";$("entryDialog").showModal();}
 async function submitEntry(){
  try{const pin=$("pin").value;if(pin.length<8)throw Error("Minimum 8 caractères.");
