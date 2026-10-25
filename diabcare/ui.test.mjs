@@ -30,3 +30,21 @@ test("cache versionné pour ne pas afficher le vieux cockpit",()=>{
  assert.match(sw,/"\.\/speech-offline\.mjs"/);
  assert.match(rootSW,/jarvis-diabete-/);
 });
+
+test("les boutons vocaux possèdent de vrais gestionnaires",()=>{
+ for(const id of ["micBtn","jarvisOrb","talkBtn","stopVoice","voiceBrowserBtn","voiceOfflineBtn","voiceKeyboardBtn","voiceCloseBtn","voiceRecordStop","voiceRecordCancel","voiceInstallBtn"]){
+  assert.ok(page.includes('id="'+id+'"'),"bouton absent : "+id);
+  assert.ok(js.includes('"'+id+'").onclick='),"action absente : "+id);
+ }
+ assert.match(js,/confirm\("Autorises-tu la dictée en ligne/);
+ assert.match(js,/voiceChooser\(/);
+ assert.match(js,/clip\.stop\(\)/);
+ assert.match(js,/speech\(.*\{force:true\}\)/);
+});
+test("les modules audio sont mis en cache dans la PWA et restent optionnels",()=>{
+ for(const local of ["./speech-policy.mjs","./speech-offline.mjs","./voice-ui.css"]){
+  assert.ok(sw.includes('"'+local+'"'),"asset hors connexion oublié : "+local);
+ }
+ assert.match(speechCSS,/#chatForm\.composer\{[\s\S]*position:relative!important/);
+ assert.match(speechCSS,/#toast\{[\s\S]*max-width:/);
+});
