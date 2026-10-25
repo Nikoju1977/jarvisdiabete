@@ -55,3 +55,37 @@ ADA Standards of Care 2026 (section 6) : https://doi.org/10.2337/dc26-s006 ; Ass
 Aucune télémétrie, aucune transmission du journal ou de la conversation. Le chargement facultatif du runtime et du modèle fait des requêtes réseau vers jsDelivr et Hugging Face et implique que ces fournisseurs voient l'IP lors du téléchargement. Les données santé restent dans le navigateur, chiffrées si le coffre est activé.
 
 **Usage personnel éducatif et démonstratif**. Avant commercialisation ou revendication clinique : analyse de risque IEC 62304/ISO 14971, exigences MDR/UE 2017/745 applicables, validation par une équipe médicale, tests iOS/Android et audits de sécurité/privacy.
+
+
+## DiabCare 4.1 : JARVIS et GlucoCheck vocal
+
+- **JARVIS** : interface orbe animée, bouton Parler, synthèse vocale et interruption ; pas d'écoute permanente possible en arrière-plan dans une PWA. Dictée locale quand supportée ; dictée réseau uniquement sur accord explicite, avec traitement éventuel de l'audio par le navigateur/fournisseur.
+- **GlucoCheck** : « JARVIS, GlucoCheck » lit la dernière mesure **enregistrée et datée** ; « JARVIS, GlucoCheck 1 virgule 20 » ouvre un dialogue de confirmation avant la saisie en g/L. Jamais une mesure issue du microphone.
+- **Glucides** : « JARVIS, glucides pour 150 g de riz blanc cuit » ouvre un choix entre une table locale indicative et les produits Open Food Facts en ligne ; les quantités et les valeurs nutritionnelles doivent être vérifiées avant d'enregistrer le repas. Pas de calcul de bolus. Un code-barres peut être saisi manuellement.
+- **Mistral** : mode volontaire en ligne pour des questions générales et documentaires. L'application transmet seulement la question admissible, jamais le journal ; une passerelle Vercel applique un refus déterministe des sujets sensibles avant l'appel et sollicite une deuxième évaluation via Mistral. Cette deuxième évaluation ne certifie **pas** l'exactitude clinique.
+- **Experts** : routage de sept rôles documentaires (diabétologie, nutrition, pharmacie, activité physique, psychologie, éducation thérapeutique, technologies) ; ce ne sont pas de vrais médecins ni sept LLM formés et validés séparément.
+- **Sources de LLM GitHub** : [wllama](https://github.com/ngxson/wllama) pour WebAssembly, [Transformers.js](https://github.com/huggingface/transformers.js) étudié comme alternative, et [Qwen3 0.6B GGUF](https://huggingface.co/QuantFactory/Qwen3-0.6B-GGUF) comme modèle local facultatif. Le fichier Q4_K_M publié annonce SHA-256 \`7af3fdf842f87b24672f8a7f1dd50404043f0bfb71093ff91c31d2b49df4631d\`. Ce hash est enregistré dans le catalogue, **mais le téléchargement wllama ne fait pas encore de comparaison obligatoire du fichier téléchargé**.
+- Le dépôt GitHub [python-llm-archive](https://github.com/danielgross/python-llm-archive) a été examiné : il gère des API Python anciennes (OpenAI/Anthropic), n'apporte aucun moteur de LLM local PWA et n'est donc pas intégré.
+
+### Activer Mistral sur Vercel
+
+Configurer dans les réglages du projet Vercel les **variables d'environnement côté serveur**, jamais dans du JavaScript public :
+- \`MISTRAL_API_KEY\` : clé privée du compte Mistral ;
+- \`DIABCARE_GATE_CODE\` : code privé, aléatoire, d'au moins 16 caractères, différent de la clé API ;
+- \`MISTRAL_MODEL\` (facultatif) : modèle de chat autorisé (défaut : \`mistral-small-latest\`).
+
+Redéployer une fois les variables présentes. Dans **Réglages → Moteur connecté Mistral**, sélectionner « Automatique » ou « Mistral », autoriser l'envoi des questions pédagogiques, puis entrer le **code d'accès**, pas la clé API. Le code n'est pas mémorisé dans le coffre et doit être saisi à chaque session. Aucun envoi n'a lieu sans ces conditions, sans réseau ou pour une question personnelle sensible.
+
+**Important** : la passerelle applique une vérification de code statique, mais n'a pas encore de service de gestion des comptes, de limitation de débit par utilisateur ni d'audit de sécurité complet. Ne pas ouvrir l'accès public sans cette infrastructure. L'URL serveur est \`/api/diabcare-chat\` et la réponse n'est pas mise en cache.
+
+### Fiabilité des glucides et mode nature
+
+Open Food Facts est collaboratif : vérifier la marque, l'étiquette et les portions. Le site peut imposer des limites de requêtes et être indisponible. DiabCare revient alors à un mini-référentiel local **indicatif**, qui n'est pas une base certifiée. Un calcul ne peut être enregistré sans validation manuelle de la portion.
+
+L'orbe est un contrôle tactile et vocal, mais ne peut pas rester à l'écoute en tâche de fond sur tous les téléphones. Le mode hors connexion essentiel reste le chat documentaire local, le journal et les aliments locaux. **Mistral fonctionne uniquement avec Internet et les secrets configurés.**
+
+### Commandes de contrôle
+
+\`cd diabcare && node --test *.test.mjs ../api/diabcare-chat.test.mjs\`
+
+La validation automatique couvre notamment la dictée des décimales françaises, l'identification du bon produit, les erreurs alimentaires, la confidentialité des requêtes Mistral, les garde-fous des rôles experts et le chiffrement. Ces tests ne se substituent pas aux essais avec des patients et des appareils physiques.
