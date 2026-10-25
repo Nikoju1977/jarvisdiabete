@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1220"><meta name="description" content="DiabCare — compagnon vocal DT1, suivi chiffré, fonctionne sans réseau.">
-<title>DiabCare • Assistant DT1</title><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#071421"><meta name="description" content="DiabCare — compagnon vocal DT1, suivi chiffré, fonctionne sans réseau.">
+<title>DiabCare — JARVIS, assistant vocal DT1</title><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;--bg:#081120;--paper:#111c30;--paper2:#172742;--line:#273b5d;--fg:#f2f6ff;--muted:#a4b4d0;--blue:#62a3ff;--green:#46d6a4;--red:#fa7e80;--amber:#f7c66e}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--fg)}button,input,select,textarea{font:inherit}button{cursor:pointer;background:var(--paper2);color:var(--fg);border:1px solid var(--line);border-radius:12px;min-height:44px;padding:10px 14px}button:disabled{opacity:.48}input,select,textarea{width:100%;min-height:44px;padding:12px;color:var(--fg);background:#0c192d;border:1px solid var(--line);border-radius:12px;outline:0}input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}textarea{resize:vertical;min-height:74px}.primary{background:linear-gradient(135deg,#307ae2,#6348ce);border-color:transparent;font-weight:700}.danger{border-color:#a94953;color:#ffd3d5}.muted{color:var(--muted)}.mini{font-size:.79rem}.wrapper{max-width:760px;margin:auto;padding-bottom:100px}header{padding:18px 16px 10px;display:flex;align-items:center;gap:12px}header .logo{font-size:1.5rem;font-weight:900;letter-spacing:-.05em;background:#2c7ee9;border-radius:13px;padding:5px 12px}header h1{font-size:1.4rem;margin:0;letter-spacing:-.035em}header p{margin:0;font-size:.78rem;color:var(--muted)}.net{margin-left:auto;color:var(--green);border:1px solid var(--line);padding:4px 9px;border-radius:99px;font-size:.78rem}nav{position:fixed;bottom:0;left:0;right:0;background:rgba(17,28,48,.98);border-top:1px solid var(--line);padding:7px max(7px,env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:12}nav button{flex:1;max-width:190px;border:0;background:none;color:var(--muted);font-size:.79rem;display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:9px}nav button.active{color:#fff;background:#24466f}nav .i{font-size:1.2rem}main{padding:2px 14px}.screen{display:none;flex-direction:column;gap:13px}.screen.active{display:flex}.card{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:16px}.card h2{font-size:1.04rem;margin:0 0 12px}.card h3{font-size:.96rem;margin:0 0 8px}.hint{color:var(--muted);font-size:.82rem;line-height:1.55}.row{display:flex;gap:9px;align-items:center}.row>*{flex:1;min-width:0}.row .narrow{flex:0 0 auto}.hero{background:radial-gradient(circle at right top,#203f75,#111c30 60%);padding:22px;border-radius:22px;border:1px solid var(--line)}.hero h2{font-size:1.7rem;letter-spacing:-.04em;margin:0 0 6px}.hero p{margin:0;color:var(--muted)}.alert{border:1px solid #a55d42;background:#392f31;border-radius:14px;padding:13px;font-size:.86rem}.alert.critical{border-color:#e15f65;background:#4b242e}.alert.ok{border-color:#357c71;background:#153c3d}.chips{display:flex;flex-wrap:wrap;gap:7px}.chips button{min-height:37px;font-size:.79rem;padding:8px 10px}.chat{display:flex;flex-direction:column;gap:10px;min-height:150px;max-height:42vh;overflow:auto;padding:4px}.msg{max-width:93%;align-self:flex-start;background:var(--paper2);padding:12px 14px;border-radius:16px;white-space:pre-wrap;line-height:1.52;font-size:.9rem;overflow-wrap:anywhere}.msg.user{align-self:flex-end;background:#2456a8}.msg small{display:block;color:#b6c9e7;margin-top:6px}.composer{position:sticky;bottom:calc(65px + env(safe-area-inset-bottom));background:var(--bg);padding:8px 0}.composer input{flex:1}.icon-btn{flex:0 0 46px;min-height:48px;padding:7px;font-size:1.15rem}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.agent{padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--paper2);font-size:.85rem}.agent b{display:block}.agent small{display:block;color:var(--muted);font-size:.75rem;margin-top:3px}label{display:block;color:var(--muted);font-size:.82rem;margin:10px 0 5px}.stack{display:flex;flex-direction:column;gap:8px}.record{display:flex;gap:10px;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.87rem}.record:last-child{border:0}dialog{background:var(--paper);color:var(--fg);border:1px solid var(--line);border-radius:19px;width:min(94vw,480px);padding:20px}dialog::backdrop{background:#000b}dialog h2{margin:0 0 12px}.footer{color:var(--muted);font-size:.73rem;line-height:1.4;padding:18px}#toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);min-width:210px;background:#1d3e69;border:1px solid #426ca7;border-radius:12px;padding:12px;color:#fff;text-align:center;z-index:40;box-shadow:0 12px 40px #0009}#toast[hidden],.screen[hidden]{display:none}a{color:#9bc2ff}.pill{display:inline-flex;color:#8decc7;font-size:.78rem}.warning{color:var(--amber)}.hidden{display:none!important}
@@ -22,17 +22,48 @@
 .choice-list{display:flex;flex-direction:column;gap:9px}.choice-item{border:1px solid var(--line);background:var(--paper2);border-radius:13px;padding:11px}.choice-item strong{display:block}.choice-item button{margin-top:7px}
 .small-row{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.8rem}.small-row b{color:var(--fg)}
 #confirmGlucose::backdrop,#confirmFood::backdrop{background:#010814e3}
-</style></head><body>
+</style><link rel="stylesheet" href="./ui.css"></head><body>
 <div class="wrapper">
-<header><div class="logo" aria-hidden="true">D</div><div><h1>DiabCare</h1><p>Compagnon vocal • Diabète de type 1</p></div><span class="net" id="netStatus">Hors ligne</span></header>
+<header><div class="logo" aria-hidden="true">D</div><div><h1>DiabCare</h1><p>JARVIS · Compagnon vocal DT1</p></div><span class="net" id="netStatus" aria-live="polite">Hors ligne</span></header>
 <main>
 <section class="screen active" id="screen-chat" aria-label="Assistant">
- <div class="hero"><span class="pill" id="aiMode">Assistant local disponible</span><div class="orb-stage"><button class="orb" type="button" id="jarvisOrb" aria-label="Parler à JARVIS"><span>J</span></button></div><div class="jarvis-ui" id="jarvisState" role="status">JARVIS • Prêt</div><h2 style="text-align:center">À ton écoute.</h2><p style="text-align:center">Dis « JARVIS, GlucoCheck », pose une question ou demande tes glucides.</p><div class="voice-controls" style="margin-top:12px"><button id="talkBtn" type="button">🎙 Parler</button><button id="stopVoice" type="button">⏹ Couper la voix</button></div></div>
- <div class="alert" id="safetyNotice"><strong>Sécurité :</strong> pas de calcul de dose ni de surveillance continue. En urgence : <a href="tel:15">15</a> / <a href="tel:112">112</a>.</div>
- <div class="chips"><button data-ask="GlucoCheck">GlucoCheck</button><button data-ask="glucides dans 150 g de pomme">Glucides</button><button data-ask="Explique le diabète de type 1">Comprendre le DT1</button><button data-ask="Préparer une randonnée avec un DT1">Sortie nature</button><button data-ask="Fais le bilan de mes mesures">Mon bilan</button><button data-ask="Comment reconnaître une hypoglycémie ?">Hypoglycémie</button></div>
- <div class="chat" id="chat" aria-live="polite"></div>
- <form class="row composer" id="chatForm"><button type="button" class="icon-btn" id="micBtn" aria-label="Dicter hors ligne">🎤</button><input id="question" aria-label="Ta question" maxlength="1200" placeholder="Parle-moi du DT1…" required><button class="primary narrow" type="submit">Envoyer</button></form>
- <p class="hint" id="voiceStatus">La dictée n'est activée que si le navigateur propose une reconnaissance locale.</p>
+
+ <section class="hero" aria-label="Assistant vocal JARVIS">
+  <div class="hero-head"><span class="eyebrow">Votre assistant vocal</span><span class="pill" id="aiMode">Assistant local disponible</span></div>
+  <div class="orb-stage"><button class="orb" type="button" id="jarvisOrb" aria-label="Activer le micro pour parler à JARVIS" aria-describedby="jarvisState"><span aria-hidden="true">J</span></button></div>
+  <div class="jarvis-ui" id="jarvisState" role="status" aria-live="polite">JARVIS • Prêt</div>
+  <h2>Je suis à ton écoute.</h2>
+  <p>Une question sur le diabète de type 1 ? Parle naturellement. En pleine nature, l'essentiel reste disponible sans réseau.</p>
+  <div class="voice-controls"><button id="talkBtn" type="button">🎙 Parler à JARVIS</button><button id="stopVoice" type="button">⏹ Arrêter</button></div>
+ </section>
+ <div class="glance-card" aria-label="Dernière mesure saisie">
+  <div><div class="eyebrow">GlucoCheck • Journal personnel</div>
+   <strong id="glanceValue">Aucune mesure</strong>
+   <small id="glanceDate">Pas de mesure enregistrée sur cet appareil. Aucune lecture en temps réel.</small>
+  </div><button id="goJournal" type="button">Journal ↗</button>
+ </div>
+ <div class="quick-grid" aria-label="Actions rapides">
+  <button type="button" data-ask="GlucoCheck"><span class="quick-icon" aria-hidden="true">◉</span><span>Ma dernière<br>glycémie</span></button>
+  <button type="button" id="goNutrition"><span class="quick-icon" aria-hidden="true">◇</span><span>Calculer<br>les glucides</span></button>
+  <button type="button" id="goEmergency"><span class="quick-icon" aria-hidden="true">✚</span><span>Consignes<br>d'urgence</span></button>
+ </div>
+ <div class="alert" id="safetyNotice"><strong>Information importante.</strong> DiabCare ne mesure pas la glycémie et ne propose aucune dose d’insuline. Si une situation est urgente, appelle le <a href="tel:15">15</a> ou le <a href="tel:112">112</a>.</div>
+ <div class="chips" aria-label="Questions fréquentes">
+  <button data-ask="Explique le diabète de type 1">Comprendre le DT1</button>
+  <button data-ask="Préparer une randonnée avec un DT1">Préparer une sortie</button>
+  <button data-ask="Fais le bilan de mes mesures">Bilan des mesures</button>
+  <button data-ask="Comment reconnaître une hypoglycémie ?">Hypoglycémie</button>
+ </div>
+ <div class="chat-section">
+  <div class="chat-heading"><span>Conversation</span><span>Confidentielle et locale par défaut</span></div>
+  <div class="chat" id="chat" aria-live="polite"></div>
+ </div>
+ <form class="row composer" id="chatForm">
+  <button type="button" class="icon-btn" id="micBtn" aria-label="Activer le micro">🎤</button>
+  <input id="question" aria-label="Écris une question à DiabCare" maxlength="1200" placeholder="Pose une question à JARVIS…" required>
+  <button class="primary narrow" type="submit">Envoyer</button>
+ </form>
+ <p class="hint" id="voiceStatus">Le micro hors connexion nécessite la reconnaissance vocale locale du navigateur. Le clavier reste disponible.</p>
 </section>
 <section class="screen" id="screen-journal" aria-label="Journal">
  <div class="card"><h2>Journal glycémique</h2><p class="hint">Saisie manuelle : aucune connexion à un capteur ni à une pompe.</p>
@@ -52,7 +83,7 @@
  </section>
 <section class="screen" id="screen-experts" aria-label="Spécialistes">
  <div class="card"><h2>Un assistant, plusieurs compétences</h2><p class="hint">Ces agents sont des rôles logiciels spécialisés et non des professionnels humains. L'agent de sécurité intervient avant toute IA générative.</p><div class="grid" id="agents"></div></div>
- <div class="card"><h2>Carte d'urgence</h2><p>Numéros français : <a href="tel:15">15 (SAMU)</a> ou <a href="tel:112">112</a>.</p><p class="hint">Perte de connaissance : rien par la bouche. Glucagon si disponible et administrable selon la formation reçue et les secours.</p><button id="emergencyRead" class="danger">Lire les consignes à voix haute</button></div>
+ <div class="card" id="emergencyCard"><h2>Carte d'urgence</h2><p>Numéros français : <a href="tel:15">15 (SAMU)</a> ou <a href="tel:112">112</a>.</p><p class="hint">Perte de connaissance : rien par la bouche. Glucagon si disponible et administrable selon la formation reçue et les secours.</p><button id="emergencyRead" class="danger">Lire les consignes à voix haute</button></div>
  <div class="card"><h2>Références</h2><div id="sources"></div></div>
 </section>
 <section class="screen" id="screen-settings" aria-label="Réglages">
@@ -69,7 +100,7 @@
 </section>
 </main><p class="footer">DiabCare est un compagnon d'information et de journal personnel. Il ne constitue pas un dispositif médical certifié, un diabétologue ou un système d'alerte en temps réel.</p>
 </div>
-<nav aria-label="Navigation"><button class="active" data-tab="chat"><span class="i">💬</span>Parler</button><button data-tab="journal"><span class="i">📈</span>Journal</button><button data-tab="nutrition"><span class="i">🥗</span>Glucides</button><button data-tab="experts"><span class="i">🧠</span>Experts</button><button data-tab="settings"><span class="i">⚙️</span>Réglages</button></nav>
+<nav aria-label="Navigation principale"><button class="active" data-tab="chat" aria-label="Parler à JARVIS"><span class="i" aria-hidden="true">◉</span>JARVIS</button><button data-tab="journal"><span class="i" aria-hidden="true">▥</span>Journal</button><button data-tab="nutrition"><span class="i" aria-hidden="true">◇</span>Glucides</button><button data-tab="experts"><span class="i" aria-hidden="true">✧</span>Experts</button><button data-tab="settings"><span class="i" aria-hidden="true">⚙</span>Réglages</button></nav>
 <dialog id="entryDialog"><h2 id="entryTitle">Bienvenue sur DiabCare</h2><p class="hint" id="entryText">Pour enregistrer tes données de santé, crée une phrase secrète d'au moins 8 caractères. La clé n'est pas récupérable.</p><label for="pin">Phrase secrète</label><input id="pin" type="password" minlength="8" autocomplete="off"><div id="consentField"><label><input id="consent" type="checkbox" style="min-height:auto;width:auto"> J'accepte le stockage local chiffré de mes données de santé.</label></div><p class="mini warning" id="pinError"></p><div class="row"><button id="ephemeralBtn">Sans stockage</button><button class="primary" id="entrySubmit">Valider</button></div></dialog>
 
 <dialog id="confirmGlucose"><h2>GlucoCheck — confirmer</h2><p class="hint">La reconnaissance vocale peut se tromper. Vérifie sur ton lecteur ou ton capteur.</p><p id="glucoseCandidate" style="font-size:1.7rem;font-weight:700"></p><p class="hint">Source : valeur dictée manuellement ; pas de mesure en direct.</p><div class="row"><button id="glucoseCancel">Annuler</button><button class="primary" id="glucoseApprove">Confirmer la saisie</button></div></dialog>

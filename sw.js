@@ -1,15 +1,21 @@
-/* Jarvis Diabète — service worker : réseau d'abord (code médical toujours à jour), cache en secours hors ligne */
-const CACHE = 'jarvis-diabete-v3';
-const SHELL = ['./', './index.html', './manifest.json', './icon.svg'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+/* Route les anciennes installations vers DiabCare sans conserver l'ancien assistant en cache. */
+const CACHE="diabcare-root-redirect-1";
+const FILES=["./","./index.html","./manifest.json","./diabcare/icon.svg"];
+self.addEventListener("install",e=>{
+ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));
 });
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-  e.respondWith(
-    fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })
-      .catch(() => caches.match(req).then(m => m || caches.match('./index.html')))
-  );
+self.addEventListener("activate",e=>{
+ e.waitUntil((async()=>{
+  const ks=await caches.keys();
+  for(const k of ks)if(k.startsWith("jarvis-diabete-")||k.startsWith("diabcare-root-redirect-")&&k!==CACHE)await caches.delete(k);
+  await self.clients.claim();
+ })());
+});
+self.addEventListener("fetch",e=>{
+ const req=e.request,u=new URL(req.url);
+ if(req.method!=="GET"||u.origin!==self.location.origin||u.pathname.includes("/diabcare/"))return;
+ e.respondWith(fetch(req).then(res=>{
+  if(res.ok&&req.mode==="navigate"){const c=res.clone();caches.open(CACHE).then(cache=>cache.put("./index.html",c));}
+  return res;
+ }).catch(async()=>req.mode==="navigate"?await caches.match("./index.html"):await caches.match(req)));
 });

@@ -1,44 +1,32 @@
-# Jarvis Diabète
-**Studio Niko Design** — suivi du diabète avec agents de contrôle, données chiffrées sur l'appareil.
+# DiabCare — JARVIS DT1
 
-> ⚠️ Prototype **non certifié dispositif médical** (règlement UE 2017/745). L'estimation de bolus relève du MDR classe IIb : usage de démonstration et de recherche uniquement.
+PWA vocale spécialisée dans le diabète de type 1. L'application principale se trouve dans [diabcare/](./diabcare/) et est disponible sur GitHub Pages :
 
-🔗 [jarvisdiabete.vercel.app](https://jarvisdiabete.vercel.app)
+**https://nikoju1977.github.io/jarvisdiabete/diabcare/**
 
-## Architecture des agents
-| Agent | Rôle | Type |
-|---|---|---|
-| Triage des urgences | Détecte malaise, cétones, détresse **avant** toute IA (15, 112, 3114) | Déterministe |
-| Veille glycémique | Hypo niveaux 1 et 2, hypo projetée à 20 min, hyper, cétones si > 250 pendant 2 h (type 1), données anciennes | Déterministe |
-| Qualité des données | Plages 20–600 mg/dL, unités douteuses, horodatages, sources | Déterministe |
-| Garde-fou bolus | Paramètres validés obligatoires, double calcul indépendant, insuline active (oref0), plafond, blocage si < 70, arrondi au pas inférieur | Déterministe |
-| Nutrition | Table interne + Open Food Facts + code-barres, portion toujours confirmée | Déterministe |
-| Consensus temps dans la cible | TIR, TBR, TAR, CV, GMI comparés au consensus international (Battelino 2019 / ADA 2026) | Déterministe |
-| Conseiller IA | Chaîne de repli Mistral → Groq → Cerebras → modèle local | LLM |
-| Contrôle des réponses | Retire toute dose ou modification de traitement, puis relecture critique par un second modèle | Déterministe + LLM |
+La racine du dépôt redirige vers cette application. L'ancien prototype intégrant de la synchronisation et des suggestions thérapeutiques a été retiré de l'interface principale. Ses anciens fichiers HTML ne sont plus servis comme application utilisateur. Les données stockées par l'ancienne version ne sont **pas migrées automatiquement** ; aucune suppression automatique des anciens coffres n'est effectuée.
 
-Chaque décision est inscrite dans un journal d'audit chiffré.
+## Fonctions
 
-## Modèles locaux (Ollama)
-```bash
-OLLAMA_ORIGINS=https://jarvisdiabete.vercel.app ollama serve
-ollama pull hf.co/mradermacher/Diabetica-Qwen3-4B-GGUF:Q4_K_M   # spécialisé diabète
-ollama pull hf.co/mradermacher/Diabetica-o1-GGUF:Q4_K_M         # multilingue, raisonnement
-ollama pull hf.co/unsloth/medgemma-1.5-4b-it-GGUF:Q4_K_M        # médical généraliste (Google)
-```
+- JARVIS : commandes vocales sur activation, synthèse vocale, interface adaptée aux mobiles.
+- GlucoCheck : lecture des glycémies *saisies*, avec horodatage ; dictée validée avant inscription au journal.
+- Calculateur de glucides : portions explicites, sources Open Food Facts ou mini-référentiel indicatif hors connexion.
+- Assistant pédagogique hors connexion ; Qwen GGUF optionnel selon compatibilité du navigateur.
+- Mistral uniquement sur un serveur compatible, après accord explicite ; ce mode **n'est pas disponible depuis GitHub Pages statique**.
+- Coffre local chiffré, sauvegarde et restauration.
+- Filtrage prioritaire des demandes d'insuline : aucune recommandation de dose ni contrôle de pompe.
 
-## Sécurité et confidentialité
-- Coffre AES-256-GCM, clé PBKDF2-SHA-256 (310 000 itérations), IndexedDB. Aucune donnée en clair.
-- Verrouillage automatique après 10 min en arrière-plan ; délai croissant après 5 codes faux.
-- Seule la question est envoyée à l'IA ; le contexte glycémique anonymisé seulement sur autorisation.
-- Migration automatique des données de l'ancienne version (en clair) vers le coffre, puis effacement.
-- En-têtes de sécurité (CSP, Permissions-Policy) dans `vercel.json`.
+## Statut médical
 
-## Sources
-Nightscout (cgm-remote-monitor) · OpenAPS oref0 · Open Food Facts · Diabetica (WaltonFuture, MIT) · MedGemma 1.5 (Google) · Battelino et al., Diabetes Care 2019 · Bergenstal et al., Diabetes Care 2018 · ADA Standards of Care 2026.
+Il s'agit d'un assistant documentaire personnel, non d'un dispositif médical certifié ni d'un système de surveillance continue. Aucune fiabilité médicale de 100 % n'est garantie. Les données manuelles ne permettent pas de prédire les hypoglycémies.
 
-## Stack
-HTML single-file · XHR · Web Crypto · IndexedDB · Web Speech · BarcodeDetector / Quagga2
+## Développement et tests
 
-## Auteur
-**Nicolas Julienne** — [Studio Niko Design](https://github.com/Nikoju1977)
+Les sources et limitations sont documentées dans [diabcare/README.md](./diabcare/README.md).
+
+\`\`\`bash
+cd diabcare
+node --test *.test.mjs ../api/diabcare-chat.test.mjs
+\`\`\`
+
+Les tests automatiques ne remplacent ni les essais sur iPhone/Android ni une validation clinique.

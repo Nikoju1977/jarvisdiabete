@@ -1,6 +1,6 @@
-# DiabCare 4.0 — Compagnon vocal de diabète type 1
+# DiabCare 4.2 — Compagnon vocal du diabète de type 1
 
-PWA en français, installable sur iPhone et Android depuis un site HTTPS. **L'essentiel fonctionne hors connexion** après la première ouverture avec réseau : réponses locales, triage des formulations urgentes, journal manuel et données chiffrées. Aucun compte, Nightscout, accès pompe ou clé API ne sont nécessaires.
+PWA en français, installable sur iPhone et Android depuis un site HTTPS. **L'essentiel fonctionne hors connexion** après la première ouverture avec réseau : réponses locales, triage des formulations urgentes, journal manuel et données chiffrées. Aucun compte, service de synchronisation glycémique externe, accès pompe ou clé API ne sont nécessaires.
 
 ## Démarrage
 
@@ -89,3 +89,13 @@ L'orbe est un contrôle tactile et vocal, mais ne peut pas rester à l'écoute e
 \`cd diabcare && node --test *.test.mjs ../api/diabcare-chat.test.mjs\`
 
 La validation automatique couvre notamment la dictée des décimales françaises, l'identification du bon produit, les erreurs alimentaires, la confidentialité des requêtes Mistral, les garde-fous des rôles experts et le chiffrement. Ces tests ne se substituent pas aux essais avec des patients et des appareils physiques.
+
+
+## Interface unifiée 4.2
+
+L'adresse publiée est \`https://nikoju1977.github.io/jarvisdiabete/diabcare/\`.
+La page d'accueil du dépôt renvoie vers cette interface. Le code de l'ancien prototype monolithique, qui comportait une synchronisation tierce et des calculs thérapeutiques expérimentaux, ne constitue plus la page principale.
+
+L'écran d'accueil réunit un bouton vocal central, le dernier résultat **saisi** avec date et provenance, les actions GlucoCheck / Glucides / Urgence et la conversation. Les mesures ne sont jamais affichées comme étant en direct. Les interactions vocales restent conditionnées aux capacités du navigateur.
+
+Les enregistrements de l'ancien prototype ne sont pas importés automatiquement dans le coffre DiabCare : aucun effacement automatique ne les concerne. Sauvegarder toute donnée historique avant de réinitialiser son navigateur.
