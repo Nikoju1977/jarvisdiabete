@@ -6,13 +6,14 @@ import {routeExperts} from "./specialists.mjs";
 import {LLM_SOURCES,modelInfo} from "./llm-sources.mjs";
 import {speechRoute,transcriptSafe} from "./speech-policy.mjs";
 import {isRecordingSupported,recordClip,loadWhisper,transcribeWhisper} from "./speech-offline.mjs";
+import {createVoiceSession} from "./voice-session.mjs";
 import {cachedSearch,allCached,cachedStats,storeFoodProducts,clearCached,libraryStatus,OFFLINE_PACK_QUERIES} from "./food-library.mjs";
 import {SUGGESTED_GATEWAY,GATEWAY_STORAGE_KEY,testGateway,gatewayError,renderAiStatus} from "./ai-config.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
 let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,saveQueue=Promise.resolve(),pendingInstall=null;
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
-let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
+let voiceSession=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
 let voiceIntent="general",foodVoicePending=false,foodSearchId=0,nativeSpeechReady=false,nativeSpeechChecked=false;
 let foodPackBusy=false,foodCachedList=[],libraryAvailable=true;
 let verifiedMistralEndpoint=null,mistralTestInProgress=false;
@@ -67,11 +68,11 @@ function setJarvisState(mode,label){
 function silence(){
  if("speechSynthesis" in window)window.speechSynthesis.cancel();
  if(recognition){const prev=recognition;recognition=null;try{prev.abort();}catch{}}
- if(clipRecorder){const clip=clipRecorder;clipRecorder=null;clip.cancel();}
- if($("voiceRecording")?.open)$("voiceRecording").close();
+ voiceSession?.cancel();
  listenNonce++;setJarvisState("idle");
  const talk=$("talkBtn");if(talk)talk.textContent="🎙 Parler à JARVIS";
 }
+
 function sessionReply(text,label="Assistant local",say=true){
  msg("assistant",text,label);
  data.chat.push({role:"assistant",text,agent:label,ts:Date.now()});
@@ -487,6 +488,68 @@ async function installWhisper(){
   setJarvisState("idle");
  }
 }
+function updateVoiceActivity(stage,details=""){
+ const panel=$("voiceActivity");
+ if(!panel)return;
+ const visible=!["idle","error"].includes(stage);
+ const busy=visible;
+ panel.hidden=!visible;
+ panel.dataset.stage=stage;
+ for(const id of ["talkBtn","jarvisOrb","micBtn","foodMicBtn"]){
+  const button=$(id);if(button)button.disabled=busy;
+ }
+ $("voiceRecordStop").disabled=stage!=="listening";
+ $("voiceRecordCancel").textContent=stage==="transcribing"?"Ignorer la transcription":"Annuler";
+ if(!visible){
+  $("talkBtn").textContent="🎙 Parler à JARVIS";
+  setJarvisState("idle");
+  return;
+ }
+ const slot=$(voiceIntent==="nutrition"?"voiceFoodSlot":"voiceChatSlot");
+ slot?.appendChild(panel);
+ const stages={
+  requesting:["Autorisation du micro","Autorise le microphone depuis ton navigateur. Appuie sur Annuler pour interrompre."],
+  listening:["● JARVIS enregistre","Parle maintenant. Termine dès que tu as fini (16 secondes maximum)."],
+  finishing:["Arrêt de l'enregistrement","JARVIS attend le fichier audio du téléphone."],
+  transcribing:["JARVIS transcrit hors connexion","Whisper analyse l'audio sur ce téléphone. Cela peut prendre du temps. Tu peux ignorer le résultat."]
+ };
+ const [title,defaultMessage]=stages[stage]||["Microphone",details];
+ $("voiceActivityTitle").textContent=title;
+ $("voiceActivityDetail").textContent=details||defaultMessage;
+ if(stage==="listening")setJarvisState("listening","Micro local actif");
+ else setJarvisState("thinking",stage==="requesting"?"Autorisation micro":stage==="transcribing"?"Transcription en cours":"Arrêt du micro");
+ if(stage==="listening")$("talkBtn").textContent="🎙 Enregistrement…";
+ // Explicit in-flow control instead of an obscuring modal.
+ panel.scrollIntoView({block:"nearest",behavior:"auto"});
+}
+function setupVoiceSession(){
+ voiceSession=createVoiceSession({
+  capture:({onProgress})=>recordClip({durationMs:16000,onStatus:onProgress}),
+  transcribe:async(blob,{onProgress})=>{
+   // A 484 MB Qwen model + Whisper can exhaust memory on an Android phone.
+   // Release only Qwen's runtime, not its downloaded weights or the user's diary.
+   if(model){
+    onProgress("Optimisation mémoire : mise en pause de Qwen avant transcription Whisper…");
+    try{await model.unload?.();}catch{}
+    model=null;
+    $("aiMode").textContent="Assistant local disponible · voix prioritaire";
+    $("modelStatus").textContent="Qwen mis en pause pour libérer de la mémoire pendant la dictée. Recharge-le depuis Réglages si nécessaire.";
+    updateAiStatuses();
+   }
+   return transcribeWhisper(blob,onProgress);
+  },
+  onState:(stage,details)=>{
+   updateVoiceActivity(stage,details);
+   if(details&&stage!=="listening")voiceHint(details);
+  },
+  onTranscript:transcript=>deliverTranscript(transcript),
+  onError:error=>{
+   const message="Enregistrement ou transcription impossible : "+String(error?.message||error).slice(0,170);
+   voiceHint(message+" Réessaie ou utilise le clavier.");
+   toast(message);
+  }
+ });
+}
 async function whisperRecord(){
  if(!whisperReady){
   if(await installWhisper())voiceHint("Whisper chargé. Appuie à nouveau sur le micro pour démarrer un enregistrement.");
@@ -495,30 +558,11 @@ async function whisperRecord(){
  if(!isRecordingSupported()){
   voiceHint("Cet appareil ne permet pas d'enregistrer le micro dans ce navigateur.");return;
  }
- try{
-  const nonce=++listenNonce;
-  const clip=await recordClip({durationMs:16000,onStatus:voiceHint});
-  if(nonce!==listenNonce){clip.cancel();return;}
-  clipRecorder=clip;
-  if(!$("voiceRecording").open)$("voiceRecording").showModal();
-  $("talkBtn").textContent="⏹ Terminer la dictée";
-  setJarvisState("listening","Whisper enregistre");
-  clip.completed.then(async blob=>{
-   if(nonce!==listenNonce)return;
-   clipRecorder=null;if($("voiceRecording").open)$("voiceRecording").close();$("talkBtn").textContent="🎙 Parler à JARVIS";
-   setJarvisState("thinking","Whisper transcrit la voix");
-   try{
-    const text=await transcribeWhisper(blob,voiceHint);
-    if(nonce===listenNonce)deliverTranscript(text);
-   }catch(e){
-    if(nonce===listenNonce){voiceHint("Transcription impossible : "+String(e.message||e).slice(0,160));setJarvisState("idle");}
-   }
-  }).catch(()=>{if(nonce===listenNonce){clipRecorder=null;if($("voiceRecording").open)$("voiceRecording").close();$("talkBtn").textContent="🎙 Parler à JARVIS";setJarvisState("idle");}});
- }catch(err){
-  voiceHint("Micro inaccessible : "+String(err.message||err).slice(0,160)+". Vérifie l'autorisation du microphone pour ce site.");
-  setJarvisState("idle");
- }
+ if(voiceSession?.isActive())return;
+ // The capture function calls getUserMedia within this user gesture.
+ void voiceSession?.start();
 }
+
 function browserSpeech(SR,localOnly){
  try{
   const nonce=++listenNonce,rec=new SR();
@@ -546,10 +590,14 @@ function browserSpeech(SR,localOnly){
 }
 async function dictate(intent="general"){
  if(!requireUnlock())return;
+ if(voiceSession?.isActive()){
+  if(voiceSession.getStage()==="listening")voiceSession.stop();
+  else voiceSession.cancel();
+  return;
+ }
  voiceIntent=intent==="nutrition"?"nutrition":"general";
  if(voiceIntent==="nutrition")$("foodVoiceStatus").textContent="Préparation du microphone…";
- // Deuxième appui pendant l'enregistrement Whisper : arrêter et transcrire.
- if(clipRecorder){const clip=clipRecorder;try{await clip.stop();}catch{}return;}
+ // Pendant un enregistrement, les boutons principaux sont désactivés ; arrêter ou annuler depuis le panneau vocal.
  if(recognition){try{recognition.stop();}catch{}return;}
  if(whisperBusy){voiceHint("Whisper est en cours de chargement.");return;}
  if(requestBusy){voiceHint("JARVIS traite la question précédente.");return;}
@@ -583,6 +631,7 @@ async function loadAI(){
  finally{modelBusy=false;$("modelBtn").disabled=false;}
 }
 function setup(){
+ setupVoiceSession();
  let savedGateway="";
  try{savedGateway=localStorage.getItem(GATEWAY_STORAGE_KEY)||"";}catch{}
  $("mistralGatewayUrl").value=savedGateway||SUGGESTED_GATEWAY;
@@ -617,9 +666,8 @@ function setup(){
   input.focus();
   voiceHint(nutrition?"Clavier prêt : indique l'aliment et la portion, puis touche Calculer les glucides.":"Clavier prêt : écris ta question et touche Envoyer.");
  };
- $("voiceRecordStop").onclick=()=>{if(clipRecorder){const clip=clipRecorder;voiceHint("Transcription en cours…");clip.stop().catch(()=>{});}};
- $("voiceRecordCancel").onclick=()=>{silence();voiceHint("Enregistrement annulé.");};
- $("voiceRecording").addEventListener("cancel",e=>{e.preventDefault();silence();});
+ $("voiceRecordStop").onclick=()=>voiceSession?.stop();
+ $("voiceRecordCancel").onclick=()=>{silence();voiceHint("Enregistrement annulé. Utilise le micro ou le clavier pour recommencer.");};
 
  $("voiceCloseBtn").onclick=()=>{$("voiceChoice").close();voiceIntent="general";};
  $("voiceBrowserBtn").onclick=()=>{

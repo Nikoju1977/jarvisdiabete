@@ -71,25 +71,52 @@ export async function recordClip({durationMs=12000,onStop,onStatus=()=>{}}={}){
  let recorder;
  try{recorder=new MediaRecorder(stream,opts);}catch(e){stream.getTracks().forEach(t=>t.stop());throw e;}
  const chunks=[];
- let finished=false;let timeout=null;
- const stopTracks=()=>stream.getTracks().forEach(t=>t.stop());
+ let finished=false,timeout=null,stopWatchdog=null;
+ const stopTracks=()=>stream.getTracks().forEach(track=>{try{track.stop();}catch{}});
+ const clearTimers=()=>{clearTimeout(timeout);clearTimeout(stopWatchdog);};
  let resolveClip,rejectClip;
  const completion=new Promise((resolve,reject)=>{resolveClip=resolve;rejectClip=reject;});
- recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
- recorder.onerror=e=>{if(!finished){finished=true;clearTimeout(timeout);stopTracks();rejectClip(Error(e.error?.message||"Erreur d'enregistrement."));}};
- recorder.onstop=()=>{
-  if(finished)return;finished=true;clearTimeout(timeout);stopTracks();
-  const blob=new Blob(chunks,{type:recorder.mimeType||selected||"audio/webm"});
-  if(blob.size<1000){rejectClip(Error("Micro silencieux ou enregistrement trop court."));return;}
-  resolveClip(blob);
-  if(onStop)onStop(blob);
+ const fail=error=>{
+  if(finished)return;
+  finished=true;clearTimers();stopTracks();
+  rejectClip(error instanceof Error?error:Error(String(error||"Enregistrement impossible.")));
  };
- recorder.start(250);
- onStatus("Micro actif. Dicte une phrase, puis appuie sur Terminer.");
- timeout=setTimeout(()=>{if(recorder.state!=="inactive")recorder.stop();},durationMs);
+ recorder.ondataavailable=e=>{if(!finished&&e.data?.size)chunks.push(e.data);};
+ recorder.onerror=e=>fail(Error(e.error?.message||"Erreur d'enregistrement audio."));
+ recorder.onstop=()=>{
+  if(finished)return;
+  finished=true;clearTimers();stopTracks();
+  const blob=new Blob(chunks,{type:recorder.mimeType||selected||"audio/webm"});
+  if(blob.size<1000){
+   rejectClip(Error("Le son est trop court ou aucun mot n'a été capturé. Recommence en parlant pendant au moins une seconde."));
+   return;
+  }
+  resolveClip(blob);
+  if(onStop)try{onStop(blob);}catch{}
+ };
+ const stop=()=>{
+  if(finished)return completion;
+  clearTimeout(timeout);
+  try{
+   if(recorder.state!=="inactive")recorder.stop();
+  }catch(e){fail(Error("Impossible d'arrêter le micro : "+String(e.message||e)));return completion;}
+  // Some Android webviews never fire "stop": reject rather than spin forever.
+  if(stopWatchdog===null)stopWatchdog=setTimeout(()=>{
+   fail(Error("Le navigateur n'a pas terminé l'enregistrement. Réessaie dans Chrome ou avec la dictée du navigateur."));
+  },4500);
+  return completion;
+ };
+ try{recorder.start(250);}catch(e){stopTracks();throw Error("Démarrage du micro refusé : "+String(e.message||e));}
+ onStatus("Le microphone enregistre. Parle, puis touche Terminer et transcrire.");
+ timeout=setTimeout(stop,durationMs);
  return {
-  stop:()=>{if(recorder.state!=="inactive")recorder.stop();return completion;},
-  cancel:()=>{if(!finished){finished=true;clearTimeout(timeout);stopTracks();try{recorder.stop();}catch{}rejectClip(Error("Enregistrement annulé."));}},
+  stop,
+  cancel:()=>{
+   if(finished)return;
+   finished=true;clearTimers();stopTracks();
+   try{if(recorder.state!=="inactive")recorder.stop();}catch{}
+   rejectClip(Error("Enregistrement annulé."));
+  },
   completed:completion
  };
 }

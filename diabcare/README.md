@@ -192,3 +192,14 @@ Cliquer **Préparer Whisper hors connexion**, puis refaire un appui sur le micro
 L'URL de la passerelle, non secrète, peut être conservée localement pour faciliter la configuration. Le code d'accès saisi **n'est pas sauvegardé** et doit être ressaisi après un rechargement. Le journal, les glycémies, les injections et les repas ne sont jamais transmis à Mistral. Une question pédagogique générale est transmise seulement avec consentement et connexion validée.
 
 Tests : \`cd diabcare && node --test *.test.mjs ../api/diabcare-chat.test.mjs\` ; sur CI, Playwright contrôle les interactions du formulaire Mistral sur deux formats de téléphone avec une fausse passerelle, sans secrets ni appels Mistral réels.
+
+
+## DiabCare 4.7 — réparation de l'enregistrement vocal
+
+**Symptôme sur Android :** la fenêtre modale « JARVIS écoute » masquait l'interface, tandis qu'un second bouton « Terminer la dictée » restait visible en arrière-plan. L'application n'indiquait pas clairement que Whisper pouvait encore être en train de transcrire après l'arrêt.
+
+**Correction :** le dialogue bloquant a été remplacé par un petit panneau visible sous les commandes JARVIS, ou sous le micro du calculateur de glucides. Il affiche les états *autorisation du microphone → enregistrement (maximum 16 secondes) → arrêt → transcription locale → réponse*. Un seul bouton « Terminer et transcrire » est actif pendant l'enregistrement ; « Annuler » interrompt la capture ou ignore une transcription encore en cours. Les résultats d'une session annulée sont ignorés. Le micro est libéré à l'arrêt, à l'annulation et en cas d'erreur. Un navigateur Android qui n'envoie pas l'événement final de MediaRecorder provoque maintenant une erreur visible au lieu d'un chargement sans fin.
+
+**Important :** Qwen est une IA textuelle ; il ne transcrit pas le microphone. La dictée hors ligne nécessite Whisper chargé et un navigateur autorisant l'enregistrement. La durée du calcul local dépend du téléphone. Le diagnostic de capacité dans les réglages ne prouve pas qu'une phrase dictée est correctement reconnue.
+
+Des tests unitaires couvrent la machine à états, y compris les annulations et les résultats obsolètes. Les tests de navigateur simulent un enregistrement et une transcription sur formats Android/iPhone sans demander réellement l'autorisation du micro. Le comportement physique sur un Samsung reste à vérifier par un essai utilisateur et ne peut pas être certifié par ces tests.

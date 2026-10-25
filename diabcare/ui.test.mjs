@@ -25,7 +25,7 @@ test("aucune dépendance d'un service de suivi exclu dans les fichiers chargés"
  }
 });
 test("cache versionné pour ne pas afficher le vieux cockpit",()=>{
- assert.match(sw,/diabcare-pwa-shell-4\.6\.0/);
+ assert.match(sw,/diabcare-pwa-shell-4\.7\.0/);
  assert.match(sw,/"\.\/ui\.css"/);
  assert.match(sw,/"\.\/speech-offline\.mjs"/);
  assert.match(rootSW,/jarvis-diabete-/);
@@ -39,7 +39,7 @@ test("les boutons vocaux possèdent de vrais gestionnaires",()=>{
  assert.match(js,/voiceConsentCheck/);
  assert.match(page,/id="voiceConsentCheck"/);
  assert.match(js,/voiceChooser\(/);
- assert.match(js,/clip\.stop\(\)/);
+ assert.match(js,/voiceSession\?\.stop\(\)/);
  assert.match(js,/speech\(.*\{force:true\}\)/);
 });
 test("les modules audio sont mis en cache dans la PWA et restent optionnels",()=>{
@@ -118,4 +118,19 @@ test("états réels Qwen, Whisper, Mistral et repli documentaire",()=>{
  assert.match(js,/if\(!answeredCloud&&model\)/);
  assert.match(js,/Connexion non établie/);
  assert.match(page,/GitHub Pages ne peut pas exécuter le serveur Mistral/);
+});
+
+test("JARVIS : un seul panneau vocal non bloquant, avec étapes explicites",()=>{
+ for(const id of ["voiceChatSlot","voiceFoodSlot","voiceActivity","voiceActivityTitle","voiceActivityDetail",
+  "voiceRecordStop","voiceRecordCancel"]){
+  assert.ok(page.includes('id="'+id+'"'),"panneau vocal manquant : "+id);
+ }
+ assert.doesNotMatch(page,/<dialog id="voiceRecording"/);
+ assert.match(js,/createVoiceSession\(/);
+ assert.match(js,/voiceSession\?\.stop\(\)/);
+ assert.match(js,/voiceSession\?\.cancel\(\)/);
+ assert.match(js,/updateVoiceActivity\(/);
+ assert.match(js,/voiceRecordCancel/);
+ assert.match(speechCSS,/#voiceActivity\[data-stage="transcribing"\] #voiceRecordStop/);
+ assert.match(sw,/"\.\/voice-session\.mjs"/);
 });

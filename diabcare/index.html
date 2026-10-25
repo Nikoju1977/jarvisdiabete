@@ -35,6 +35,7 @@
   <h2>Je suis à ton écoute.</h2>
   <p>Une question sur le diabète de type 1 ? Parle naturellement. En pleine nature, l'essentiel reste disponible sans réseau.</p>
   <div class="voice-controls"><button id="talkBtn" type="button">🎙 Parler à JARVIS</button><button id="stopVoice" type="button">⏹ Arrêter</button></div>
+  <div id="voiceChatSlot" class="voice-slot" aria-live="polite"></div>
  </section>
  <div class="glance-card" aria-label="Dernière mesure saisie">
   <div><div class="eyebrow">GlucoCheck • Journal personnel</div>
@@ -78,6 +79,7 @@
  <div class="nutrition-voice-panel">
   <button id="foodMicBtn" type="button" class="nutrition-mic" aria-describedby="foodVoiceStatus"><span aria-hidden="true">🎤</span> Parler à JARVIS pour les glucides</button>
   <p id="foodVoiceStatus" class="hint" role="status" aria-live="polite">Appuie ici, dicte par exemple « 150 grammes de riz blanc cuit ». Tu peux choisir la dictée du navigateur ou Whisper local.</p>
+  <div id="voiceFoodSlot" class="voice-slot" aria-live="polite"></div>
  </div>
  <form id="foodForm" class="stack"><label for="foodQuery">Ou saisir l'aliment / le code-barres</label><input id="foodQuery" placeholder="Ex. 150 g de riz blanc cuit" autocomplete="off" required><button class="primary" type="submit">Calculer les glucides</button></form>
  <p class="hint" id="foodStatus">Les valeurs peuvent varier selon la marque et la préparation.</p>
@@ -162,7 +164,14 @@
   <button id="voiceCloseBtn" type="button">Fermer</button>
  </div>
 </dialog>
-<dialog id="voiceRecording" aria-labelledby="voiceRecordingTitle"><h2 id="voiceRecordingTitle">JARVIS écoute</h2><p class="hint">Parle puis appuie sur « Terminer » pour transcrire.</p><div class="row"><button type="button" id="voiceRecordCancel">Annuler</button><button class="primary" type="button" id="voiceRecordStop">Terminer</button></div></dialog>
+<div id="voiceActivity" class="voice-activity" hidden aria-live="polite" aria-atomic="true">
+ <div class="voice-activity-head"><span id="voiceActivityDot" aria-hidden="true">●</span><strong id="voiceActivityTitle">Préparation du micro</strong></div>
+ <p id="voiceActivityDetail">JARVIS prépare la reconnaissance vocale.</p>
+ <div class="voice-activity-actions">
+  <button id="voiceRecordStop" class="primary" type="button">Terminer et transcrire</button>
+  <button id="voiceRecordCancel" type="button">Annuler</button>
+ </div>
+ </div>
 <div id="toast" hidden role="status"></div>
 <script type="module" src="./app.mjs"></script>
 </body></html>

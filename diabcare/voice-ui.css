@@ -99,3 +99,33 @@
 #diagnosticResults:not(:empty){margin-top:12px}
 #reloadAppBtn[hidden],#installBtn[hidden]{display:none}
 @media(max-width:400px){.agent-action{min-height:100px}.voice-consent{padding:10px}}
+
+
+/* Version 4.7: inline voice capture, no modal covering buttons or double stop control. */
+.voice-slot{width:100%;margin-top:12px}
+.voice-slot:empty{display:none}
+.voice-activity{
+ display:grid;gap:11px;text-align:left;padding:16px 17px;margin:0 auto;
+ border:1px solid #61cdbc;border-radius:18px;
+ background:linear-gradient(150deg,#123c4c,#082536);
+ max-width:520px;color:#e9ffff;box-shadow:0 6px 20px #04121c66;
+}
+.voice-activity[hidden]{display:none!important}
+.voice-activity-head{display:flex;gap:10px;align-items:center;font-size:1rem}
+#voiceActivityDot{color:#69e6d2;font-size:1.1rem}
+.voice-activity[data-stage="listening"] #voiceActivityDot{animation:voiceBlink 1.2s infinite}
+.voice-activity[data-stage="transcribing"] #voiceActivityDot{color:#a6bdff}
+.voice-activity p{margin:0!important;font-size:.84rem;line-height:1.55;color:#c7e9ee;text-align:left!important}
+.voice-activity-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.voice-activity-actions button{min-height:49px;border-radius:12px;padding:10px 13px;font-size:.83rem;font-weight:780}
+.voice-activity-actions .primary{color:#062a2e;background:#66e2c9;border:0}
+.voice-activity-actions #voiceRecordCancel{background:#194358;border:1px solid #458297;color:#e7fbff}
+#voiceActivity[data-stage="requesting"] #voiceRecordStop,
+#voiceActivity[data-stage="finishing"] #voiceRecordStop,
+#voiceActivity[data-stage="transcribing"] #voiceRecordStop{display:none}
+#voiceActivity[data-stage="requesting"] .voice-activity-actions,
+#voiceActivity[data-stage="finishing"] .voice-activity-actions,
+#voiceActivity[data-stage="transcribing"] .voice-activity-actions{grid-template-columns:1fr}
+@keyframes voiceBlink{50%{opacity:.3;transform:scale(.84)}}
+@media(prefers-reduced-motion:reduce){.voice-activity[data-stage="listening"] #voiceActivityDot{animation:none}}
+@media(max-width:390px){.voice-activity{padding:13px}.voice-activity-actions{gap:7px}}

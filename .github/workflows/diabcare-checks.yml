@@ -25,6 +25,8 @@ jobs:
           node --check diabcare/voice.mjs
           node --check diabcare/speech-policy.mjs
           node --check diabcare/speech-offline.mjs
+          node --check diabcare/voice-session.mjs
+          node --check diabcare/voice-browser-smoke.mjs
           node --check diabcare/nutrition.mjs
           node --check diabcare/food-library.mjs
           node --check diabcare/ai-config.mjs
@@ -53,3 +55,5 @@ jobs:
           sleep 2
       - name: Tester les clics en viewport Android et iPhone
         run: node diabcare/browser-smoke.mjs
+      - name: Tester le cycle vocal Android et iPhone avec micro simulé
+        run: node diabcare/voice-browser-smoke.mjs
