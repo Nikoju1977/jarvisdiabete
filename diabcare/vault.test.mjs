@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {webcrypto} from "node:crypto";
-import {fresh,exists,createVault,unlock,persist,erase,exportEncrypted} from "./vault.mjs";
+import {fresh,exists,createVault,unlock,persist,erase,exportEncrypted,restoreEncryptedBackup} from "./vault.mjs";
 if(!globalThis.crypto)globalThis.crypto=webcrypto;
 const mem=new Map();
 globalThis.localStorage={
@@ -31,4 +31,19 @@ test("chiffrement AES-GCM : roundtrip et refus d'une mauvaise phrase",async()=>{
 });
 test("phrase secrète trop courte refusée",async()=>{
  erase();await assert.rejects(createVault("123456",fresh()));
+});
+
+test("restauration : mot de passe incorrect n'écrase pas le coffre",async()=>{
+ erase();
+ const initial=fresh();initial.readings.push({mg:123,ts:Date.now()});
+ await createVault("MotDePasseLong-1",initial);
+ const backup=exportEncrypted();
+ const current=await unlock("MotDePasseLong-1");
+ current.state.readings.push({mg:140,ts:Date.now()});
+ await persist(current.key,current.state);
+ await assert.rejects(restoreEncryptedBackup(backup,"MotDePasseIncorrect"));
+ assert.equal((await unlock("MotDePasseLong-1")).state.readings.length,2);
+ await restoreEncryptedBackup(backup,"MotDePasseLong-1");
+ assert.equal((await unlock("MotDePasseLong-1")).state.readings.length,1);
+ erase();
 });
