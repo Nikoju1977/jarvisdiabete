@@ -107,6 +107,14 @@ async function scenario(label,viewport){
   await context.setOffline(false);
   offlineCatalogMock=false;
  });
+ await check(label+" : préparer un lot Open Food Facts à emporter (6 requêtes simulées)",async()=>{
+  offlineCatalogMock=true;
+  await page.locator("#foodPackBtn").click();
+  await page.waitForFunction(()=>document.querySelector("#foodPackStatus")?.textContent?.includes("Préparation terminée"),null,{timeout:55000});
+  assert.match(await page.locator("#foodLibraryStatus").innerText(),/produit/);
+  assert.ok(await page.locator("#foodPackBtn").isEnabled());
+  offlineCatalogMock=false;
+ });
  await check(label+" : boutons de la bibliothèque hors connexion",async()=>{
   await page.locator("#foodLibraryRefresh").click();
   await page.locator("#foodSavedList .food-saved-item").first().waitFor({state:"visible"});
