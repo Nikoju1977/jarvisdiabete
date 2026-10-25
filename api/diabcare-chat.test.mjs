@@ -39,3 +39,37 @@ test("origine tierce rejetée",async()=>{
  const req=mockReq("Explique le DT1");req.headers.origin="https://evil.invalid";
  assert.equal((await run(req)).statusCode,403);
 });
+
+test("GitHub Pages peut appeler la passerelle Vercel avec CORS strict",async()=>{
+ const req=mockReq("Explique le pancréas");
+ req.headers.origin="https://nikoju1977.github.io";req.headers.host="jarvisdiabete.vercel.app";
+ req.body={action:"ping"};
+ const result=await run(req);
+ assert.equal(result.statusCode,200);
+ assert.equal(result.headers["Access-Control-Allow-Origin"],"https://nikoju1977.github.io");
+ assert.equal(result.body.ok,true);
+ assert.equal(result.body.configured,true);
+});
+test("ping valide le code sans facturation Mistral ni question santé",async()=>{
+ let called=0;
+ const req=mockReq("ne doit pas être envoyé");req.body={action:"ping"};
+ const result=await run(req,async()=>{called++;throw Error("unexpected");});
+ assert.equal(result.statusCode,200);assert.equal(called,0);
+ const denied=await run({...req,headers:{...req.headers,"x-diabcare-code":"incorrect"}});
+ assert.equal(denied.statusCode,401);
+});
+test("preflight browser GitHub Pages ne consulte jamais Mistral",async()=>{
+ const req={method:"OPTIONS",headers:{origin:"https://nikoju1977.github.io",host:"jarvisdiabete.vercel.app"}};
+ const response={
+  headers:{},setHeader(k,v){this.headers[k]=v},
+  end(v){this.body=v}
+ };
+ await createHandler({env,fetchFn:async()=>{throw Error("unexpected");}})(req,response);
+ assert.equal(response.statusCode,204);
+ assert.equal(response.headers["Access-Control-Allow-Origin"],"https://nikoju1977.github.io");
+ assert.match(response.headers["Access-Control-Allow-Headers"],/X-DiabCare-Code/);
+});
+test("domaine arbitraire ne peut pas appeler la passerelle",async()=>{
+ const req=mockReq("Explique le DT1");req.headers.origin="https://evil.invalid";
+ assert.equal((await run(req)).statusCode,403);
+});

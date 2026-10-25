@@ -153,3 +153,42 @@ Les téléphones iPhone et Android peuvent supprimer les fichiers IndexedDB selo
 ### Non-fonctionnalités volontaires
 
 Aucune importation de la totalité d'Open Food Facts : la base complète est beaucoup trop volumineuse pour une PWA mobile. Aucun remplacement silencieux des valeurs sauvegardées, aucune dose calculée à partir de glucides, aucune fausse mesure en temps réel. La bibliothèque OFF n'est pas fusionnée avec les informations de santé chiffrées.
+
+
+## DiabCare 4.6 — Configuration des moteurs IA et diagnostic
+
+La PWA est hébergée sur GitHub Pages, c'est un serveur de **fichiers statiques**. Elle ne peut ni conserver une clé Mistral secrète, ni exécuter une fonction serveur Mistral. Les modes ont donc été séparés avec leurs véritables états, **sans afficher faussement « connecté »**.
+
+### 1. Mistral via passerelle Vercel personnelle
+
+Le dépôt comprend la route sécurisée \`api/diabcare-chat.mjs\` :
+- Elle accepte une origine GitHub Pages autorisée, une requête CORS \`OPTIONS\` et \`POST\`.
+- \`POST {"action":"ping"}\` nécessite le code d'accès, mais n'appelle pas l'API Mistral : le test est sans consommation de jetons.
+- Aucune clé \`MISTRAL_API_KEY\` ne figure dans le HTML, les scripts navigateur ou un fichier de stockage.
+- Une question de santé personnelle, de posologie ou d'urgence est filtrée **avant l'appel distant**. Le modèle supplémentaire de contrôle n'est pas une certification médicale.
+- La passerelle nécessite des contrôles complémentaires de fréquence d'utilisation et d'audit avant un déploiement public à grande échelle.
+
+**Configuration nécessaire par le titulaire du compte**, sans jamais coller les secrets dans GitHub ou dans une conversation :
+
+1. Dans Mistral Studio ([procédure](https://docs.mistral.ai/fr/getting-started/quickstarts/studio/activate-and-generate-api-key)), créer une clé API.
+2. Dans le tableau de bord Vercel ([Vercel](https://vercel.com/dashboard)), ouvrir le projet relié au dépôt, section **Settings → Environment Variables**. Ajouter \`MISTRAL_API_KEY\` (valeur secrète API) et \`DIABCARE_GATE_CODE\` (un code aléatoire différent de la clé API, au moins 16 caractères), actifs pour **Production**.
+3. Déployer à nouveau **ce projet serveur** après mise à jour du dépôt. Une PWA GitHub Pages seule n'exécute pas l'API.
+4. Dans DiabCare → **Réglages**, fournir l'URL HTTPS de la passerelle (par exemple \`https://jarvisdiabete.vercel.app/api/diabcare-chat\` si c'est bien le bon projet), le code d'accès privé (jamais la clé API) et le consentement explicite.
+5. Cliquer **Tester ma connexion Mistral**. La confirmation de l'authentification est nécessaire avant d'envoyer une question.
+6. Sélectionner le mode automatique ou Mistral. En cas d'échec de connexion, de réseau ou de limitation de sécurité, DiabCare utilise les réponses documentaires locales et, si chargé, Qwen.
+
+**Attention :** le lien serveur proposé est un exemple lié à l'ancien déploiement de Jarvis. Il ne constitue pas une connexion confirmée. Les comptes/projets Vercel doivent être effectivement configurés avant utilisation.
+
+### 2. Qwen (texte IA en local)
+
+Cliquer **Télécharger et activer Qwen**, avec Wi-Fi et espace libre (~484 Mo pour le GGUF) : l'application n'indique « prêt » qu'après réussite de l'initialisation. Le navigateur peut manquer de mémoire, de WASM ou de stockage ; le moteur documentaire déterministe reste utilisable. Les téléchargements sont fournis par Hugging Face ; la rétention du cache sur iOS/Android n'est pas garantie. Le modèle n'est pas un système médical validé.
+
+### 3. Whisper (dictée vocale en local)
+
+Cliquer **Préparer Whisper hors connexion**, puis refaire un appui sur le micro une fois l'installation terminée. La dictée du navigateur pouvant utiliser un service en ligne est facultative et exige un consentement spécifique. Vérifier dans **Réglages → Diagnostic** la disponibilité de l'enregistrement audio sur l'appareil réel. La synthèse vocale peut dépendre des voix installées sur Android ou iOS.
+
+### Données et sécurité
+
+L'URL de la passerelle, non secrète, peut être conservée localement pour faciliter la configuration. Le code d'accès saisi **n'est pas sauvegardé** et doit être ressaisi après un rechargement. Le journal, les glycémies, les injections et les repas ne sont jamais transmis à Mistral. Une question pédagogique générale est transmise seulement avec consentement et connexion validée.
+
+Tests : \`cd diabcare && node --test *.test.mjs ../api/diabcare-chat.test.mjs\` ; sur CI, Playwright contrôle les interactions du formulaire Mistral sur deux formats de téléphone avec une fausse passerelle, sans secrets ni appels Mistral réels.

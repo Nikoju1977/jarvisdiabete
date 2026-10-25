@@ -154,6 +154,29 @@ async function scenario(label,viewport){
   assert.ok(await page.locator("#eraseBtn").isDisabled());
   await page.locator("#modelCheck").click();
   assert.match(await page.locator("#modelStatus").innerText(),/modèle/i);
+  assert.match(await page.locator("#aiHealthSummary").innerText(),/Mistral : non connecté/);
+  await page.locator("#mistralDefaultBtn").click();
+  assert.match(await page.locator("#mistralGatewayUrl").inputValue(),/jarvisdiabete\.vercel\.app/);
+  await page.locator("#aiSelect").selectOption("mistral");
+  assert.match(await page.locator("#mistralState").innerText(),/non connecté/i);
+  await page.locator("#mistralTestBtn").click();
+  assert.match(await page.locator("#mistralState").innerText(),/Coche d'abord/);
+  await page.route("https://jarvisdiabete.vercel.app/api/diabcare-chat",route=>{
+   const cors={"Access-Control-Allow-Origin":"http://127.0.0.1:8765","Access-Control-Allow-Headers":"Content-Type, X-DiabCare-Code","Access-Control-Allow-Methods":"POST, OPTIONS"};
+   if(route.request().method()==="OPTIONS")return route.fulfill({status:204,headers:cors});
+   assert.equal(JSON.parse(route.request().postData()).action,"ping");
+   return route.fulfill({status:200,contentType:"application/json",headers:cors,
+    body:JSON.stringify({ok:true,configured:true,model:"mistral-small-latest"})});
+  });
+  await page.locator("#mistralConsent").check();
+  await page.locator("#accessCode").fill("code-prive-de-test-12345");
+  await page.locator("#mistralTestBtn").click();
+  await page.waitForFunction(()=>document.querySelector("#mistralState")?.textContent?.includes("Connexion vérifiée"),null,{timeout:10000});
+  assert.equal(await page.locator("#aiSelect").inputValue(),"auto");
+  assert.match(await page.locator("#aiHealthSummary").innerText(),/Mistral : passerelle vérifiée/);
+  await page.locator("#mistralConsent").uncheck();
+  assert.match(await page.locator("#aiHealthSummary").innerText(),/Mistral : non connecté/);
+
   await page.locator("#appUpdate").click();
   assert.match(await page.locator("#updateStatus").innerText(),/Vérification|mode hors connexion|mise à jour|n'autorise/i);
   await page.locator("#lockBtn").click();
