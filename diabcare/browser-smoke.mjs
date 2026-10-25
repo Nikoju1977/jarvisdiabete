@@ -16,7 +16,9 @@ async function scenario(label,viewport){
  let offlineCatalogMock=false;
  await page.route("https://world.openfoodfacts.org/**",route=>{
   const reqUrl=new URL(route.request().url());
-  const term=reqUrl.searchParams.get("search_terms")||"";
+  const cat=reqUrl.searchParams.get("categories_tags_en");
+  const categories={rice:"riz",pasta:"pâtes",bread:"pain",yogurts:"yaourt","breakfast-cereals":"céréales",milk:"lait"};
+  const term=reqUrl.searchParams.get("search_terms")||categories[cat]||"";
   if(offlineCatalogMock&&(term||reqUrl.pathname.includes("/product/"))){
    const names={"riz basmati":"Riz basmati bio","riz":"Riz basmati bio","pâtes":"Pâtes complètes","pain":"Pain aux céréales","yaourt":"Yaourt nature","céréales":"Céréales muesli","lait":"Lait UHT"};
    const name=names[term]||"Riz basmati bio";
