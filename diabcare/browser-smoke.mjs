@@ -4,8 +4,9 @@
 import assert from "node:assert/strict";
 import {chromium} from "playwright";
 const url=process.env.PLAYWRIGHT_BASE_URL||"http://127.0.0.1:8765/diabcare/";
-const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+const browser=await chromium.launch({channel:"chromium",headless:true,args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-zygote"]});
 let checks=0;
+console.log("Browser process launched for",url);
 async function check(label,fn){try{await fn();checks++;console.log("PASS",label);}catch(e){console.error("FAIL",label,String(e.stack||e));throw e;}}
 async function scenario(label,viewport){
  const context=await browser.newContext({viewport,isMobile:true,hasTouch:true,deviceScaleFactor:2,acceptDownloads:true});
