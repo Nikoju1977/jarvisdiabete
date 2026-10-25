@@ -1,5 +1,5 @@
 import {VERSION,AGENTS,SOURCES,answer,doseQuestion,urgentQuestion,safeGenerated,parseGlucose,formatGlucose,summary,stateOf,guidanceForMeasurement,exportReport} from "./core.mjs";
-import {fresh,exists,createVault,unlock,persist,erase,exportEncrypted} from "./vault.mjs";
+import {fresh,exists,createVault,unlock,persist,erase,exportEncrypted,restoreEncryptedBackup} from "./vault.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
 let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,saveQueue=Promise.resolve(),pendingInstall=null;
 const TIMEOUT=10*60*1000;let awayAt=null;
@@ -77,6 +77,12 @@ function setup(){
  $("injectionForm").onsubmit=e=>{e.preventDefault();if(!requireUnlock())return;const txt=$("injection").value.trim().replace(",",".");const u=Number(txt);if(!/^\d+(?:\.\d+)?$/.test(txt)||!(u>0&&u<=100)){toast("Valeur invalide. Il s'agit uniquement d'une injection réellement effectuée.");return;}data.injections.push({u,ts:Date.now()});data.injections=data.injections.slice(-1000);$("injection").value="";save();renderJournal();toast("Injection déjà réalisée consignée.");};
  $("reportBtn").onclick=()=>{if(requireUnlock())reportDownload("diabcare-bilan.txt",exportReport(data));};
  $("backupBtn").onclick=async()=>{try{await saveQueue;reportDownload("diabcare-coffre-chiffre.json",exportEncrypted(),"application/json");toast("Sauvegarde chiffrée téléchargée.");}catch(e){toast(e.message);}};
+ $("restoreBtn").onclick=()=>$("restoreFile").click();
+ $("restoreFile").onchange=async ev=>{const file=ev.target.files?.[0];ev.target.value="";if(!file)return;if(file.size>10000000){toast("Sauvegarde trop volumineuse.");return;}
+  const phrase=prompt("Phrase secrète de la sauvegarde chiffrée :");if(!phrase)return;
+  if(!confirm("Remplacer le coffre local actuel par cette sauvegarde, après vérification ?"))return;
+  try{await restoreEncryptedBackup(await file.text(),phrase);toast("Sauvegarde vérifiée et restaurée. Rechargement…");location.reload();}catch(err){toast("Restauration refusée : "+String(err.message||err).slice(0,140));}
+ };
  $("speakToggle").onchange=e=>{data.prefs.speak=e.target.checked;save();};
  $("lockBtn").onclick=lock;
  $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
