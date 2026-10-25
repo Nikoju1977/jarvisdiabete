@@ -24,4 +24,4 @@ jobs:
           node --check diabcare/model.mjs
           node --check diabcare/sw.js
       - name: Tests locaux déterministes
-        run: node --test diabcare/core.test.mjs
+        run: node --test diabcare/core.test.mjs diabcare/vault.test.mjs
