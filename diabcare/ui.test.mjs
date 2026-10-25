@@ -98,3 +98,24 @@ test("OFF offline library actions have working controls",()=>{
  assert.match(page,/Open Food Facts/);
  assert.match(page,/ODbL/);
 });
+
+test("assistant de configuration IA : aucun bouton Mistral inerte sur GitHub Pages",()=>{
+ for(const id of ["aiConfigPanel","aiHealthSummary","aiSelect","mistralPanel","mistralGatewayUrl","mistralDefaultBtn",
+  "accessCode","mistralConsent","mistralTestBtn","mistralState","mistralHelp"]){
+  assert.ok(page.includes('id="'+id+'"'),"control absent "+id);
+ }
+ for(const id of ["mistralDefaultBtn","mistralTestBtn"]){
+  assert.ok(js.includes('"'+id+'").onclick='),"control unwired "+id);
+ }
+ assert.match(js,/testGateway\(/);
+ assert.match(js,/verifiedMistralEndpoint/);
+ assert.doesNotMatch(js,/select\.disabled=true/);
+ assert.match(sw,/"\.\/ai-config\.mjs"/);
+});
+test("états réels Qwen, Whisper, Mistral et repli documentaire",()=>{
+ assert.match(js,/updateAiStatuses\(\)/);
+ assert.match(js,/let answeredCloud=false/);
+ assert.match(js,/if\(!answeredCloud&&model\)/);
+ assert.match(js,/Connexion non établie/);
+ assert.match(page,/GitHub Pages ne peut pas exécuter le serveur Mistral/);
+});
