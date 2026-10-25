@@ -395,12 +395,25 @@ async function ask(text){
   let reply=result.text,label=(result.agents||[]).map(id=>AGENTS.find(a=>a[0]===id)?.[1]||id).join(" · ")+" • local";
   // Filtrage médical AVANT l'accès aux modèles, y compris pour les commandes vocales.
   if(result.level==="info"&&educationalOnly(q)&&!urgentQuestion(q)&&!doseQuestion(q)){
+   let answeredCloud=false;
    if(liveMode()!=="offline"&&consentedMistral()){
-    try{const response=await mistralQuestion(q);if(response){reply=response.text;label="Mistral contrôlé • "+(response.experts.join(" · ")||experts.join(" · "));}}
-    catch{toast("Connexion Mistral impossible : retour au moteur local.");}
-   }else if(model&&liveMode()==="offline"){
-    try{const generated=await model.reply(q,reply);if(safeGenerated(generated)){reply=generated;label="Qwen local • "+experts.join(" · ");}}
-    catch{model=null;toast("Modèle Qwen indisponible, assistant déterministe actif.");}
+    try{
+     const response=await mistralQuestion(q);
+     if(response){reply=response.text;label="Mistral contrôlé • "+(response.experts.join(" · ")||experts.join(" · "));answeredCloud=true;}
+    }catch(e){
+     toast("Mistral indisponible : "+String(e.message||e).slice(0,135)+". Réponse locale utilisée.");
+    }
+   }else if(liveMode()==="mistral"&&!verifiedMistralEndpoint){
+    toast("Mistral n'est pas connecté : réponse locale utilisée.");
+   }
+   if(!answeredCloud&&model){
+    try{
+     const generated=await model.reply(q,reply);
+     if(safeGenerated(generated)){reply=generated;label="Qwen local • "+experts.join(" · ");}
+    }catch(e){
+     model=null;updateAiStatuses();
+     toast("Qwen indisponible : réponse documentaire locale utilisée.");
+    }
    }
   }
   sessionReply(reply,label);
@@ -558,12 +571,15 @@ async function dictate(intent="general"){
  voiceChooser({browserRecognition:!!SR,recordingSupported,online:navigator.onLine});
  setJarvisState("idle");
 }
-async function loadAI(){if(modelBusy)return;if(!navigator.onLine){toast("Pour le premier téléchargement, connecte-toi au Wi-Fi. Si le modèle est déjà en cache, tente son chargement après connexion.");}
+async function loadAI(){
+ if(modelBusy)return;
+ if(!confirm("Installer Qwen3 (~484 Mo) sur ce téléphone ? Prévois du Wi-Fi et de l'espace libre. Annuler conserve l'assistant documentaire local."))return;
+ if(!navigator.onLine)toast("Sans réseau, Qwen doit déjà être en cache pour démarrer.");
  modelBusy=true;$("modelBtn").disabled=true;$("modelStatus").textContent="Chargement local, téléchargement possible de centaines de Mo…";
  try{
   const mod=await import("./model.mjs");model=await mod.createLocalModel(t=>$("modelStatus").textContent=t);
-  $("aiMode").textContent="IA open source chargée sur cet appareil";$("modelStatus").textContent="Modèle local actif. Aucune question envoyée au cloud.";toast("IA locale chargée.");
- }catch(e){model=null;$("aiMode").textContent="Assistant local déterministe";$("modelStatus").textContent="Modèle indisponible : "+String(e.message||e).slice(0,160);toast("L'assistant de secours hors connexion reste disponible.");}
+  $("aiMode").textContent="IA open source chargée sur cet appareil";$("modelStatus").textContent="Modèle local actif. Aucune question envoyée au cloud.";toast("IA locale chargée.");updateAiStatuses();
+ }catch(e){model=null;$("aiMode").textContent="Assistant local déterministe";$("modelStatus").textContent="Modèle indisponible : "+String(e.message||e).slice(0,160);toast("L'assistant de secours hors connexion reste disponible.");updateAiStatuses();}
  finally{modelBusy=false;$("modelBtn").disabled=false;}
 }
 function setup(){
@@ -672,8 +688,19 @@ function setup(){
    sessionReply(speakFood(rec),"Diététicien • estimation confirmée");
   }catch(e){toast(e.message);}
  };
- $("aiSelect").onchange=()=>{$("mistralState").textContent=$("aiSelect").value==="offline"?"Mode local. Aucun appel à Mistral.":"Mistral seulement pour les questions générales et avec autorisation explicite.";};
- $("mistralConsent").onchange=()=>toast($("mistralConsent").checked?"Consentement réseau actif pour cette session.":"Envoi à Mistral désactivé.");
+ $("aiSelect").onchange=()=>{
+  updateAiStatuses();
+  if(liveMode()==="mistral"&&!verifiedMistralEndpoint)
+   $("mistralState").textContent="Mistral non connecté. Configure l'adresse et le code, coche le consentement, puis lance le test.";
+ };
+ $("mistralDefaultBtn").onclick=()=>{$("mistralGatewayUrl").value=SUGGESTED_GATEWAY;resetMistral("Adresse du projet Jarvis renseignée. Configure les secrets sur Vercel puis teste.");};
+ $("mistralTestBtn").onclick=()=>verifyMistral();
+ $("mistralGatewayUrl").oninput=()=>resetMistral("Adresse modifiée : relance le test de connexion.");
+ $("accessCode").oninput=()=>resetMistral("Code modifié : relance le test de connexion.");
+ $("mistralConsent").onchange=()=>{
+  if(!$("mistralConsent").checked)resetMistral("Envoi à Mistral désactivé. Réactive le consentement et vérifie la connexion.");
+  updateAiStatuses();
+ };
 
  $("glucoseForm").onsubmit=e=>{e.preventDefault();if(!requireUnlock())return;const unit=$("unit").value,r=parseGlucose($("glucose").value,unit);if(!r.ok){toast(r.error);return;}
  data.profile.unit=unit;data.readings.push({mg:r.mg,ts:Date.now(),source:"manuel"});data.readings=data.readings.slice(-2500);$("glucose").value="";save();renderJournal();let info=guidanceForMeasurement(r.mg);toast("Mesure enregistrée : "+formatGlucose(r.mg,unit));$("safetyNotice").textContent=info;$("safetyNotice").className="alert"+(stateOf(r.mg)==="verylow"||stateOf(r.mg)==="low"?" critical":"");};
@@ -770,7 +797,7 @@ function setup(){
  SOURCES.forEach(s=>{const p=document.createElement("p"),a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.name;p.append(a);$("sources").append(p);});
  $("appVersion").textContent="DiabCare "+VERSION+" • Assistant vocal · GlucoCheck · Glucides · IA locale";
  const sourcesBox=$("llmSources");if(sourcesBox){LLM_SOURCES.forEach(source=>{const row=document.createElement("p"),link=document.createElement("a");link.href=source.source;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.id+" · "+source.status;row.append(link);sourcesBox.append(row);});}
- $("modelStatus").textContent="Qwen3 0,6B GGUF · 484 Mo · runtime wllama. Téléchargement initial requis ; compatibilité Safari non garantie.";
+ $("modelStatus").textContent="Qwen3 0,6B GGUF · 484 Mo · runtime wllama. Non chargé par défaut ; compatibilité selon le téléphone.";updateAiStatuses();
 
  if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("./sw.js").catch(()=>toast("Mode hors ligne non installé."));
  let installEvt=null;addEventListener("beforeinstallprompt",ev=>{ev.preventDefault();installEvt=ev;$("installBtn").hidden=false;});
