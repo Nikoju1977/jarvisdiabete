@@ -3,7 +3,7 @@
 const STORAGE_KEY="diabcare4.vault";
 const META_KEY="diabcare4.meta";
 const enc=new TextEncoder(),dec=new TextDecoder();
-const b64=u=>btoa(String.fromCharCode(...u));
+const b64=u=>{let s="";for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode(...u.subarray(i,i+32768));return btoa(s);};
 const un64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 export function fresh(){return {v:4,profile:{unit:"g"},readings:[],injections:[],meals:[],notes:[],chat:[],prefs:{speak:true},createdAt:Date.now()};}
 export function exists(){try{return !!(localStorage.getItem(STORAGE_KEY)&&localStorage.getItem(META_KEY));}catch{return false;}}
@@ -53,4 +53,24 @@ export function exportEncrypted(){
  const vault=localStorage.getItem(STORAGE_KEY),meta=localStorage.getItem(META_KEY);
  if(!vault||!meta)throw Error("Aucun coffre enregistré.");
  return JSON.stringify({format:"diabcare-v4-backup",vault:JSON.parse(vault),meta:JSON.parse(meta)},null,2);
+}
+
+/** Vérifie le mot de passe et l'intégrité AVANT de remplacer le coffre local. */
+export async function restoreEncryptedBackup(fileText,passphrase){
+ const backup=JSON.parse(fileText);
+ if(backup?.format!=="diabcare-v4-backup"||backup?.meta?.v!==4||!backup?.vault?.iv||!backup?.vault?.ct)throw Error("Fichier de sauvegarde invalide.");
+ const salt=un64(backup.meta.salt);
+ if(salt.byteLength!==16)throw Error("Sel invalide.");
+ const key=await derive(passphrase,salt);
+ const state=await decrypt(key,JSON.stringify(backup.vault));
+ const oldVault=localStorage.getItem(STORAGE_KEY),oldMeta=localStorage.getItem(META_KEY);
+ try{
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(backup.vault));
+  localStorage.setItem(META_KEY,JSON.stringify(backup.meta));
+ }catch(e){
+  if(oldVault===null)localStorage.removeItem(STORAGE_KEY);else localStorage.setItem(STORAGE_KEY,oldVault);
+  if(oldMeta===null)localStorage.removeItem(META_KEY);else localStorage.setItem(META_KEY,oldMeta);
+  throw e;
+ }
+ return state;
 }
