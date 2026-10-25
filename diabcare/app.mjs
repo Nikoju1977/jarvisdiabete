@@ -7,6 +7,7 @@ import {LLM_SOURCES,modelInfo} from "./llm-sources.mjs";
 import {speechRoute,transcriptSafe} from "./speech-policy.mjs";
 import {isRecordingSupported,recordClip,loadWhisper,transcribeWhisper} from "./speech-offline.mjs";
 import {cachedSearch,allCached,cachedStats,storeFoodProducts,clearCached,libraryStatus,OFFLINE_PACK_QUERIES} from "./food-library.mjs";
+import {SUGGESTED_GATEWAY,GATEWAY_STORAGE_KEY,testGateway,gatewayError,renderAiStatus} from "./ai-config.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
 let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,saveQueue=Promise.resolve(),pendingInstall=null;
 const TIMEOUT=10*60*1000;let awayAt=null;
@@ -14,6 +15,50 @@ let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requ
 let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
 let voiceIntent="general",foodVoicePending=false,foodSearchId=0,nativeSpeechReady=false,nativeSpeechChecked=false;
 let foodPackBusy=false,foodCachedList=[],libraryAvailable=true;
+let verifiedMistralEndpoint=null,mistralTestInProgress=false;
+function updateAiStatuses(){
+ const states=renderAiStatus({connected:!!verifiedMistralEndpoint,qwenReady:!!model,whisperReady});
+ const el=$("aiHealthSummary");
+ if(el)el.textContent="Assistant documentaire hors ligne : opérationnel. "+states.cloud+" · "+states.llm+" · "+states.voice+".";
+ const help=$("aiSelectionHelp");
+ if(help){
+  const mode=liveMode();
+  help.textContent=mode==="offline"?"Hors connexion : réponses locales et Qwen uniquement s'il a été chargé."
+   :mode==="auto"?(verifiedMistralEndpoint?"Automatique : Mistral vérifié avec Internet ; sinon Qwen ou règles documentaires.":"Automatique : Mistral non connecté ; Qwen chargé ou règles documentaires.")
+   :(verifiedMistralEndpoint?"Mistral vérifié pour les seules questions pédagogiques admissibles.":"Mistral sélectionné, mais non connecté. Ouvre le guide ci-dessous.");
+ }
+}
+async function verifyMistral(){
+ if(mistralTestInProgress)return;
+ const state=$("mistralState"),button=$("mistralTestBtn");
+ if(!navigator.onLine){state.textContent="Hors ligne : impossible de tester Mistral. Le mode local reste actif.";return;}
+ if(!$("mistralConsent").checked){
+  state.textContent="Coche d'abord l'autorisation d'envoyer les questions pédagogiques à Mistral.";
+  $("mistralConsent").focus();return;
+ }
+ mistralTestInProgress=true;button.disabled=true;
+ verifiedMistralEndpoint=null;state.textContent="Test du serveur et du code privé (sans jeton de génération Mistral)…";
+ updateAiStatuses();
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),10000);
+ try{
+  const proof=await testGateway($("mistralGatewayUrl").value,$("accessCode").value,{signal:ctrl.signal});
+  verifiedMistralEndpoint=proof.endpoint;
+  try{localStorage.setItem(GATEWAY_STORAGE_KEY,proof.endpoint);}catch{}
+  $("aiSelect").value="auto";
+  state.textContent="Connexion vérifiée : "+proof.model+". Mode automatique activé. Aucun journal médical transmis.";
+  toast("Mistral connecté avec succès pour cette session.");
+ }catch(e){
+  state.textContent="Connexion non établie : "+String(e.message||e)+". Consulte le guide ci-dessous.";
+  $("mistralHelp").open=true;
+ }finally{
+  clearTimeout(timer);mistralTestInProgress=false;button.disabled=false;updateAiStatuses();
+ }
+}
+function resetMistral(message){
+ verifiedMistralEndpoint=null;
+ if($("mistralState"))$("mistralState").textContent=message||"Connexion non vérifiée. Relance le test avant d'utiliser Mistral.";
+ updateAiStatuses();
+}
 function setJarvisState(mode,label){
  const orb=$("jarvisOrb"),state=$("jarvisState");
  if(orb)orb.className="orb"+(mode==="listening"?" listening":mode==="speaking"?" speaking":mode==="thinking"?" thinking":"");
@@ -40,7 +85,7 @@ function educationalOnly(question){
  return s.length<=1000 && !/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s);
 }
 function liveMode(){return $("aiSelect")?.value||"offline";}
-function consentedMistral(){return !!$("mistralConsent")?.checked && !!$("accessCode")?.value.trim();}
+function consentedMistral(){return !!verifiedMistralEndpoint && !!$("mistralConsent")?.checked && !!$("accessCode")?.value.trim();}
 function renderMeals(){
  const box=$("mealHistory");if(!box)return;box.replaceChildren();
  const items=(data.meals||[]).slice(-20).reverse();if(!items.length){box.textContent="Aucun repas enregistré.";return;}
@@ -255,15 +300,15 @@ function handleGluco(text){
 }
 async function mistralQuestion(q){
  if(!navigator.onLine||liveMode()==="offline"||!consentedMistral()||!educationalOnly(q)||doseQuestion(q)||urgentQuestion(q))return null;
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),19000);
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),22000);
  try{
-  const r=await fetch("/api/diabcare-chat",{
-   method:"POST",headers:{"Content-Type":"application/json","X-DiabCare-Code":$("accessCode").value.trim()},
+  const r=await fetch(verifiedMistralEndpoint,{
+   method:"POST",mode:"cors",headers:{"Content-Type":"application/json","X-DiabCare-Code":$("accessCode").value.trim()},
    body:JSON.stringify({question:q}),signal:controller.signal,cache:"no-store"
   });
-  if(!r.ok)throw Error("Mistral non disponible ("+r.status+").");
+  if(!r.ok)throw Error(gatewayError(r.status));
   const response=await r.json();
-  if(!safeGenerated(response.text))throw Error("Réponse filtrée.");
+  if(typeof response.text!=="string"||!safeGenerated(response.text))throw Error("Réponse IA bloquée par les contrôles de sécurité.");
   return {text:response.text,experts:Array.isArray(response.experts)?response.experts:[]};
  }finally{clearTimeout(timer);}
 }
@@ -522,17 +567,12 @@ async function loadAI(){if(modelBusy)return;if(!navigator.onLine){toast("Pour le
  finally{modelBusy=false;$("modelBtn").disabled=false;}
 }
 function setup(){
- const staticHosting=location.hostname.toLowerCase().endsWith(".github.io");
- if(staticHosting){
-   const select=$("aiSelect");if(select){
-     select.value="offline";
-     for(const option of select.options){if(option.value!=="offline")option.disabled=true;}
-     select.disabled=true;
-   }
-   $("mistralConsent").disabled=true;
-   $("accessCode").disabled=true;
-   $("mistralState").textContent="Hébergement GitHub Pages : le mode Mistral nécessite une passerelle serveur distincte. Ici, l'assistant local reste disponible hors connexion.";
- }
+ let savedGateway="";
+ try{savedGateway=localStorage.getItem(GATEWAY_STORAGE_KEY)||"";}catch{}
+ $("mistralGatewayUrl").value=savedGateway||SUGGESTED_GATEWAY;
+ $("aiSelect").value="offline";
+ $("mistralState").textContent="Non connecté : GitHub Pages nécessite une passerelle Vercel et deux secrets sur le serveur.";
+ updateAiStatuses();
  updateNet();addEventListener("online",updateNet);addEventListener("offline",updateNet);
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  checkNativeLocalSpeech(SR).then(ready=>{nativeSpeechReady=ready;nativeSpeechChecked=true;}).catch(()=>{nativeSpeechChecked=true;});
