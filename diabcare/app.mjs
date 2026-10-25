@@ -512,7 +512,10 @@ function setup(){
  $("injectionForm").onsubmit=e=>{e.preventDefault();if(!requireUnlock())return;const txt=$("injection").value.trim().replace(",",".");const u=Number(txt);if(!/^\d+(?:\.\d+)?$/.test(txt)||!(u>0&&u<=100)){toast("Valeur invalide. Il s'agit uniquement d'une injection réellement effectuée.");return;}data.injections.push({u,ts:Date.now()});data.injections=data.injections.slice(-1000);$("injection").value="";save();renderJournal();toast("Injection déjà réalisée consignée.");};
  $("reportBtn").onclick=()=>{if(requireUnlock())reportDownload("diabcare-bilan.txt",exportReport(data));};
  $("backupBtn").onclick=async()=>{try{await saveQueue;reportDownload("diabcare-coffre-chiffre.json",exportEncrypted(),"application/json");toast("Sauvegarde chiffrée téléchargée.");}catch(e){toast(e.message);}};
- $("restoreBtn").onclick=()=>$("restoreFile").click();
+ $("restoreBtn").onclick=()=>{
+  if(ephemeral&&exists()){toast("Déverrouille ton coffre existant avant de restaurer une sauvegarde.");return;}
+  $("restoreFile").click();
+ };
  $("restoreFile").onchange=async ev=>{const file=ev.target.files?.[0];ev.target.value="";if(!file)return;if(file.size>10000000){toast("Sauvegarde trop volumineuse.");return;}
   const phrase=prompt("Phrase secrète de la sauvegarde chiffrée :");if(!phrase)return;
   if(!confirm("Remplacer le coffre local actuel par cette sauvegarde, après vérification ?"))return;
@@ -526,12 +529,55 @@ function setup(){
  };
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
- $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
+ $("eraseBtn").onclick=()=>{
+  if(!unlocked||ephemeral){toast("Le coffre doit être déverrouillé avant suppression.");return;}
+  if(!confirm("Supprimer définitivement le coffre chiffré DiabCare ?"))return;
+  if(!confirm("Dernière confirmation : les données seront perdues sans sauvegarde."))return;
+  erase();location.reload();
+ };
  $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
  $("modelBtn").onclick=loadAI;
- $("modelCheck").onclick=()=>toast("Les versions du moteur sont mises à jour avec la PWA. Les poids IA ne changent pas automatiquement sans validation d'intégrité.");
- $("appUpdate").onclick=async()=>{if(!("serviceWorker" in navigator)){toast("Mises à jour automatiques non disponibles.");return;}const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.update();toast("Vérification lancée. Recharge l'application si une version nouvelle est proposée.");}else toast("Installe la PWA depuis un site HTTPS.");};
- $("agents").replaceChildren();AGENTS.forEach(([id,label])=>{const d=document.createElement("div");d.className="agent";const b=document.createElement("b");b.textContent=label;const small=document.createElement("small");small.textContent=id==="securite"?"Contrôles avant l'IA":"Conseils spécialisés simulés";d.append(b,small);$("agents").append(d);});
+ $("modelCheck").onclick=()=>{
+  const state=model?"Le modèle local est actif.":"Le modèle local n'est pas chargé.";
+  $("modelStatus").textContent=state+" Les poids IA ne sont jamais remplacés automatiquement sans vérification. Version proposée : "+modelInfo().file+".";
+  toast("État de l'IA locale actualisé.");
+ };
+ $("appUpdate").onclick=async()=>{
+  const status=$("updateStatus");$("appUpdate").disabled=true;
+  status.textContent="Vérification de la version en cours…";
+  try{
+   if(!("serviceWorker" in navigator)){status.textContent="Ce navigateur n'autorise pas le service worker. Utilise une fenêtre Chrome/Safari normale.";return;}
+   const reg=await navigator.serviceWorker.getRegistration();
+   if(!reg){status.textContent="Application ouverte mais mode hors connexion non installé. Recharge ce site en HTTPS.";return;}
+   await reg.update();
+   status.textContent="Vérification terminée. Appuie sur Actualiser la page pour charger la dernière version, sans effacer les données.";
+   $("reloadAppBtn").hidden=false;
+  }catch(e){status.textContent="Mise à jour inaccessible : "+String(e.message||e).slice(0,100);}
+  finally{$("appUpdate").disabled=false;}
+ };
+ $("reloadAppBtn").onclick=()=>location.reload();
+ $("agents").replaceChildren();
+ const agentPrompts={
+  securite:"Quels sont les signes d'alerte d'une hypoglycémie ?",
+  diabeto:"Explique le diabète de type 1",
+  infirmier:"Comment organiser le suivi de la glycémie au quotidien ?",
+  pharmacie:"Comment conserver l'insuline en randonnée ?",
+  sport:"Préparer une randonnée avec un diabète de type 1",
+  psy:"Comment gérer le stress et la charge mentale du diabète ?",
+  analyse:"Fais le bilan de mes mesures"
+ };
+ AGENTS.forEach(([id,label])=>{
+  const button=document.createElement("button");button.type="button";button.className="agent agent-action";
+  button.setAttribute("aria-label","Consulter : "+label);
+  const b=document.createElement("b");b.textContent=label;
+  const small=document.createElement("small");small.textContent=id==="nutrition"?"Ouvrir le calculateur":"Ouvrir une question guidée";
+  button.append(b,small);
+  button.onclick=()=>{
+   if(id==="nutrition"){visibleTab("nutrition");$("foodQuery").focus();}
+   else{visibleTab("chat");ask(agentPrompts[id]||"Explique le diabète de type 1");}
+  };
+  $("agents").append(button);
+ });
  SOURCES.forEach(s=>{const p=document.createElement("p"),a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.name;p.append(a);$("sources").append(p);});
  $("appVersion").textContent="DiabCare "+VERSION+" • Assistant vocal · GlucoCheck · Glucides · IA locale";
  const sourcesBox=$("llmSources");if(sourcesBox){LLM_SOURCES.forEach(source=>{const row=document.createElement("p"),link=document.createElement("a");link.href=source.source;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.id+" · "+source.status;row.append(link);sourcesBox.append(row);});}
@@ -539,7 +585,12 @@ function setup(){
 
  if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("./sw.js").catch(()=>toast("Mode hors ligne non installé."));
  let installEvt=null;addEventListener("beforeinstallprompt",ev=>{ev.preventDefault();installEvt=ev;$("installBtn").hidden=false;});
- $("installBtn").onclick=async()=>{if(installEvt){installEvt.prompt();await installEvt.userChoice;$("installBtn").hidden=true;}};
+ $("installBtn").onclick=async()=>{
+  if(!installEvt){toast("Installation : Chrome Android → menu ⋮ → Ajouter à l'écran d'accueil ; Safari iPhone → Partager → Sur l'écran d'accueil.");return;}
+  try{await installEvt.prompt();await installEvt.userChoice;$("installBtn").hidden=true;}
+  catch{toast("Installation depuis le menu du navigateur.");
+  }
+ };
  document.addEventListener("visibilitychange",()=>{if(document.hidden){awayAt=Date.now();if("speechSynthesis" in window)speechSynthesis.cancel();}
  else if(awayAt&&!ephemeral&&unlocked&&Date.now()-awayAt>TIMEOUT)lock();});
  addEventListener("pagehide",()=>{if("speechSynthesis" in window)speechSynthesis.cancel();});
