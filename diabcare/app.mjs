@@ -262,6 +262,7 @@ function setup(){
  $("agents").replaceChildren();AGENTS.forEach(([id,label])=>{const d=document.createElement("div");d.className="agent";const b=document.createElement("b");b.textContent=label;const small=document.createElement("small");small.textContent=id==="securite"?"Contrôles avant l'IA":"Conseils spécialisés simulés";d.append(b,small);$("agents").append(d);});
  SOURCES.forEach(s=>{const p=document.createElement("p"),a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.name;p.append(a);$("sources").append(p);});
  $("appVersion").textContent="DiabCare "+VERSION+" • JARVIS · GlucoCheck · Open Food Facts · Mistral optionnel";
+ const sourcesBox=$("llmSources");if(sourcesBox){LLM_SOURCES.forEach(source=>{const row=document.createElement("p"),link=document.createElement("a");link.href=source.source;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.id+" · "+source.status;row.append(link);sourcesBox.append(row);});}
  $("modelStatus").textContent="Qwen3 0,6B GGUF · 484 Mo · runtime wllama. Téléchargement initial requis ; compatibilité Safari non garantie.";
 
  if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("./sw.js").catch(()=>toast("Mode hors ligne non installé."));
