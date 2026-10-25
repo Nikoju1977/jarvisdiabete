@@ -361,7 +361,7 @@ function setup(){
 
  $("voiceCloseBtn").onclick=()=>$("voiceChoice").close();
  $("voiceBrowserBtn").onclick=()=>{
-  if(!confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
+  if(!window.confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
   $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR&&navigator.onLine)browserSpeech(SR,false);
