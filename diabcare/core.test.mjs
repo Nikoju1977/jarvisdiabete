@@ -19,6 +19,7 @@ test("le triage prime sur l'IA et sur les demandes de dose",()=>{
  assert.equal(answer("je suis inconscient, combien injecter ?").agents[0],"securite");
  assert.ok(doseQuestion("Combien d'unités d'insuline pour 50 g ?"));
  assert.equal(answer("Quel bolus dois-je faire ?").level,"blocked");
+ assert.equal(answer("bolus pour 60 g de glucides").level,"blocked");
 });
 test("sortie IA suspecte refusée",()=>{
  assert.equal(safeGenerated("Injecte 4 U d'insuline."),false);
