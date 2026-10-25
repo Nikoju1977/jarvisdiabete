@@ -27,6 +27,7 @@ jobs:
           node --check diabcare/speech-offline.mjs
           node --check diabcare/voice-session.mjs
           node --check diabcare/voice-browser-smoke.mjs
+          node --check diabcare/mobile-engines-smoke.mjs
           node --check diabcare/nutrition.mjs
           node --check diabcare/food-library.mjs
           node --check diabcare/ai-config.mjs
@@ -45,10 +46,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Installer Playwright Chromium
+      - name: Installer Playwright Chromium et WebKit (Safari)
         run: |
           npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Démarrer le serveur local PWA
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/diabcare-http.log 2>&1 &
@@ -57,3 +58,5 @@ jobs:
         run: node diabcare/browser-smoke.mjs
       - name: Tester le cycle vocal Android et iPhone avec micro simulé
         run: node diabcare/voice-browser-smoke.mjs
+      - name: "Tester le moteur Safari WebKit en plus des tests Chromium Android"
+        run: node diabcare/mobile-engines-smoke.mjs
