@@ -20,6 +20,7 @@ function silence(){
  if("speechSynthesis" in window)window.speechSynthesis.cancel();
  if(recognition){const prev=recognition;recognition=null;try{prev.abort();}catch{}}
  if(clipRecorder){const clip=clipRecorder;clipRecorder=null;clip.cancel();}
+ if($("voiceRecording")?.open)$("voiceRecording").close();
  listenNonce++;setJarvisState("idle");
  const talk=$("talkBtn");if(talk)talk.textContent="🎙 Parler à JARVIS";
 }
@@ -108,8 +109,8 @@ async function mistralQuestion(q){
 }
 
 function toast(t){const x=$("toast");x.textContent=t;x.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>x.hidden=true,5200);}
-function speech(text){
- if(!data.prefs.speak||!("speechSynthesis" in window)){setJarvisState("idle");return;}
+function speech(text,{force=false}={}){
+ if((!force&&!data.prefs.speak)||!("speechSynthesis" in window)){setJarvisState("idle");if(force)toast("Lecture vocale indisponible sur ce navigateur.");return;}
  try{
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(String(text).slice(0,1800));u.lang="fr-FR";u.rate=1.04;u.pitch=0.9;
@@ -205,8 +206,9 @@ function voiceChooser({browserRecognition=false,recordingSupported=false,online=
   :"La dictée native n'est pas disponible sur ce navigateur. Whisper permet d'essayer la transcription directement sur l'appareil.";
  $("voiceBrowserBtn").hidden=!(online&&browserRecognition);
  $("remoteVoiceExplainer").hidden=!(online&&browserRecognition);
- $("voiceOfflineBtn").hidden=!recordingSupported;
- $("voiceChoice").showModal();
+ $("voiceOfflineBtn").disabled=!recordingSupported;
+ $("voiceBrowserBtn").disabled=!(online&&browserRecognition);
+ if(!$("voiceChoice").open)$("voiceChoice").showModal();
 }
 async function installWhisper(){
  if(whisperBusy)return false;
@@ -245,11 +247,12 @@ async function whisperRecord(){
   const clip=await recordClip({durationMs:16000,onStatus:voiceHint});
   if(nonce!==listenNonce){clip.cancel();return;}
   clipRecorder=clip;
+  if(!$("voiceRecording").open)$("voiceRecording").showModal();
   $("talkBtn").textContent="⏹ Terminer la dictée";
   setJarvisState("listening","Whisper enregistre");
   clip.completed.then(async blob=>{
    if(nonce!==listenNonce)return;
-   clipRecorder=null;$("talkBtn").textContent="🎙 Parler à JARVIS";
+   clipRecorder=null;if($("voiceRecording").open)$("voiceRecording").close();$("talkBtn").textContent="🎙 Parler à JARVIS";
    setJarvisState("thinking","Whisper transcrit la voix");
    try{
     const text=await transcribeWhisper(blob,voiceHint);
@@ -257,7 +260,7 @@ async function whisperRecord(){
    }catch(e){
     if(nonce===listenNonce){voiceHint("Transcription impossible : "+String(e.message||e).slice(0,160));setJarvisState("idle");}
    }
-  }).catch(()=>{if(nonce===listenNonce){clipRecorder=null;$("talkBtn").textContent="🎙 Parler à JARVIS";setJarvisState("idle");}});
+  }).catch(()=>{if(nonce===listenNonce){clipRecorder=null;if($("voiceRecording").open)$("voiceRecording").close();$("talkBtn").textContent="🎙 Parler à JARVIS";setJarvisState("idle");}});
  }catch(err){
   voiceHint("Micro inaccessible : "+String(err.message||err).slice(0,160)+". Vérifie l'autorisation du microphone pour ce site.");
   setJarvisState("idle");
@@ -307,7 +310,8 @@ async function dictate(){
  if(route==="whisper-local"){await whisperRecord();return;}
  if(route==="browser-online"){browserSpeech(SR,false);return;}
  if(route==="choose"){voiceChooser({browserRecognition:!!SR,recordingSupported,online:navigator.onLine});return;}
- voiceHint("Ce navigateur n'autorise pas l'enregistrement vocal. Ouvre la PWA dans Chrome ou Safari, ou utilise la saisie clavier.");
+ voiceHint("Ce navigateur n'autorise pas l'enregistrement vocal. Ouvre DiabCare dans Chrome ou Safari, ou utilise le clavier.");
+ voiceChooser({browserRecognition:!!SR,recordingSupported,online:navigator.onLine});
  setJarvisState("idle");
 }
 async function loadAI(){if(modelBusy)return;if(!navigator.onLine){toast("Pour le premier téléchargement, connecte-toi au Wi-Fi. Si le modèle est déjà en cache, tente son chargement après connexion.");}
@@ -343,11 +347,22 @@ function setup(){
  $("entryDialog").addEventListener("cancel",e=>e.preventDefault());
  $("ephemeralBtn").onclick=()=>activate(fresh(),true);
  $("chatForm").onsubmit=e=>{e.preventDefault();const q=$("question").value;$("question").value="";ask(q);};
- $("micBtn").onclick=dictate;$("jarvisOrb").onclick=dictate;$("talkBtn").onclick=dictate;$("stopVoice").onclick=silence;
+ $("micBtn").onclick=dictate;$("jarvisOrb").onclick=dictate;$("talkBtn").onclick=dictate;
+ $("stopVoice").onclick=()=>{silence();voiceHint("Micro et synthèse vocale arrêtés.");};
+ $("voiceKeyboardBtn").onclick=()=>{
+  $("voiceChoice").close();
+  visibleTab("chat");
+  $("question").scrollIntoView({block:"center",behavior:"smooth"});
+  $("question").focus();voiceHint("Clavier prêt : écris ta question et touche Envoyer.");
+ };
+ $("voiceRecordStop").onclick=()=>{if(clipRecorder){const clip=clipRecorder;voiceHint("Transcription en cours…");clip.stop().catch(()=>{});}};
+ $("voiceRecordCancel").onclick=()=>{silence();voiceHint("Enregistrement annulé.");};
+ $("voiceRecording").addEventListener("cancel",e=>{e.preventDefault();silence();});
+
  $("voiceCloseBtn").onclick=()=>$("voiceChoice").close();
  $("voiceBrowserBtn").onclick=()=>{
-  $("voiceChoice").close();
-  remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  if(!confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
+  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR&&navigator.onLine)browserSpeech(SR,false);
   else voiceHint("Aucune dictée native disponible. Installe Whisper pour l'enregistrement local.");
@@ -397,7 +412,7 @@ function setup(){
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
  $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
- $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.");};
+ $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
  $("modelBtn").onclick=loadAI;
  $("modelCheck").onclick=()=>toast("Les versions du moteur sont mises à jour avec la PWA. Les poids IA ne changent pas automatiquement sans validation d'intégrité.");
  $("appUpdate").onclick=async()=>{if(!("serviceWorker" in navigator)){toast("Mises à jour automatiques non disponibles.");return;}const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.update();toast("Vérification lancée. Recharge l'application si une version nouvelle est proposée.");}else toast("Installe la PWA depuis un site HTTPS.");};
