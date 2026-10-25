@@ -1,13 +1,13 @@
-/* Cross-engine smoke test — Android Chromium and iOS Safari/WebKit engine.
+/* Safari WebKit smoke test (Android Chromium is covered by the existing browser-smoke suite).
    WebKit on Linux is not a physical iPhone: hardware audio/offline models require device tests.
    Run: node diabcare/mobile-engines-smoke.mjs (Playwright Chromium + WebKit installed)
  */
 import assert from "node:assert/strict";
-import {chromium,webkit} from "playwright";
+import {webkit} from "playwright";
 const URL=process.env.PLAYWRIGHT_BASE_URL||"http://127.0.0.1:8765/diabcare/";
 let passed=0;
 async function scenario(name,engine,viewport){
- const browser=await engine.launch({headless:true, ...(name.startsWith("Android")?{args:["--no-sandbox","--disable-dev-shm-usage"]}:{})});
+ const browser=await engine.launch({headless:true});
  const context=await browser.newContext({viewport,isMobile:true,hasTouch:true,deviceScaleFactor:2});
  const page=await context.newPage();
  const failures=[];
@@ -81,6 +81,5 @@ async function scenario(name,engine,viewport){
   assert.deepEqual(failures,[],"Uncaught JavaScript errors in "+name+": "+failures.join(" / "));
  }finally{await context.close();await browser.close();}
 }
-await scenario("Android Chromium",chromium,{width:412,height:915});
 await scenario("iOS Safari WebKit",webkit,{width:390,height:844});
-console.log("Cross-engine smoke tests successful:",passed);
+console.log("Safari WebKit smoke tests successful:",passed);
