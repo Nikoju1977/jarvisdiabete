@@ -3,6 +3,7 @@
   Un déploiement public doit ajouter quotas / WAF avant ouverture à plusieurs comptes. */
 import {timingSafeEqual} from "node:crypto";
 import {answer,doseQuestion,urgentQuestion,safeGenerated} from "../diabcare/core.mjs";
+import {expertInstructions,auditPrompt,passedAudit} from "../diabcare/specialists.mjs";
 const MAX_REQUEST=4000;
 const system=[
  "Tu es DiabCare, assistant francophone de pédagogie sur le diabète de type 1, au ton chaleureux et naturel d'un copilote vocal futuriste.",
@@ -48,19 +49,33 @@ export function createHandler({fetchFn=fetch,env=process.env}={}){
   const q=payload.question;
   if(!canSend(q))return send(res,422,{error:"Cette question doit être traitée localement par les règles de sécurité."});
   const fallback=answer(q).text;
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-  try{
-   const upstream=await fetchFn("https://api.mistral.ai/v1/chat/completions",{
+  const expertise=expertInstructions(q);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),18000);
+  const generate=async(messages,max_tokens)=>{
+   const response=await fetchFn("https://api.mistral.ai/v1/chat/completions",{
     method:"POST",headers:{"Authorization":"Bearer "+env.MISTRAL_API_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({model:"mistral-small-latest",temperature:0.15,max_tokens:240,
-      messages:[{role:"system",content:system},{role:"user",content:"Question documentaire : "+q+"\nBase de prudence : "+fallback}]}),
+    body:JSON.stringify({model:env.MISTRAL_MODEL||"mistral-small-latest",temperature:0.1,max_tokens,messages}),
     signal:controller.signal
    });
-   if(!upstream.ok)return send(res,502,{error:"Service Mistral momentanément indisponible."});
-   const json=await upstream.json();
-   const content=json?.choices?.[0]?.message?.content;
-   if(typeof content!=="string"||!safeGenerated(content)||content.length>2500)return send(res,502,{error:"Réponse IA non validée par les garde-fous."});
-   return send(res,200,{text:content.trim(),source:"Mistral en ligne · information générale, non médicale"});
+   if(!response.ok)throw Error("Service indisponible.");
+   const json=await response.json();
+   const text=json?.choices?.[0]?.message?.content;
+   if(typeof text!=="string")throw Error("Réponse invalide.");
+   return text.trim();
+  };
+  try{
+   const content=await generate([
+    {role:"system",content:system+"\n"+expertise.system},
+    {role:"user",content:"Question pédagogique : "+q+"\nInformation locale prudente : "+fallback}
+   ],380);
+   if(!safeGenerated(content)||content.length>2500)return send(res,502,{error:"Réponse non conforme aux règles de sécurité."});
+   const verdict=await generate([
+    {role:"system",content:"Contrôle indépendant de sécurité. Réponds APPROUVE ou REJETE."},
+    {role:"user",content:auditPrompt(q,content)}
+   ],12);
+   if(!passedAudit(verdict))return send(res,502,{error:"Réponse retenue par le contrôle des spécialistes."});
+   return send(res,200,{text:content,source:"Mistral · pédagogique",experts:expertise.roles,
+    references:expertise.references,note:"Références à consulter ; elles ne certifient pas individuellement les affirmations générées."});
   }catch{return send(res,504,{error:"Mistral indisponible ou délai dépassé."});}
   finally{clearTimeout(timer);}
  };
