@@ -10,7 +10,7 @@ export function parseGlucoCheck(q,defaultUnit="g"){
  s=s.replace(/\b(gluco\s*check|gluco-?check|gluki\s*check|glucki\s*check|glyco\s*check|glucose\s*check)\b/gi," ");
  // Ne pas déduire une dose d'insuline à partir d'une commande GlycoCheck.
  const unit=/\bmg\s*(?:\/|par)\s*d[lL]\b/i.test(s)?"mg":/\bmmol\s*(?:\/|par)\s*[lL]\b/i.test(s)?"mmol":/\bg\s*(?:\/|par)\s*[lL]\b/i.test(s)?"g":defaultUnit;
- const match=s.match(/(?:^|[^\w])(\d{1,3}(?:\.\d{1,3})?)(?=\s|$|[^\w])/);
+ const match=s.match(/(?:^|[^\w])(\d+(?:\.\d+)?)(?=\s|$|[^\w])/);
  if(!match)return {type:"last"};
  const raw=match[1];
  // Glycémie sans unité explicitement saisie : on reprend l'unité de l'interface, mais on demande confirmation.
