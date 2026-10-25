@@ -29,5 +29,5 @@ test("journal non confondu avec TIR continu",()=>{
  const now=Date.now();
  const s=summary([{mg:80,ts:now-10000},{mg:250,ts:now-5000}],14,now);
  assert.equal(s.n,2);
- assert.equal(answer("Fais le bilan", {readings:[{mg:80,ts:now}],profile:{unit:"g"}},now).text.includes("ne constituent pas un TIR CGM"),true);
+ assert.equal(answer("Fais le bilan", {readings:[{mg:80,ts:now}],profile:{unit:"g"}},now).text.includes("ne permettent pas de calculer le temps dans la cible"),true);
 });
