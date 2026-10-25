@@ -78,7 +78,7 @@ function refreshFoodPreview(){
 async function foodLookup(raw){
  if(!requireUnlock())return;
  const query=parseFoodQuery(cleanWake(raw));
- if(!query||query.error){toast(query?.error||"Indique un aliment et, si possible, son poids.");return;}
+ if(!query||query.error){foodVoicePending=false;toast(query?.error||"Indique un aliment et, si possible, son poids.");return;}
  visibleTab("nutrition");$("foodQuery").value=raw;setJarvisState("thinking","Je recherche les glucides");
  const offline=findOffline(query.term);
  showFoodOptions(offline,query.grams);
@@ -210,6 +210,7 @@ function updateNet(){$("netStatus").textContent=navigator.onLine?"En ligne":"Hor
 function voiceHint(message){
  const box=$("voiceStatus");if(box)box.textContent=message;
  const status=$("voiceInstallStatus");if(status)status.textContent=message;
+ if(voiceIntent==="nutrition"){const foodStatus=$("foodVoiceStatus");if(foodStatus)foodStatus.textContent=message;}
 }
 function deliverTranscript(transcript){
  const text=String(transcript||"").trim(),intent=voiceIntent;voiceIntent="general";
@@ -328,6 +329,7 @@ function browserSpeech(SR,localOnly){
 async function dictate(intent="general"){
  if(!requireUnlock())return;
  voiceIntent=intent==="nutrition"?"nutrition":"general";
+ if(voiceIntent==="nutrition")$("foodVoiceStatus").textContent="Préparation du microphone…";
  // Deuxième appui pendant l'enregistrement Whisper : arrêter et transcrire.
  if(clipRecorder){const clip=clipRecorder;try{await clip.stop();}catch{}return;}
  if(recognition){try{recognition.stop();}catch{}return;}
