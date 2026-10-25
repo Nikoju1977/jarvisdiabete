@@ -73,3 +73,29 @@
 .read-carb-btn{min-height:48px;width:100%;border-color:#5290a7!important;background:#1a4656!important;color:#e4fff7!important;font-weight:750;margin:7px 0 12px}
 #foodForm .primary{min-height:53px}
 #confirmFood .read-carb-btn{margin-bottom:16px}
+
+
+/* Correctifs d'interaction mobile v4.4 : aucun toast ne recouvre les boutons. */
+#toast{
+ pointer-events:none!important;
+ max-height:100px!important;
+ overflow:hidden!important;
+ line-height:1.35;
+ font-size:.84rem;
+}
+.voice-consent{
+ display:flex;gap:12px;align-items:flex-start;
+ background:#173749;color:#e6faff;border:1px solid #5688a0;
+ padding:12px;border-radius:13px;line-height:1.5;font-size:.87rem;
+}
+.voice-consent input{flex:0 0 23px;width:23px;height:23px;min-height:23px;margin:2px 0 0}
+.agent-action{
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+ text-align:left;width:100%;min-height:92px;cursor:pointer;
+}
+.agent-action:active{background:#24627b}
+.agent-action:focus-visible{outline:3px solid #a6e5f9;outline-offset:3px}
+.diagnostic-line{margin:7px 0;padding:8px;border-bottom:1px solid #315265}
+#diagnosticResults:not(:empty){margin-top:12px}
+#reloadAppBtn[hidden],#installBtn[hidden]{display:none}
+@media(max-width:400px){.agent-action{min-height:100px}.voice-consent{padding:10px}}

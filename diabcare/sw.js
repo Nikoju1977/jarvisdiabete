@@ -1,5 +1,5 @@
 /* Cache applicatif hors ligne, sans synchronisation ni téléversement de données santé. */
-const CACHE="diabcare-pwa-shell-4.3.2";
+const CACHE="diabcare-pwa-shell-4.4.0";
 const RUNTIME="diabcare-runtime-wllama-3.6.1";
 const VOICE_RUNTIME="diabcare-runtime-whisper-3.8.1";
 const VOICE_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
@@ -29,9 +29,20 @@ self.addEventListener("fetch",event=>{
  if(request.mode==="navigate"){
   event.respondWith(fetch(request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put("./index.html",copy));}return r;}).catch(()=>caches.match("./index.html")));
  }else{
-  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(r=>{
-   if(r.ok&&new URL(request.url).pathname.includes("/diabcare/")){const copy=r.clone();caches.open(CACHE).then(c=>c.put(request,copy));}
-   return r;
-  })));
+  const appAsset=url.pathname.includes("/diabcare/")&&/\.(?:mjs|css|webmanifest|html)$/.test(url.pathname);
+  if(appAsset){
+   // Code et styles : réseau d'abord pour réparer les vieux écrans sans toucher au coffre.
+   event.respondWith(fetch(request).then(async response=>{
+    if(response.ok){
+     try{const cache=await caches.open(CACHE);await cache.put(request,response.clone());}catch{}
+    }
+    return response;
+   }).catch(async()=>await caches.match(request)||Response.error()));
+  }else{
+   event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(r=>{
+    if(r.ok&&url.pathname.includes("/diabcare/")){const copy=r.clone();caches.open(CACHE).then(c=>c.put(request,copy));}
+    return r;
+   })));
+  }
  }
 });

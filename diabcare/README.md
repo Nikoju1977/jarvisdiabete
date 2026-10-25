@@ -118,3 +118,19 @@ La PWA ne peut pas forcer un navigateur à accorder le microphone, garantir une 
 **Correction visuelle** : le formulaire de chat ne suit plus le défilement par-dessus le bouton micro, la carte GlucoCheck ou la navigation du bas. Les notifications vocales sont plus compactes et les explications de reconnaissance restent dans la page.
 
 **Sécurité** : le son de Whisper reste en mémoire locale de l'application pendant la transcription. Les décisions de traitement et le dosage d'insuline ne sont jamais calculés par la transcription.
+
+
+## DiabCare 4.4 : contrôle de tous les boutons
+
+Cette version apporte de vrais gestionnaires de clics aux huit cartes Experts, stabilise les onglets Android/iPhone et affiche la raison si une fonction ne peut pas être utilisée.
+
+**Sur Android :**
+1. Dans l'onglet Réglages, bouton **Tester les boutons et les capacités du navigateur**. Ce diagnostic reste local et indique la disponibilité des fonctions voix, du coffre, de la PWA et de l'IA facultative.
+2. Pour parler : toucher le micro ; pour autoriser la dictée *via le navigateur* (traitement audio potentiellement sur serveur), cocher d'abord la case de consentement. Le service vocal du navigateur peut être indisponible : aucun site web ne peut forcer Android à l'installer.
+3. Pour Whisper hors connexion : installer les fichiers une première fois avec Internet, puis **retoucher le micro** afin d'enregistrer avec une autorisation Android déclenchée par ce geste. Le chargement local n'est pas garanti sur les téléphones à mémoire limitée.
+4. Dans Glucides, le bouton clavier du dialogue vocal ramène désormais à **l'aliment**, pas au chat général. Les estimations locales sont affichées sans attendre Open Food Facts (5,5 secondes maximum).
+5. La mise à jour de l'application utilise **Vérifier une nouvelle version** puis **Actualiser la page**. Les fichiers JavaScript et CSS utilisent la stratégie réseau-d'abord, avec repli cache hors connexion ; ne pas supprimer le stockage du site pour actualiser, sous peine de perdre le coffre.
+
+**Confidentialité :** le mode **Sans stockage** permet maintenant de **Terminer la session** et protège les coffres existants contre toute suppression depuis cette session. La sauvegarde chiffrée est désactivée lorsqu'aucun coffre n'existe.
+
+Les tests Chromium reproduisent deux tailles d'écran mobile et vérifient les boutons de navigation, le chat clavier, le journal, le bilan texte téléchargé, le calcul et la confirmation des glucides, le dialogue micro (sans capture audio), les rôles Experts, les diagnostics et l'absence de suppression implicite. Ils peuvent aussi vérifier une recharge hors connexion après installation du service worker. Ils ne constituent pas un essai physique de microphones Android/iPhone ni une validation médicale.

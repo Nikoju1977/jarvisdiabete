@@ -11,7 +11,7 @@ let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=fa
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
 let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
-let voiceIntent="general",foodVoicePending=false;
+let voiceIntent="general",foodVoicePending=false,foodSearchId=0,nativeSpeechReady=false,nativeSpeechChecked=false;
 function setJarvisState(mode,label){
  const orb=$("jarvisOrb"),state=$("jarvisState");
  if(orb)orb.className="orb"+(mode==="listening"?" listening":mode==="speaking"?" speaking":mode==="thinking"?" thinking":"");
@@ -78,30 +78,53 @@ function refreshFoodPreview(){
 async function foodLookup(raw){
  if(!requireUnlock())return;
  const query=parseFoodQuery(cleanWake(raw));
- if(!query||query.error){foodVoicePending=false;toast(query?.error||"Indique un aliment et, si possible, son poids.");return;}
- visibleTab("nutrition");$("foodQuery").value=raw;setJarvisState("thinking","Je recherche les glucides");
+ if(!query||query.error){
+  foodVoicePending=false;
+  const msg=query?.error||"Indique un aliment et, si possible, sa portion en grammes.";
+  $("foodStatus").textContent=msg;toast(msg);return;
+ }
+ const id=++foodSearchId,fromVoice=foodVoicePending;foodVoicePending=false;
+ visibleTab("nutrition");$("foodQuery").value=raw;
  const offline=findOffline(query.term);
  showFoodOptions(offline,query.grams);
- $("foodStatus").textContent=offline.length?"Source locale indicative. Vérifie l'aliment et sa préparation.":"Aucune correspondance locale.";
- // Une réponse locale est affichée sans attendre le réseau.
- if(foodVoicePending&&offline.length===1&&query.grams!=null){
+ $("foodStatus").textContent=offline.length
+  ?offline.length+" aliment(s) indicatif(s) disponible(s) immédiatement. Vérifie l'étiquette et le mode de préparation."
+  :"Recherche de données nutritionnelles…";
+ if(fromVoice&&offline.length===1&&query.grams!=null){
   try{
    const rec=prepareRecord(offline[0],query.grams);
-   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g estimés pour "+query.grams+" g de "+rec.name+". Vérifier la source.";
+   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+query.grams+" g de "+rec.name+".";
    speech(speakFood(rec),{force:true});
   }catch{}
  }
+ // La recherche distante ne peut jamais bloquer indéfiniment le calcul local.
  if(navigator.onLine){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5500);
   try{
-   const code=query.term.replace(/\s/g,""),online=/^\d{8,14}$/.test(code)?[await barcodeOpenFoodFacts(code)]:await searchOpenFoodFacts(query.term);
-   if(online.length){showFoodOptions([...online,...offline],query.grams);$("foodStatus").textContent="Produits Open Food Facts disponibles : données collaboratives, portion et étiquette à contrôler.";}
-   else if(!offline.length)$("foodStatus").textContent="Produit introuvable. Vérifie le nom ou le code-barres.";
-  }catch{$("foodStatus").textContent="Open Food Facts indisponible. "+(offline.length?"Estimation locale affichée.":"Aucune donnée nutritionnelle vérifiable.");}
- }
- setJarvisState("idle");
- const feedback=offline.length||$("foodResults").children.length?"J'ai affiché les aliments correspondants. Choisis le bon produit, puis confirme la portion avant d'enregistrer.":"Je ne trouve pas de données suffisamment fiables pour ce produit.";
- const wasVoice=foodVoicePending;foodVoicePending=false;
- if(wasVoice){
+   const code=query.term.replace(/\s/g,"");
+   const online=/^\d{8,14}$/.test(code)
+    ?[await barcodeOpenFoodFacts(code,{signal:controller.signal})]
+    :await searchOpenFoodFacts(query.term,{signal:controller.signal});
+   if(id!==foodSearchId)return;
+   if(online.length){
+    showFoodOptions([...online,...offline],query.grams);
+    $("foodStatus").textContent="Données Open Food Facts (collaboratives) trouvées. Confirme marque, poids et glucides.";
+    if(fromVoice&&offline.length===0&&online.length===1&&query.grams!=null){
+     const rec=prepareRecord(online[0],query.grams);
+     speech(speakFood(rec),{force:true});
+    }
+   }else if(!offline.length)$("foodStatus").textContent="Aucun produit renseigné. Essaie une description plus précise.";
+  }catch(e){
+   if(id!==foodSearchId)return;
+   $("foodStatus").textContent="Recherche Open Food Facts indisponible ou trop lente. "+(offline.length?"Résultats locaux conservés.":"Aucune valeur fiable : ne pas deviner.");
+  }finally{clearTimeout(timer);}
+ }else if(!offline.length)$("foodStatus").textContent="Hors connexion : produit absent du référentiel local. Aucun chiffre inventé.";
+ if(id!==foodSearchId)return;
+ const hasFood=$("foodResults").children.length>0;
+ const feedback=hasFood
+  ?"Choisis le bon aliment et vérifie la portion. Le calcul affiché est une estimation, sans dose d'insuline."
+  :"Je n'ai pas trouvé de glucides vérifiables pour cet aliment.";
+ if(fromVoice){
   $("foodVoiceStatus").textContent=feedback;
   if(offline.length!==1||query.grams==null)speech(feedback,{force:true});
  }
@@ -140,9 +163,9 @@ function speech(text,{force=false}={}){
  try{
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(String(text).slice(0,1800));u.lang="fr-FR";u.rate=1.04;u.pitch=0.9;
-  u.onstart=()=>setJarvisState("speaking");u.onend=()=>setJarvisState("idle");u.onerror=()=>setJarvisState("idle");
+  u.onstart=()=>setJarvisState("speaking");u.onend=()=>setJarvisState("idle");u.onerror=()=>{setJarvisState("idle");if(force)toast("La lecture audio est bloquée. Vérifie le son et les autorisations du navigateur.");};
   speechSynthesis.speak(u);
- }catch{setJarvisState("idle");}
+ }catch{setJarvisState("idle");if(force)toast("Lecture vocale non prise en charge dans ce navigateur.");}
 }
 function save(){if(!unlocked||ephemeral||!key)return Promise.resolve();const snapshot=structuredClone(data);
  saveQueue=saveQueue.catch(()=>{}).then(()=>persist(key,snapshot)).catch(e=>toast("Enregistrement impossible : "+e.message));return saveQueue;
@@ -151,9 +174,16 @@ function msg(role,text,small=""){const d=document.createElement("div");d.classNa
  if(small){const e=document.createElement("small");e.textContent=small;d.appendChild(e);}
  $("chat").appendChild(d);$("chat").scrollTop=$("chat").scrollHeight;}
 function renderChat(){const chat=$("chat");chat.replaceChildren();data.chat.slice(-35).forEach(m=>msg(m.role,m.text,m.agent||""));if(!data.chat.length)msg("assistant","Bonjour, je suis DiabCare, compagnon DT1. Je peux t'aider à comprendre le diabète et consulter les mesures que tu as saisies. En cas d'urgence, appelle les secours.","Moteur local • disponible sans Internet");}
-function visibleTab(id){$all("nav [data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
- $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();}
-function requireUnlock(){if(!unlocked){toast("Déverrouille le coffre ou choisis le mode sans stockage.");return false;}return true;}
+function visibleTab(id){
+ $all("nav [data-tab]").forEach(b=>{const active=b.dataset.tab===id;b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");});
+ $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));
+ if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();
+ try{window.scrollTo({top:0,behavior:"instant"});}catch{window.scrollTo(0,0);}
+}
+function requireUnlock(){
+ if(!unlocked){toast("Choisis un coffre chiffré ou le mode Sans stockage pour utiliser DiabCare.");if(!$("entryDialog").open)entry(exists());return false;}
+ return true;
+}
 function reportDownload(name,text,type="text/plain"){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);}
 function renderJournal(){
  const unit=data.profile.unit||"g";$("unit").value=unit;
@@ -170,11 +200,28 @@ function renderJournal(){
  const sum=summary(data.readings);$("journalSummary").textContent=sum?sum.n+" mesures sur 14 jours. Moyenne des saisies : "+formatGlucose(sum.mean,unit)+". Ce n'est PAS un temps dans la cible continu.":"Aucune mesure enregistrée.";
  const box=$("readings");box.replaceChildren();[...data.readings].slice(-30).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";const a=document.createElement("span");a.textContent=new Date(r.ts).toLocaleString("fr-FR");const b=document.createElement("strong");b.textContent=formatGlucose(r.mg,unit);d.append(a,b);box.append(d);});
  const inj=$("injections");inj.replaceChildren();[...data.injections].slice(-12).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";d.textContent=new Date(r.ts).toLocaleString("fr-FR")+" · "+r.u+" U (injection consignée)";inj.append(d);});}
-function activate(loaded,ephem=false){data=loaded;unlocked=true;ephemeral=ephem;$("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";renderChat();renderJournal();renderMeals();$("speakToggle").checked=data.prefs.speak!==false;$("backupBtn").disabled=ephem;$("lockBtn").disabled=ephem;}
-function lock(){if(ephemeral){toast("La session sans stockage ne peut pas être verrouillée : ferme l'application pour l'effacer.");return;}if("speechSynthesis" in window)window.speechSynthesis.cancel();data=fresh();key=null;unlocked=false;model=null;$("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";entry(true);}
-function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";$("entryDialog").showModal();}
+function activate(loaded,ephem=false){
+ data=loaded;unlocked=true;ephemeral=ephem;
+ $("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";
+ renderChat();renderJournal();renderMeals();
+ $("speakToggle").checked=data.prefs.speak!==false;
+ $("backupBtn").disabled=ephem;
+ $("backupBtn").title=ephem?"Le mode sans stockage ne produit aucune sauvegarde.":"Télécharger le coffre chiffré.";
+ $("lockBtn").disabled=false;
+ $("lockBtn").textContent=ephem?"Terminer la session":"Verrouiller";
+ $("eraseBtn").disabled=ephem;
+ $("eraseBtn").title=ephem?"Déverrouille d'abord ton coffre pour le supprimer.":"Effacer définitivement le coffre";
+}
+function lock(){
+ silence();data=fresh();key=null;unlocked=false;ephemeral=false;model=null;
+ $("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";
+ entry(exists());
+}
+function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";
+ $("entrySubmit").textContent=already?"Déverrouiller le coffre":"Créer un coffre sécurisé";
+ if(!$("entryDialog").open)$("entryDialog").showModal();}
 async function submitEntry(){
- try{const pin=$("pin").value;if(pin.length<8)throw Error("Minimum 8 caractères.");
+ try{const pin=$("pin").value;if(pin.length<8)throw Error("Utilise au moins 8 caractères, ou touche Sans stockage pour essayer DiabCare.");
  if(exists()){const unlockedVault=await unlock(pin);key=unlockedVault.key;activate(unlockedVault.state);}
  else{if(!$("consent").checked)throw Error("Consentement nécessaire pour conserver les données.");const next=fresh();const k=await createVault(pin,next);key=k;activate(next);}
  }catch(e){$("pinError").textContent=e?.message==="The operation failed for an operation-specific reason"?"Phrase secrète incorrecte.":String(e.message||e);}}
@@ -236,6 +283,7 @@ async function checkNativeLocalSpeech(SR){
  try{return await SR.available({langs:["fr-FR"],processLocally:true})==="available";}catch{return false;}
 }
 function voiceChooser({browserRecognition=false,recordingSupported=false,online=false}={}){
+ $("voiceConsentCheck").checked=remoteVoiceConsent||!!$("remoteSpeechOpt").checked;
  $("voiceChoiceDetails").textContent=browserRecognition&&online
   ?"Ton téléphone ne dispose pas de dictée locale native. Tu peux autoriser la transcription via le navigateur ou installer Whisper."
   :"La dictée native n'est pas disponible sur ce navigateur. Whisper permet d'essayer la transcription directement sur l'appareil.";
@@ -271,8 +319,8 @@ async function installWhisper(){
 }
 async function whisperRecord(){
  if(!whisperReady){
-  const ok=await installWhisper();
-  if(!ok)return;
+  if(await installWhisper())voiceHint("Whisper chargé. Appuie à nouveau sur le micro pour démarrer un enregistrement.");
+  return;
  }
  if(!isRecordingSupported()){
   voiceHint("Cet appareil ne permet pas d'enregistrer le micro dans ce navigateur.");return;
@@ -337,7 +385,9 @@ async function dictate(intent="general"){
  if(requestBusy){voiceHint("JARVIS traite la question précédente.");return;}
  if("speechSynthesis" in window)window.speechSynthesis.cancel();
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- const localNative=await checkNativeLocalSpeech(SR);
+ // Aucun await avant le lancement : Android peut retirer l'activation utilisateur
+ // et refuser la permission du micro après un aller-retour asynchrone.
+ const localNative=nativeSpeechChecked&&nativeSpeechReady;
  const recordingSupported=isRecordingSupported();
  const route=speechRoute({
   localNative,whisperReady,browserRecognition:!!SR,online:navigator.onLine,
@@ -372,6 +422,9 @@ function setup(){
    $("mistralState").textContent="Hébergement GitHub Pages : le mode Mistral nécessite une passerelle serveur distincte. Ici, l'assistant local reste disponible hors connexion.";
  }
  updateNet();addEventListener("online",updateNet);addEventListener("offline",updateNet);
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ checkNativeLocalSpeech(SR).then(ready=>{nativeSpeechReady=ready;nativeSpeechChecked=true;}).catch(()=>{nativeSpeechChecked=true;});
+
  $("goJournal").addEventListener("click",()=>visibleTab("journal"));
  $("goNutrition").addEventListener("click",()=>visibleTab("nutrition"));
  $("goEmergency").addEventListener("click",()=>{
@@ -389,25 +442,40 @@ function setup(){
  $("stopVoice").onclick=()=>{silence();voiceHint("Micro et synthèse vocale arrêtés.");};
  $("voiceKeyboardBtn").onclick=()=>{
   $("voiceChoice").close();
-  visibleTab("chat");
-  $("question").scrollIntoView({block:"center",behavior:"smooth"});
-  $("question").focus();voiceHint("Clavier prêt : écris ta question et touche Envoyer.");
+  const nutrition=voiceIntent==="nutrition";voiceIntent="general";
+  visibleTab(nutrition?"nutrition":"chat");
+  const input=$(nutrition?"foodQuery":"question");
+  input.scrollIntoView({block:"center",behavior:"smooth"});
+  input.focus();
+  voiceHint(nutrition?"Clavier prêt : indique l'aliment et la portion, puis touche Calculer les glucides.":"Clavier prêt : écris ta question et touche Envoyer.");
  };
  $("voiceRecordStop").onclick=()=>{if(clipRecorder){const clip=clipRecorder;voiceHint("Transcription en cours…");clip.stop().catch(()=>{});}};
  $("voiceRecordCancel").onclick=()=>{silence();voiceHint("Enregistrement annulé.");};
  $("voiceRecording").addEventListener("cancel",e=>{e.preventDefault();silence();});
 
- $("voiceCloseBtn").onclick=()=>$("voiceChoice").close();
+ $("voiceCloseBtn").onclick=()=>{$("voiceChoice").close();voiceIntent="general";};
  $("voiceBrowserBtn").onclick=()=>{
-  if(!confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
-  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  if(!$("voiceConsentCheck").checked){
+   $("voiceChoiceDetails").textContent="Coche d'abord l'autorisation explicite de dictée en ligne. Sans accord, choisis Whisper ou le clavier.";
+   $("voiceConsentCheck").focus();return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(SR&&navigator.onLine)browserSpeech(SR,false);
-  else voiceHint("Aucune dictée native disponible. Installe Whisper pour l'enregistrement local.");
+  if(!SR||!navigator.onLine){
+   voiceHint("Le navigateur n'a pas de moteur vocal disponible en ligne. Choisis Whisper ou le clavier.");
+   return;
+  }
+  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  // Appel immédiat dans le gestionnaire du bouton : requis sur de nombreux Android.
+  browserSpeech(SR,false);
  };
  $("voiceOfflineBtn").onclick=async()=>{
   $("voiceChoice").close();
-  if(await installWhisper())await whisperRecord();
+  // Ne jamais déclencher getUserMedia après un téléchargement asynchrone.
+  // Une fois Whisper chargé, il faut un nouveau geste utilisateur pour enregistrer.
+  if(await installWhisper()){
+   voiceHint("Whisper prêt. Appuie de nouveau sur le micro pour enregistrer.");
+   toast("Whisper installé. Appuie à nouveau sur le micro.");
+  }
  };
  $("voiceInstallBtn").onclick=installWhisper;
  $("glucoseCancel").onclick=()=>{$("confirmGlucose").close();glucoseCandidate=null;};
@@ -446,22 +514,93 @@ function setup(){
  $("injectionForm").onsubmit=e=>{e.preventDefault();if(!requireUnlock())return;const txt=$("injection").value.trim().replace(",",".");const u=Number(txt);if(!/^\d+(?:\.\d+)?$/.test(txt)||!(u>0&&u<=100)){toast("Valeur invalide. Il s'agit uniquement d'une injection réellement effectuée.");return;}data.injections.push({u,ts:Date.now()});data.injections=data.injections.slice(-1000);$("injection").value="";save();renderJournal();toast("Injection déjà réalisée consignée.");};
  $("reportBtn").onclick=()=>{if(requireUnlock())reportDownload("diabcare-bilan.txt",exportReport(data));};
  $("backupBtn").onclick=async()=>{try{await saveQueue;reportDownload("diabcare-coffre-chiffre.json",exportEncrypted(),"application/json");toast("Sauvegarde chiffrée téléchargée.");}catch(e){toast(e.message);}};
- $("restoreBtn").onclick=()=>$("restoreFile").click();
+ $("restoreBtn").onclick=()=>{
+  if(ephemeral&&exists()){toast("Déverrouille ton coffre existant avant de restaurer une sauvegarde.");return;}
+  $("restoreFile").click();
+ };
  $("restoreFile").onchange=async ev=>{const file=ev.target.files?.[0];ev.target.value="";if(!file)return;if(file.size>10000000){toast("Sauvegarde trop volumineuse.");return;}
   const phrase=prompt("Phrase secrète de la sauvegarde chiffrée :");if(!phrase)return;
   if(!confirm("Remplacer le coffre local actuel par cette sauvegarde, après vérification ?"))return;
   try{await restoreEncryptedBackup(await file.text(),phrase);toast("Sauvegarde vérifiée et restaurée. Rechargement…");location.reload();}catch(err){toast("Restauration refusée : "+String(err.message||err).slice(0,140));}
  };
  $("speakToggle").onchange=e=>{data.prefs.speak=e.target.checked;save();};
- $("remoteSpeechOpt").onchange=e=>{remoteVoiceConsent=e.target.checked;voiceHint(e.target.checked?"Dictée du navigateur en ligne autorisée pour cette session.":"Dictée en ligne désactivée.");};
+ $("remoteSpeechOpt").onchange=e=>{
+  remoteVoiceConsent=e.target.checked;
+  $("voiceConsentCheck").checked=e.target.checked;
+  voiceHint(e.target.checked?"Dictée du navigateur en ligne autorisée pour cette session.":"Dictée en ligne désactivée.");
+ };
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
- $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
+ $("eraseBtn").onclick=()=>{
+  if(!unlocked||ephemeral){toast("Le coffre doit être déverrouillé avant suppression.");return;}
+  if(!confirm("Supprimer définitivement le coffre chiffré DiabCare ?"))return;
+  if(!confirm("Dernière confirmation : les données seront perdues sans sauvegarde."))return;
+  erase();location.reload();
+ };
  $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
  $("modelBtn").onclick=loadAI;
- $("modelCheck").onclick=()=>toast("Les versions du moteur sont mises à jour avec la PWA. Les poids IA ne changent pas automatiquement sans validation d'intégrité.");
- $("appUpdate").onclick=async()=>{if(!("serviceWorker" in navigator)){toast("Mises à jour automatiques non disponibles.");return;}const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.update();toast("Vérification lancée. Recharge l'application si une version nouvelle est proposée.");}else toast("Installe la PWA depuis un site HTTPS.");};
- $("agents").replaceChildren();AGENTS.forEach(([id,label])=>{const d=document.createElement("div");d.className="agent";const b=document.createElement("b");b.textContent=label;const small=document.createElement("small");small.textContent=id==="securite"?"Contrôles avant l'IA":"Conseils spécialisés simulés";d.append(b,small);$("agents").append(d);});
+ $("modelCheck").onclick=()=>{
+  const state=model?"Le modèle local est actif.":"Le modèle local n'est pas chargé.";
+  $("modelStatus").textContent=state+" Les poids IA ne sont jamais remplacés automatiquement sans vérification. Version proposée : "+modelInfo().file+".";
+  toast("État de l'IA locale actualisé.");
+ };
+ $("appUpdate").onclick=async()=>{
+  const status=$("updateStatus");$("appUpdate").disabled=true;
+  status.textContent="Vérification de la version en cours…";
+  try{
+   if(!("serviceWorker" in navigator)){status.textContent="Ce navigateur n'autorise pas le service worker. Utilise une fenêtre Chrome/Safari normale.";return;}
+   const reg=await navigator.serviceWorker.getRegistration();
+   if(!reg){status.textContent="Application ouverte mais mode hors connexion non installé. Recharge ce site en HTTPS.";return;}
+   await reg.update();
+   status.textContent="Vérification terminée. Appuie sur Actualiser la page pour charger la dernière version, sans effacer les données.";
+   $("reloadAppBtn").hidden=false;
+  }catch(e){status.textContent="Mise à jour inaccessible : "+String(e.message||e).slice(0,100);}
+  finally{$("appUpdate").disabled=false;}
+ };
+ $("reloadAppBtn").onclick=()=>location.reload();
+ $("diagnosticBtn").onclick=()=>{
+  const result=$("diagnosticResults");result.replaceChildren();
+  const tests=[
+   ["Navigation", $all("nav [data-tab]").length===5],
+   ["Saisie clavier", Boolean($("question")&&$("foodQuery"))],
+   ["Journal local", Boolean(globalThis.crypto?.subtle)],
+   ["Synthèse vocale", "speechSynthesis" in window],
+   ["Dictée du navigateur", Boolean(window.SpeechRecognition||window.webkitSpeechRecognition)],
+   ["Enregistrement du microphone", isRecordingSupported()],
+   ["Moteur Whisper chargé", whisperReady],
+   ["PWA hors connexion", "serviceWorker" in navigator],
+   ["Internet détecté", navigator.onLine],
+   ["Moteur Qwen chargé", Boolean(model)]
+  ];
+  for(const [label,ok] of tests){
+   const line=document.createElement("p");line.className="diagnostic-line";
+   line.textContent=(ok?"✓ ":"— ")+label+" : "+(ok?"disponible":"indisponible ou non activé");
+   result.append(line);
+  }
+  toast("Diagnostic terminé : les fonctions indisponibles sont identifiées.");
+ };
+ $("agents").replaceChildren();
+ const agentPrompts={
+  securite:"Quels sont les signes d'alerte d'une hypoglycémie ?",
+  diabeto:"Explique le diabète de type 1",
+  infirmier:"Comment organiser le suivi de la glycémie au quotidien ?",
+  pharmacie:"Comment conserver l'insuline en randonnée ?",
+  sport:"Préparer une randonnée avec un diabète de type 1",
+  psy:"Comment gérer le stress et la charge mentale du diabète ?",
+  analyse:"Fais le bilan de mes mesures"
+ };
+ AGENTS.forEach(([id,label])=>{
+  const button=document.createElement("button");button.type="button";button.className="agent agent-action";
+  button.setAttribute("aria-label","Consulter : "+label);
+  const b=document.createElement("b");b.textContent=label;
+  const small=document.createElement("small");small.textContent=id==="nutrition"?"Ouvrir le calculateur":"Ouvrir une question guidée";
+  button.append(b,small);
+  button.onclick=()=>{
+   if(id==="nutrition"){visibleTab("nutrition");$("foodQuery").focus();}
+   else{visibleTab("chat");ask(agentPrompts[id]||"Explique le diabète de type 1");}
+  };
+  $("agents").append(button);
+ });
  SOURCES.forEach(s=>{const p=document.createElement("p"),a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.name;p.append(a);$("sources").append(p);});
  $("appVersion").textContent="DiabCare "+VERSION+" • Assistant vocal · GlucoCheck · Glucides · IA locale";
  const sourcesBox=$("llmSources");if(sourcesBox){LLM_SOURCES.forEach(source=>{const row=document.createElement("p"),link=document.createElement("a");link.href=source.source;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.id+" · "+source.status;row.append(link);sourcesBox.append(row);});}
@@ -469,10 +608,18 @@ function setup(){
 
  if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("./sw.js").catch(()=>toast("Mode hors ligne non installé."));
  let installEvt=null;addEventListener("beforeinstallprompt",ev=>{ev.preventDefault();installEvt=ev;$("installBtn").hidden=false;});
- $("installBtn").onclick=async()=>{if(installEvt){installEvt.prompt();await installEvt.userChoice;$("installBtn").hidden=true;}};
+ $("installBtn").onclick=async()=>{
+  if(!installEvt){toast("Installation : Chrome Android → menu ⋮ → Ajouter à l'écran d'accueil ; Safari iPhone → Partager → Sur l'écran d'accueil.");return;}
+  try{await installEvt.prompt();await installEvt.userChoice;$("installBtn").hidden=true;}
+  catch{toast("Installation depuis le menu du navigateur.");
+  }
+ };
  document.addEventListener("visibilitychange",()=>{if(document.hidden){awayAt=Date.now();if("speechSynthesis" in window)speechSynthesis.cancel();}
  else if(awayAt&&!ephemeral&&unlocked&&Date.now()-awayAt>TIMEOUT)lock();});
  addEventListener("pagehide",()=>{if("speechSynthesis" in window)speechSynthesis.cancel();});
  if(exists())entry(true);else entry(false);
 }
-setup();
+try{setup();}catch(e){
+ console.error("DiabCare startup error",e);
+ const notice=document.getElementById("toast");if(notice){notice.hidden=false;notice.textContent="Erreur d’initialisation. Recharge la page sans effacer les données du site.";}
+}
