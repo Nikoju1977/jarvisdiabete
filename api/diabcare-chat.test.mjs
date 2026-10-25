@@ -73,3 +73,11 @@ test("domaine arbitraire ne peut pas appeler la passerelle",async()=>{
  const req=mockReq("Explique le DT1");req.headers.origin="https://evil.invalid";
  assert.equal((await run(req)).statusCode,403);
 });
+
+test("DT1 et diabète de type 1 : pédagogie autorisée, valeurs personnelles refusées",()=>{
+ assert.equal(canSend("Explique le diabète de type 1"),true);
+ assert.equal(canSend("Qu'est-ce que le DT1 ?"),true);
+ assert.equal(canSend("Je suis diabétique de type 1 et ma glycémie vaut 1,20 g/L"),false);
+ assert.equal(canSend("Quel bolus pour mon diabète de type 1 ?"),false);
+ assert.equal(canSend("Je prends 5 unités d'insuline"),false);
+});
