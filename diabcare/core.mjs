@@ -15,6 +15,7 @@ export const SOURCES = Object.freeze([
 ]);
 export function doseQuestion(q) {
  const s=normalize(q);
+ if(/\bbolus\b|\bdose d.insuline\b/.test(s))return true;
  return /(?:combien|calcul|quelle|quel|recommand|ajust|inject|prescri|augment|diminu|corrig|dois.je|bolus).{0,65}(?:insuline|unit|bolus|dose)|(?:insuline|bolus|dose).{0,65}(?:combien|inject|calcul|modifier|augment|diminuer|faire|prendre)/.test(s);
 }
 export function urgentQuestion(q) {
