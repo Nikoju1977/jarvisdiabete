@@ -26,10 +26,10 @@ test("appel autorisé : seul texte documentaire transmis, aucune donnée de sant
   count++;assert.equal(url,"https://api.mistral.ai/v1/chat/completions");
   const req=JSON.parse(init.body);
   assert.equal(req.messages.length,2);
-  return {ok:true,json:async()=>({choices:[{message:{content:"L'insuline aide les cellules à utiliser le glucose."}}]})};
+  return {ok:true,json:async()=>({choices:[{message:{content:count===1?"L'insuline aide les cellules à utiliser le glucose.":"APPROUVE"}}]})};
  };
  const result=await run(mockReq("Explique comment fonctionne le pancréas"),fetchFn);
- assert.equal(result.statusCode,200);assert.equal(count,1);
+ assert.equal(result.statusCode,200);assert.equal(count,2);
 });
 test("réponse contenant une dose bloquée",async()=>{
  const result=await run(mockReq("Explique le DT1"),async()=>({ok:true,json:async()=>({choices:[{message:{content:"Injecte 4 U d'insuline."}}]})}));
