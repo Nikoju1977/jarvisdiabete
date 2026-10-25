@@ -68,12 +68,31 @@ export function prepareRecord(food,grams,now=Date.now()){
 export function speakFood(record){
  return record.name+(record.brand?", marque "+record.brand:"")+". Pour "+record.grams+" grammes : environ "+record.carbs.toLocaleString("fr-FR",{maximumFractionDigits:2})+" grammes de glucides. La référence indique "+record.per100.toLocaleString("fr-FR")+" grammes pour 100 grammes. Source : "+record.source+". Vérifie la marque, la préparation et le poids. Aucune dose d’insuline n’est calculée.";
 }
-/* Recherche OFF en ligne, sans historique ni données de santé. L'API v1 prend en charge le texte libre. */
-export async function searchOpenFoodFacts(term,{fetchImpl=fetch,signal}={}){
+/* OFF: recherches structurées v2 pour produits courants ; legacy fulltext sinon.
+ * Search API v2 official: https://openfoodfacts.github.io/documentation/docs/Product-Opener/v2/search/get-search/
+ * Respect max ~10 searches/min per IP; no search-as-you-type.
+ */
+const CATEGORY_KEYS=Object.freeze({
+ "riz":"rice","pates":"pasta","pain":"bread","yaourt":"yogurts",
+ "cereales":"breakfast-cereals","lait":"milk","jus d orange":"orange-juices"
+});
+const API_FIELDS="code,product_name,product_name_fr,brands,quantity,serving_size,nutriments,last_modified_t";
+export function foodApiUrl(term){
  const query=String(term||"").trim().slice(0,90);
  if(query.length<2)throw Error("Recherche trop courte.");
- const params=new URLSearchParams({search_terms:query,search_simple:"1",action:"process",json:"1",page_size:"8",fields:"code,product_name,product_name_fr,brands,quantity,serving_size,nutriments,last_modified_t"});
- const uri="https://world.openfoodfacts.org/cgi/search.pl?"+params;
+ const key=normalize(query);
+ if(Object.hasOwn(CATEGORY_KEYS,key)){
+  const params=new URLSearchParams({
+   categories_tags_en:CATEGORY_KEYS[key],countries_tags_en:"france",
+   sort_by:"popularity_key",page_size:"8",fields:API_FIELDS
+  });
+  return "https://world.openfoodfacts.org/api/v2/search?"+params;
+ }
+ const params=new URLSearchParams({search_terms:query,search_simple:"1",action:"process",json:"1",page_size:"8",fields:API_FIELDS});
+ return "https://world.openfoodfacts.org/cgi/search.pl?"+params;
+}
+export async function searchOpenFoodFacts(term,{fetchImpl=fetch,signal}={}){
+ const uri=foodApiUrl(term);
  const response=await fetchImpl(uri,{signal,headers:{"Accept":"application/json"}});
  if(!response.ok)throw Error("Open Food Facts indisponible ("+response.status+").");
  const parsed=await response.json();
