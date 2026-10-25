@@ -123,7 +123,19 @@ function visibleTab(id){$all("nav [data-tab]").forEach(b=>b.classList.toggle("ac
  $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();}
 function requireUnlock(){if(!unlocked){toast("Déverrouille le coffre ou choisis le mode sans stockage.");return false;}return true;}
 function reportDownload(name,text,type="text/plain"){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);}
-function renderJournal(){const unit=data.profile.unit||"g";$("unit").value=unit;const sum=summary(data.readings);$("journalSummary").textContent=sum?sum.n+" mesures sur 14 jours. Moyenne des saisies : "+formatGlucose(sum.mean,unit)+". Ce n'est PAS un temps dans la cible continu.":"Aucune mesure enregistrée.";
+function renderJournal(){
+ const unit=data.profile.unit||"g";$("unit").value=unit;
+ const latest=[...(data.readings||[])].filter(r=>Number.isFinite(r.mg)&&Number.isFinite(r.ts)&&r.ts<=Date.now()).sort((a,b)=>b.ts-a.ts)[0];
+ if($("glanceValue")&&$("glanceDate")){
+  if(latest){
+   $("glanceValue").textContent=formatGlucose(latest.mg,unit);
+   $("glanceDate").textContent="Saisie du "+new Date(latest.ts).toLocaleString("fr-FR")+" · "+(latest.source==="vocal confirmé"?"Dictée confirmée":"Saisie manuelle")+" · Pas de mesure en temps réel.";
+  }else{
+   $("glanceValue").textContent="Aucune mesure";
+   $("glanceDate").textContent="Journal vide. Aucune lecture d'un capteur en temps réel.";
+  }
+ }
+ const sum=summary(data.readings);$("journalSummary").textContent=sum?sum.n+" mesures sur 14 jours. Moyenne des saisies : "+formatGlucose(sum.mean,unit)+". Ce n'est PAS un temps dans la cible continu.":"Aucune mesure enregistrée.";
  const box=$("readings");box.replaceChildren();[...data.readings].slice(-30).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";const a=document.createElement("span");a.textContent=new Date(r.ts).toLocaleString("fr-FR");const b=document.createElement("strong");b.textContent=formatGlucose(r.mg,unit);d.append(a,b);box.append(d);});
  const inj=$("injections");inj.replaceChildren();[...data.injections].slice(-12).reverse().forEach(r=>{const d=document.createElement("div");d.className="record";d.textContent=new Date(r.ts).toLocaleString("fr-FR")+" · "+r.u+" U (injection consignée)";inj.append(d);});}
 function activate(loaded,ephem=false){data=loaded;unlocked=true;ephemeral=ephem;$("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";renderChat();renderJournal();renderMeals();$("speakToggle").checked=data.prefs.speak!==false;$("backupBtn").disabled=ephem;$("lockBtn").disabled=ephem;}
@@ -221,6 +233,12 @@ function setup(){
    $("mistralState").textContent="Hébergement GitHub Pages : le mode Mistral nécessite une passerelle serveur distincte. Ici, l'assistant local reste disponible hors connexion.";
  }
  updateNet();addEventListener("online",updateNet);addEventListener("offline",updateNet);
+ $("goJournal").addEventListener("click",()=>visibleTab("journal"));
+ $("goNutrition").addEventListener("click",()=>visibleTab("nutrition"));
+ $("goEmergency").addEventListener("click",()=>{
+  visibleTab("experts");
+  const emergency=$("emergencyCard");if(emergency)emergency.scrollIntoView({behavior:"smooth",block:"center"});
+ });
  $all("nav [data-tab]").forEach(b=>b.addEventListener("click",()=>visibleTab(b.dataset.tab)));
  $all("[data-ask]").forEach(b=>b.addEventListener("click",()=>ask(b.dataset.ask)));
  $("entrySubmit").onclick=submitEntry;$("pin").addEventListener("keydown",ev=>{if(ev.key==="Enter")submitEntry();});
@@ -272,7 +290,7 @@ function setup(){
  $("appUpdate").onclick=async()=>{if(!("serviceWorker" in navigator)){toast("Mises à jour automatiques non disponibles.");return;}const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.update();toast("Vérification lancée. Recharge l'application si une version nouvelle est proposée.");}else toast("Installe la PWA depuis un site HTTPS.");};
  $("agents").replaceChildren();AGENTS.forEach(([id,label])=>{const d=document.createElement("div");d.className="agent";const b=document.createElement("b");b.textContent=label;const small=document.createElement("small");small.textContent=id==="securite"?"Contrôles avant l'IA":"Conseils spécialisés simulés";d.append(b,small);$("agents").append(d);});
  SOURCES.forEach(s=>{const p=document.createElement("p"),a=document.createElement("a");a.href=s.url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=s.name;p.append(a);$("sources").append(p);});
- $("appVersion").textContent="DiabCare "+VERSION+" • JARVIS · GlucoCheck · Open Food Facts · Mistral optionnel";
+ $("appVersion").textContent="DiabCare "+VERSION+" • Assistant vocal · GlucoCheck · Glucides · IA locale";
  const sourcesBox=$("llmSources");if(sourcesBox){LLM_SOURCES.forEach(source=>{const row=document.createElement("p"),link=document.createElement("a");link.href=source.source;link.target="_blank";link.rel="noopener noreferrer";link.textContent=source.id+" · "+source.status;row.append(link);sourcesBox.append(row);});}
  $("modelStatus").textContent="Qwen3 0,6B GGUF · 484 Mo · runtime wllama. Téléchargement initial requis ; compatibilité Safari non garantie.";
 
