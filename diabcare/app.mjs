@@ -258,6 +258,7 @@ async function checkNativeLocalSpeech(SR){
  try{return await SR.available({langs:["fr-FR"],processLocally:true})==="available";}catch{return false;}
 }
 function voiceChooser({browserRecognition=false,recordingSupported=false,online=false}={}){
+ $("voiceConsentCheck").checked=remoteVoiceConsent||!!$("remoteSpeechOpt").checked;
  $("voiceChoiceDetails").textContent=browserRecognition&&online
   ?"Ton téléphone ne dispose pas de dictée locale native. Tu peux autoriser la transcription via le navigateur ou installer Whisper."
   :"La dictée native n'est pas disponible sur ce navigateur. Whisper permet d'essayer la transcription directement sur l'appareil.";
@@ -293,8 +294,8 @@ async function installWhisper(){
 }
 async function whisperRecord(){
  if(!whisperReady){
-  const ok=await installWhisper();
-  if(!ok)return;
+  if(await installWhisper())voiceHint("Whisper chargé. Appuie à nouveau sur le micro pour démarrer un enregistrement.");
+  return;
  }
  if(!isRecordingSupported()){
   voiceHint("Cet appareil ne permet pas d'enregistrer le micro dans ce navigateur.");return;
@@ -359,7 +360,9 @@ async function dictate(intent="general"){
  if(requestBusy){voiceHint("JARVIS traite la question précédente.");return;}
  if("speechSynthesis" in window)window.speechSynthesis.cancel();
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- const localNative=await checkNativeLocalSpeech(SR);
+ // Aucun await avant le lancement : Android peut retirer l'activation utilisateur
+ // et refuser la permission du micro après un aller-retour asynchrone.
+ const localNative=nativeSpeechChecked&&nativeSpeechReady;
  const recordingSupported=isRecordingSupported();
  const route=speechRoute({
   localNative,whisperReady,browserRecognition:!!SR,online:navigator.onLine,
@@ -394,6 +397,9 @@ function setup(){
    $("mistralState").textContent="Hébergement GitHub Pages : le mode Mistral nécessite une passerelle serveur distincte. Ici, l'assistant local reste disponible hors connexion.";
  }
  updateNet();addEventListener("online",updateNet);addEventListener("offline",updateNet);
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ checkNativeLocalSpeech(SR).then(ready=>{nativeSpeechReady=ready;nativeSpeechChecked=true;}).catch(()=>{nativeSpeechChecked=true;});
+
  $("goJournal").addEventListener("click",()=>visibleTab("journal"));
  $("goNutrition").addEventListener("click",()=>visibleTab("nutrition"));
  $("goEmergency").addEventListener("click",()=>{
@@ -411,25 +417,40 @@ function setup(){
  $("stopVoice").onclick=()=>{silence();voiceHint("Micro et synthèse vocale arrêtés.");};
  $("voiceKeyboardBtn").onclick=()=>{
   $("voiceChoice").close();
-  visibleTab("chat");
-  $("question").scrollIntoView({block:"center",behavior:"smooth"});
-  $("question").focus();voiceHint("Clavier prêt : écris ta question et touche Envoyer.");
+  const nutrition=voiceIntent==="nutrition";voiceIntent="general";
+  visibleTab(nutrition?"nutrition":"chat");
+  const input=$(nutrition?"foodQuery":"question");
+  input.scrollIntoView({block:"center",behavior:"smooth"});
+  input.focus();
+  voiceHint(nutrition?"Clavier prêt : indique l'aliment et la portion, puis touche Calculer les glucides.":"Clavier prêt : écris ta question et touche Envoyer.");
  };
  $("voiceRecordStop").onclick=()=>{if(clipRecorder){const clip=clipRecorder;voiceHint("Transcription en cours…");clip.stop().catch(()=>{});}};
  $("voiceRecordCancel").onclick=()=>{silence();voiceHint("Enregistrement annulé.");};
  $("voiceRecording").addEventListener("cancel",e=>{e.preventDefault();silence();});
 
- $("voiceCloseBtn").onclick=()=>$("voiceChoice").close();
+ $("voiceCloseBtn").onclick=()=>{$("voiceChoice").close();voiceIntent="general";};
  $("voiceBrowserBtn").onclick=()=>{
-  if(!confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
-  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  if(!$("voiceConsentCheck").checked){
+   $("voiceChoiceDetails").textContent="Coche d'abord l'autorisation explicite de dictée en ligne. Sans accord, choisis Whisper ou le clavier.";
+   $("voiceConsentCheck").focus();return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(SR&&navigator.onLine)browserSpeech(SR,false);
-  else voiceHint("Aucune dictée native disponible. Installe Whisper pour l'enregistrement local.");
+  if(!SR||!navigator.onLine){
+   voiceHint("Le navigateur n'a pas de moteur vocal disponible en ligne. Choisis Whisper ou le clavier.");
+   return;
+  }
+  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  // Appel immédiat dans le gestionnaire du bouton : requis sur de nombreux Android.
+  browserSpeech(SR,false);
  };
  $("voiceOfflineBtn").onclick=async()=>{
   $("voiceChoice").close();
-  if(await installWhisper())await whisperRecord();
+  // Ne jamais déclencher getUserMedia après un téléchargement asynchrone.
+  // Une fois Whisper chargé, il faut un nouveau geste utilisateur pour enregistrer.
+  if(await installWhisper()){
+   voiceHint("Whisper prêt. Appuie de nouveau sur le micro pour enregistrer.");
+   toast("Whisper installé. Appuie à nouveau sur le micro.");
+  }
  };
  $("voiceInstallBtn").onclick=installWhisper;
  $("glucoseCancel").onclick=()=>{$("confirmGlucose").close();glucoseCandidate=null;};
@@ -475,7 +496,11 @@ function setup(){
   try{await restoreEncryptedBackup(await file.text(),phrase);toast("Sauvegarde vérifiée et restaurée. Rechargement…");location.reload();}catch(err){toast("Restauration refusée : "+String(err.message||err).slice(0,140));}
  };
  $("speakToggle").onchange=e=>{data.prefs.speak=e.target.checked;save();};
- $("remoteSpeechOpt").onchange=e=>{remoteVoiceConsent=e.target.checked;voiceHint(e.target.checked?"Dictée du navigateur en ligne autorisée pour cette session.":"Dictée en ligne désactivée.");};
+ $("remoteSpeechOpt").onchange=e=>{
+  remoteVoiceConsent=e.target.checked;
+  $("voiceConsentCheck").checked=e.target.checked;
+  voiceHint(e.target.checked?"Dictée du navigateur en ligne autorisée pour cette session.":"Dictée en ligne désactivée.");
+ };
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
  $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
