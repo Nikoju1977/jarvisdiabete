@@ -25,7 +25,7 @@ test("aucune dépendance d'un service de suivi exclu dans les fichiers chargés"
  }
 });
 test("cache versionné pour ne pas afficher le vieux cockpit",()=>{
- assert.match(sw,/diabcare-pwa-shell-4\.4\.0/);
+ assert.match(sw,/diabcare-pwa-shell-4\.5\.0/);
  assert.match(sw,/"\.\/ui\.css"/);
  assert.match(sw,/"\.\/speech-offline\.mjs"/);
  assert.match(rootSW,/jarvis-diabete-/);
@@ -83,4 +83,18 @@ test("une requête Open Food Facts trop lente est interrompue",()=>{
  assert.match(js,/AbortController/);
  assert.match(js,/controller\.abort\(\),5500/);
  assert.match(js,/Recherche Open Food Facts indisponible ou trop lente/);
+});
+
+test("OFF offline library actions have working controls",()=>{
+ for(const id of ["foodPackBtn","foodLibraryRefresh","foodLibraryClear","foodLibraryStatus","foodPackStatus","foodSavedList"]){
+  assert.ok(page.includes('id="'+id+'"'),"missing offline food control "+id);
+  assert.ok(js.includes('"'+id+'"'),"unwired control "+id);
+ }
+ assert.match(js,/cachedSearch\(/);
+ assert.match(js,/storeFoodProducts\(/);
+ assert.match(js,/clearCached\(/);
+ assert.match(js,/refreshFoodLibrary\(/);
+ assert.match(sw,/"\.\/food-library\.mjs"/);
+ assert.match(page,/Open Food Facts/);
+ assert.match(page,/ODbL/);
 });
