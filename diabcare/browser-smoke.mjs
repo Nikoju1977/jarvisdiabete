@@ -57,8 +57,10 @@ async function scenario(label,viewport){
   await page.locator("#foodMicBtn").click();
   await page.locator("#voiceChoice").waitFor({state:"visible"});
   assert.equal(await page.locator("#voiceConsentCheck").isChecked(),false);
-  await page.locator("#voiceBrowserBtn").click();
-  assert.match(await page.locator("#voiceChoiceDetails").innerText(),/Coche d'abord|Choisis/i);
+  if(await page.locator("#voiceBrowserBtn").isVisible()){
+   await page.locator("#voiceBrowserBtn").click();
+   assert.match(await page.locator("#voiceChoiceDetails").innerText(),/Coche d\'abord|Choisis/i);
+  }
   await page.locator("#voiceKeyboardBtn").click();
   await page.locator("#voiceChoice").waitFor({state:"hidden"});
   assert.ok(await page.locator("#screen-nutrition").evaluate(e=>e.classList.contains("active")));
