@@ -78,30 +78,53 @@ function refreshFoodPreview(){
 async function foodLookup(raw){
  if(!requireUnlock())return;
  const query=parseFoodQuery(cleanWake(raw));
- if(!query||query.error){foodVoicePending=false;toast(query?.error||"Indique un aliment et, si possible, son poids.");return;}
- visibleTab("nutrition");$("foodQuery").value=raw;setJarvisState("thinking","Je recherche les glucides");
+ if(!query||query.error){
+  foodVoicePending=false;
+  const msg=query?.error||"Indique un aliment et, si possible, sa portion en grammes.";
+  $("foodStatus").textContent=msg;toast(msg);return;
+ }
+ const id=++foodSearchId,fromVoice=foodVoicePending;foodVoicePending=false;
+ visibleTab("nutrition");$("foodQuery").value=raw;
  const offline=findOffline(query.term);
  showFoodOptions(offline,query.grams);
- $("foodStatus").textContent=offline.length?"Source locale indicative. Vérifie l'aliment et sa préparation.":"Aucune correspondance locale.";
- // Une réponse locale est affichée sans attendre le réseau.
- if(foodVoicePending&&offline.length===1&&query.grams!=null){
+ $("foodStatus").textContent=offline.length
+  ?offline.length+" aliment(s) indicatif(s) disponible(s) immédiatement. Vérifie l'étiquette et le mode de préparation."
+  :"Recherche de données nutritionnelles…";
+ if(fromVoice&&offline.length===1&&query.grams!=null){
   try{
    const rec=prepareRecord(offline[0],query.grams);
-   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g estimés pour "+query.grams+" g de "+rec.name+". Vérifier la source.";
+   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+query.grams+" g de "+rec.name+".";
    speech(speakFood(rec),{force:true});
   }catch{}
  }
+ // La recherche distante ne peut jamais bloquer indéfiniment le calcul local.
  if(navigator.onLine){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5500);
   try{
-   const code=query.term.replace(/\s/g,""),online=/^\d{8,14}$/.test(code)?[await barcodeOpenFoodFacts(code)]:await searchOpenFoodFacts(query.term);
-   if(online.length){showFoodOptions([...online,...offline],query.grams);$("foodStatus").textContent="Produits Open Food Facts disponibles : données collaboratives, portion et étiquette à contrôler.";}
-   else if(!offline.length)$("foodStatus").textContent="Produit introuvable. Vérifie le nom ou le code-barres.";
-  }catch{$("foodStatus").textContent="Open Food Facts indisponible. "+(offline.length?"Estimation locale affichée.":"Aucune donnée nutritionnelle vérifiable.");}
- }
- setJarvisState("idle");
- const feedback=offline.length||$("foodResults").children.length?"J'ai affiché les aliments correspondants. Choisis le bon produit, puis confirme la portion avant d'enregistrer.":"Je ne trouve pas de données suffisamment fiables pour ce produit.";
- const wasVoice=foodVoicePending;foodVoicePending=false;
- if(wasVoice){
+   const code=query.term.replace(/\s/g,"");
+   const online=/^\d{8,14}$/.test(code)
+    ?[await barcodeOpenFoodFacts(code,{signal:controller.signal})]
+    :await searchOpenFoodFacts(query.term,{signal:controller.signal});
+   if(id!==foodSearchId)return;
+   if(online.length){
+    showFoodOptions([...online,...offline],query.grams);
+    $("foodStatus").textContent="Données Open Food Facts (collaboratives) trouvées. Confirme marque, poids et glucides.";
+    if(fromVoice&&offline.length===0&&online.length===1&&query.grams!=null){
+     const rec=prepareRecord(online[0],query.grams);
+     speech(speakFood(rec),{force:true});
+    }
+   }else if(!offline.length)$("foodStatus").textContent="Aucun produit renseigné. Essaie une description plus précise.";
+  }catch(e){
+   if(id!==foodSearchId)return;
+   $("foodStatus").textContent="Recherche Open Food Facts indisponible ou trop lente. "+(offline.length?"Résultats locaux conservés.":"Aucune valeur fiable : ne pas deviner.");
+  }finally{clearTimeout(timer);}
+ }else if(!offline.length)$("foodStatus").textContent="Hors connexion : produit absent du référentiel local. Aucun chiffre inventé.";
+ if(id!==foodSearchId)return;
+ const hasFood=$("foodResults").children.length>0;
+ const feedback=hasFood
+  ?"Choisis le bon aliment et vérifie la portion. Le calcul affiché est une estimation, sans dose d'insuline."
+  :"Je n'ai pas trouvé de glucides vérifiables pour cet aliment.";
+ if(fromVoice){
   $("foodVoiceStatus").textContent=feedback;
   if(offline.length!==1||query.grams==null)speech(feedback,{force:true});
  }
