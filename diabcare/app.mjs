@@ -163,9 +163,9 @@ function speech(text,{force=false}={}){
  try{
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(String(text).slice(0,1800));u.lang="fr-FR";u.rate=1.04;u.pitch=0.9;
-  u.onstart=()=>setJarvisState("speaking");u.onend=()=>setJarvisState("idle");u.onerror=()=>setJarvisState("idle");
+  u.onstart=()=>setJarvisState("speaking");u.onend=()=>setJarvisState("idle");u.onerror=()=>{setJarvisState("idle");if(force)toast("La lecture audio est bloquée. Vérifie le son et les autorisations du navigateur.");};
   speechSynthesis.speak(u);
- }catch{setJarvisState("idle");}
+ }catch{setJarvisState("idle");if(force)toast("Lecture vocale non prise en charge dans ce navigateur.");}
 }
 function save(){if(!unlocked||ephemeral||!key)return Promise.resolve();const snapshot=structuredClone(data);
  saveQueue=saveQueue.catch(()=>{}).then(()=>persist(key,snapshot)).catch(e=>toast("Enregistrement impossible : "+e.message));return saveQueue;
@@ -217,9 +217,11 @@ function lock(){
  $("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";
  entry(exists());
 }
-function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";$("entryDialog").showModal();}
+function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";
+ $("entrySubmit").textContent=already?"Déverrouiller le coffre":"Créer un coffre sécurisé";
+ if(!$("entryDialog").open)$("entryDialog").showModal();}
 async function submitEntry(){
- try{const pin=$("pin").value;if(pin.length<8)throw Error("Minimum 8 caractères.");
+ try{const pin=$("pin").value;if(pin.length<8)throw Error("Utilise au moins 8 caractères, ou touche Sans stockage pour essayer DiabCare.");
  if(exists()){const unlockedVault=await unlock(pin);key=unlockedVault.key;activate(unlockedVault.state);}
  else{if(!$("consent").checked)throw Error("Consentement nécessaire pour conserver les données.");const next=fresh();const k=await createVault(pin,next);key=k;activate(next);}
  }catch(e){$("pinError").textContent=e?.message==="The operation failed for an operation-specific reason"?"Phrase secrète incorrecte.":String(e.message||e);}}
@@ -556,6 +558,27 @@ function setup(){
   finally{$("appUpdate").disabled=false;}
  };
  $("reloadAppBtn").onclick=()=>location.reload();
+ $("diagnosticBtn").onclick=()=>{
+  const result=$("diagnosticResults");result.replaceChildren();
+  const tests=[
+   ["Navigation", $all("nav [data-tab]").length===5],
+   ["Saisie clavier", Boolean($("question")&&$("foodQuery"))],
+   ["Journal local", Boolean(globalThis.crypto?.subtle)],
+   ["Synthèse vocale", "speechSynthesis" in window],
+   ["Dictée du navigateur", Boolean(window.SpeechRecognition||window.webkitSpeechRecognition)],
+   ["Enregistrement du microphone", isRecordingSupported()],
+   ["Moteur Whisper chargé", whisperReady],
+   ["PWA hors connexion", "serviceWorker" in navigator],
+   ["Internet détecté", navigator.onLine],
+   ["Moteur Qwen chargé", Boolean(model)]
+  ];
+  for(const [label,ok] of tests){
+   const line=document.createElement("p");line.className="diagnostic-line";
+   line.textContent=(ok?"✓ ":"— ")+label+" : "+(ok?"disponible":"indisponible ou non activé");
+   result.append(line);
+  }
+  toast("Diagnostic terminé : les fonctions indisponibles sont identifiées.");
+ };
  $("agents").replaceChildren();
  const agentPrompts={
   securite:"Quels sont les signes d'alerte d'une hypoglycémie ?",
@@ -596,4 +619,7 @@ function setup(){
  addEventListener("pagehide",()=>{if("speechSynthesis" in window)speechSynthesis.cancel();});
  if(exists())entry(true);else entry(false);
 }
-setup();
+try{setup();}catch(e){
+ console.error("DiabCare startup error",e);
+ const notice=document.getElementById("toast");if(notice){notice.hidden=false;notice.textContent="Erreur d’initialisation. Recharge la page sans effacer les données du site.";}
+}
