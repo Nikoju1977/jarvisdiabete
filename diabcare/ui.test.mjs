@@ -48,3 +48,18 @@ test("les modules audio sont mis en cache dans la PWA et restent optionnels",()=
  assert.match(speechCSS,/#chatForm\.composer\{[\s\S]*position:relative!important/);
  assert.match(speechCSS,/#toast\{[\s\S]*max-width:/);
 });
+
+
+test("le calculateur de glucides expose une commande micro reliée à la transcription",()=>{
+ assert.match(page,/id="foodMicBtn"/);
+ assert.match(page,/id="foodVoiceStatus"/);
+ assert.match(page,/id="foodReadPreview"/);
+ assert.match(js,/\$\("foodMicBtn"\)\.onclick=\(\)=>dictate\("nutrition"\)/);
+ assert.match(js,/if\(intent==="nutrition"\)/);
+ assert.match(js,/foodLookup\(text\)/);
+ assert.match(js,/if\(urgentQuestion\(text\)\|\|doseQuestion\(text\)\)/);
+ assert.match(js,/speech\(speakFood\(rec\),\{force:true\}\)/);
+ assert.match(js,/\$\("foodReadPreview"\)\.onclick=/);
+ assert.match(page,/Confirmer et enregistrer/);
+ assert.doesNotMatch(js,/data\.meals\.push\(rec\)[^}]*foodReadPreview/);
+});
