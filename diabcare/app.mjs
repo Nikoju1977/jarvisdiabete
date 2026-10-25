@@ -27,11 +27,12 @@ async function submitEntry(){
  if(exists()){const unlockedVault=await unlock(pin);key=unlockedVault.key;activate(unlockedVault.state);}
  else{if(!$("consent").checked)throw Error("Consentement nécessaire pour conserver les données.");const next=fresh();const k=await createVault(pin,next);key=k;activate(next);}
  }catch(e){$("pinError").textContent=e?.message==="The operation failed for an operation-specific reason"?"Phrase secrète incorrecte.":String(e.message||e);}}
+function allowExpansion(q){const s=String(q).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");return !/(?:\d|dose|insuline|bolus|glyc|hypo|hyper|cetone|malaise|symptome|vomis|acidocetose|basale|corrig|inject|journal|bilan|mesure|tendance|traitement|glucagon|medic|glucide)/.test(s);}
 async function ask(text){if(!requireUnlock())return;const q=String(text||"").trim();if(!q)return;
  msg("user",q);data.chat.push({role:"user",text:q,ts:Date.now()});
  let result=answer(q,data);let response=result.text;let agentNames=(result.agents||[]).map(id=>AGENTS.find(a=>a[0]===id)?.[1]||id).join(" · ");
  // Le triage et les dosages ne sont jamais transmis au modèle génératif.
- if(model&&!doseQuestion(q)&&!urgentQuestion(q)&&result.level==="info"){
+ if(model&&allowExpansion(q)&&!doseQuestion(q)&&!urgentQuestion(q)&&result.level==="info"){
   try{
    const generated=await model.reply(q,response);
    if(safeGenerated(generated))response=generated;
