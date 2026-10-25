@@ -141,3 +141,11 @@ dialog::backdrop{background:#000b}
 @media (prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+/* Android: input is in document flow, not over the bottom navigation. */
+.composer{position:relative!important;bottom:auto!important;z-index:1;margin:0!important;display:flex;align-items:stretch}
+.composer input{min-width:0;flex:1}
+.composer button{flex-shrink:0}
+#screen-chat{padding-bottom:18px}
+#screen-chat .chat-section{min-height:110px}
+nav{z-index:30}
+@media(max-width:390px){.composer .icon-btn{min-width:44px}.composer .primary{min-width:65px}}
