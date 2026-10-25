@@ -6,12 +6,14 @@ import {routeExperts} from "./specialists.mjs";
 import {LLM_SOURCES,modelInfo} from "./llm-sources.mjs";
 import {speechRoute,transcriptSafe} from "./speech-policy.mjs";
 import {isRecordingSupported,recordClip,loadWhisper,transcribeWhisper} from "./speech-offline.mjs";
+import {cachedSearch,allCached,cachedStats,storeFoodProducts,clearCached,libraryStatus,OFFLINE_PACK_QUERIES} from "./food-library.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
 let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,saveQueue=Promise.resolve(),pendingInstall=null;
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
 let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
 let voiceIntent="general",foodVoicePending=false,foodSearchId=0,nativeSpeechReady=false,nativeSpeechChecked=false;
+let foodPackBusy=false,foodCachedList=[],libraryAvailable=true;
 function setJarvisState(mode,label){
  const orb=$("jarvisOrb"),state=$("jarvisState");
  if(orb)orb.className="orb"+(mode==="listening"?" listening":mode==="speaking"?" speaking":mode==="thinking"?" thinking":"");
@@ -47,28 +49,114 @@ function renderMeals(){
  const total=document.createElement("strong");total.textContent=item.carbs.toLocaleString("fr-FR")+" g";
  el.append(title,total);box.append(el);});
 }
+function uniqueFoods(foods){
+ const found=new Set(),result=[];
+ for(const f of foods||[]){
+  const key=f.kind==="off"&&f.code?"code:"+f.code:"name:"+(f.name||"").toLowerCase()+":"+f.kind;
+  if(found.has(key))continue;
+  found.add(key);result.push(f);
+ }
+ return result.slice(0,14);
+}
 function showFoodOptions(items,grams){
  const box=$("foodResults");box.replaceChildren();
- items.forEach(food=>{const card=document.createElement("div");card.className="choice-item";
-  const title=document.createElement("strong");title.textContent=food.name;
-  const info=document.createElement("p");info.className="hint";info.textContent=food.per100+" g de glucides pour 100 g · "+food.source;
-  const button=document.createElement("button");button.textContent="Choisir et vérifier la portion";
-  button.onclick=()=>{foodCandidate=food;$("foodCandidateName").textContent=food.name+" — "+food.source;$("foodPortion").value=grams??"";refreshFoodPreview();$("confirmFood").showModal();};
-
+ uniqueFoods(items).forEach(food=>{
+  const card=document.createElement("div");card.className="choice-item";
+  const title=document.createElement("strong");title.textContent=food.name+(food.brand?" · "+food.brand:"");
+  const badge=document.createElement("div");badge.className="product-source";
+  badge.textContent=food.kind==="local"?"Table DiabCare : approximation indicative":food.offline?"Open Food Facts : fiche déjà téléchargée":"Open Food Facts : fiche collaborative en ligne";
+  const info=document.createElement("p");info.className="product-metadata";
+  info.textContent=food.per100.toLocaleString("fr-FR")+" g de glucides / 100 g de produit"+(food.kind==="off"?" (tel que vendu : vérifier sec/cru ou préparé)":" (table indicative selon aliment)")
+   +(food.quantity?" · conditionnement : "+food.quantity:"")
+   +(food.servingSize?" · portion indiquée sur la fiche : "+food.servingSize:"")
+   +(food.cachedAt?" · téléchargé : "+new Date(food.cachedAt).toLocaleDateString("fr-FR"):"");
+  card.append(title,badge,info);
+  if(food.kind==="off"&&food.code){
+   const p=document.createElement("p");p.className="product-metadata";
+   const link=document.createElement("a");
+   link.href="https://world.openfoodfacts.org/product/"+encodeURIComponent(food.code);
+   link.target="_blank";link.rel="noopener noreferrer";
+   link.textContent="Fiche OFF n° "+food.code+" (consultable avec Internet)";
+   p.append(link);card.append(p);
+  }
   if(grams!=null){
    try{
     const estimate=prepareRecord(food,grams);
     const count=document.createElement("p");count.className="food-estimate";
-    count.textContent=estimate.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+grams+" g.";
+    count.textContent=estimate.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+grams+" g. "+(food.kind==="local"?"Base indicative.":"Vérifie l'étiquette du produit exact.");
     const play=document.createElement("button");play.type="button";play.className="read-carb-btn";
     play.textContent="🔊 Écouter l'estimation";
     play.onclick=()=>speech(speakFood(estimate),{force:true});
     card.append(count,play);
    }catch{}
   }
-  card.append(title,info,button);box.append(card);
+  const button=document.createElement("button");button.type="button";button.textContent="Choisir et confirmer la portion";
+  button.onclick=()=>{
+   foodCandidate=food;
+   $("foodCandidateName").textContent=food.name+(food.brand?" · "+food.brand:"")+" — "+food.source;
+   $("foodPortion").value=grams??"";refreshFoodPreview();
+   $("confirmFood").showModal();
+  };
+  card.append(button);box.append(card);
  });
 }
+async function refreshFoodLibrary({showList=false}={}){
+ try{
+  const stats=await cachedStats(),items=showList?await allCached():null;
+  libraryAvailable=true;$("foodLibraryStatus").textContent=libraryStatus(stats);
+  if(showList){
+   foodCachedList=items;
+   const box=$("foodSavedList");box.replaceChildren();
+   if(!items.length){box.textContent="Aucun produit en mémoire pour le moment.";return;}
+   const heading=document.createElement("p");heading.className="hint";
+   heading.textContent="Produits Open Food Facts disponibles hors connexion ("+items.length+") :";
+   box.append(heading);
+   items.sort((a,b)=>(b.cachedAt||0)-(a.cachedAt||0)).slice(0,60).forEach(food=>{
+    const row=document.createElement("div");row.className="food-saved-item";
+    const text=document.createElement("div"),title=document.createElement("b"),details=document.createElement("small");
+    title.textContent=food.name+(food.brand?" — "+food.brand:"");
+    details.textContent=food.per100+" g / 100 g · code "+food.code;
+    text.append(title,details);
+    const button=document.createElement("button");button.type="button";button.textContent="Calculer";
+    button.onclick=()=>{$("foodQuery").value=food.code;foodLookup(food.code);};
+    row.append(text,button);box.append(row);
+   });
+  }
+ }catch(e){
+  libraryAvailable=false;
+  $("foodLibraryStatus").textContent="Bibliothèque Open Food Facts impossible à enregistrer ici : "+String(e.message||e).slice(0,130)+". La table indicative reste disponible.";
+  $("foodSavedList").replaceChildren();
+ }
+}
+const packPause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function downloadFoodPack(){
+ if(foodPackBusy){toast("Téléchargement alimentaire déjà en cours.");return;}
+ if(!navigator.onLine){$("foodPackStatus").textContent="Connecte-toi d'abord à Internet pour préparer le stock de produits. Les produits déjà téléchargés restent consultables hors connexion.";return;}
+ foodPackBusy=true;$("foodPackBtn").disabled=true;
+ let saved=0,success=0,failures=0;
+ try{
+  for(let index=0;index<OFFLINE_PACK_QUERIES.length;index++){
+   const term=OFFLINE_PACK_QUERIES[index];
+   $("foodPackStatus").textContent="Téléchargement "+(index+1)+"/"+OFFLINE_PACK_QUERIES.length+" : "+term+".";
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8500);
+   try{
+    const found=await searchOpenFoodFacts(term,{signal:controller.signal});
+    const stored=await storeFoodProducts(found);
+    saved+=stored.added;success++;
+   }catch(err){
+    failures++;$("foodPackStatus").textContent="Catégorie "+term+" indisponible ; poursuite des autres catégories.";
+   }finally{clearTimeout(timer);}
+   if(index<OFFLINE_PACK_QUERIES.length-1)await packPause(1300);
+  }
+  await refreshFoodLibrary({showList:true});
+  $("foodPackStatus").textContent=success
+   ? "Préparation terminée : "+saved+" fiches reçues sur "+success+" catégories. "+(failures?"Certaines recherches ont échoué. ":"")+"En mode avion, recherche ces produits par nom, marque ou code-barres."
+   : "Aucun produit récupéré. Open Food Facts est peut-être indisponible ou limite les requêtes ; réessaie plus tard.";
+ }catch(e){
+  $("foodPackStatus").textContent="Bibliothèque non disponible : "+String(e.message||e).slice(0,130);
+ }finally{foodPackBusy=false;$("foodPackBtn").disabled=false;}
+}
+
 function refreshFoodPreview(){
  if(!foodCandidate)return;
  const num=Number($("foodPortion").value.trim().replace(",","."));
@@ -80,55 +168,78 @@ async function foodLookup(raw){
  const query=parseFoodQuery(cleanWake(raw));
  if(!query||query.error){
   foodVoicePending=false;
-  const msg=query?.error||"Indique un aliment et, si possible, sa portion en grammes.";
-  $("foodStatus").textContent=msg;toast(msg);return;
+  const message=query?.error||"Précise un aliment et, idéalement, une quantité en grammes.";
+  $("foodStatus").textContent=message;toast(message);return;
  }
  const id=++foodSearchId,fromVoice=foodVoicePending;foodVoicePending=false;
  visibleTab("nutrition");$("foodQuery").value=raw;
- const offline=findOffline(query.term);
- showFoodOptions(offline,query.grams);
- $("foodStatus").textContent=offline.length
-  ?offline.length+" aliment(s) indicatif(s) disponible(s) immédiatement. Vérifie l'étiquette et le mode de préparation."
-  :"Recherche de données nutritionnelles…";
- if(fromVoice&&offline.length===1&&query.grams!=null){
+ const local=findOffline(query.term);
+ showFoodOptions(local,query.grams);
+ const code=query.term.trim().replace(/\s/g,"");
+ let saved=[];
+ try{
+  saved=await cachedSearch(code||query.term,8);
+ }catch(e){
+  $("foodLibraryStatus").textContent="Bibliothèque locale inaccessible : "+String(e.message||e).slice(0,100);
+ }
+ if(id!==foodSearchId)return;
+ let options=uniqueFoods([...saved,...local]);
+ showFoodOptions(options,query.grams);
+ const offlineCount=saved.length;
+ if(offlineCount){
+  $("foodStatus").textContent=offlineCount+" fiche(s) Open Food Facts mémorisée(s) sur le téléphone"+(local.length?" et "+local.length+" référence(s) indicatives.":".")+" Vérifie la marque et les valeurs de l'étiquette.";
+ }else if(local.length){
+  $("foodStatus").textContent="Table DiabCare indicative, sans fiche Open Food Facts correspondante mémorisée. Vérifie l'aliment préparé.";
+ }else{
+  $("foodStatus").textContent=navigator.onLine?"Recherche Open Food Facts en cours…":"Aucun produit en mémoire correspondant. Prépare la bibliothèque avant de partir en nature.";
+ }
+ // Une seule correspondance permet de répondre directement avec sa source explicite.
+ let alreadySpoken=false;
+ if(fromVoice&&options.length===1&&query.grams!=null){
   try{
-   const rec=prepareRecord(offline[0],query.grams);
-   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+query.grams+" g de "+rec.name+".";
-   speech(speakFood(rec),{force:true});
+   const rec=prepareRecord(options[0],query.grams);
+   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g estimés pour "+query.grams+" g de "+rec.name+". Source : "+rec.source+".";
+   speech(speakFood(rec),{force:true});alreadySpoken=true;
   }catch{}
  }
- // La recherche distante ne peut jamais bloquer indéfiniment le calcul local.
  if(navigator.onLine){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5500);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
   try{
-   const code=query.term.replace(/\s/g,"");
    const online=/^\d{8,14}$/.test(code)
     ?[await barcodeOpenFoodFacts(code,{signal:controller.signal})]
     :await searchOpenFoodFacts(query.term,{signal:controller.signal});
    if(id!==foodSearchId)return;
    if(online.length){
-    showFoodOptions([...online,...offline],query.grams);
-    $("foodStatus").textContent="Données Open Food Facts (collaboratives) trouvées. Confirme marque, poids et glucides.";
-    if(fromVoice&&offline.length===0&&online.length===1&&query.grams!=null){
-     const rec=prepareRecord(online[0],query.grams);
-     speech(speakFood(rec),{force:true});
+    options=uniqueFoods([...online,...saved,...local]);
+    showFoodOptions(options,query.grams);
+    $("foodStatus").textContent=online.length+" résultat(s) Open Food Facts consulté(s), avec "+offlineCount+" fiche(s) mémorisée(s) et "+local.length+" approximation(s) locale(s). Vérifie le nom et la préparation.";
+    try{await storeFoodProducts(online);await refreshFoodLibrary();}catch(e){
+     $("foodLibraryStatus").textContent="La recherche en ligne fonctionne, mais le stockage hors connexion a échoué : "+String(e.message||e).slice(0,100);
     }
-   }else if(!offline.length)$("foodStatus").textContent="Aucun produit renseigné. Essaie une description plus précise.";
+    if(fromVoice&&!alreadySpoken&&options.length===1&&query.grams!=null){
+     const record=prepareRecord(options[0],query.grams);
+     speech(speakFood(record),{force:true});alreadySpoken=true;
+    }
+   }else if(!options.length)$("foodStatus").textContent="Aucune fiche exploitable trouvée. Recherche d'autres termes ou utilise l'étiquette du produit.";
   }catch(e){
    if(id!==foodSearchId)return;
-   $("foodStatus").textContent="Recherche Open Food Facts indisponible ou trop lente. "+(offline.length?"Résultats locaux conservés.":"Aucune valeur fiable : ne pas deviner.");
+   $("foodStatus").textContent=(options.length
+    ?"Open Food Facts en ligne indisponible ou trop lent : les produits locaux restent calculables."
+    :"Aucune fiche locale trouvée ; Open Food Facts indisponible. Aucun chiffre ne sera inventé.");
   }finally{clearTimeout(timer);}
- }else if(!offline.length)$("foodStatus").textContent="Hors connexion : produit absent du référentiel local. Aucun chiffre inventé.";
- if(id!==foodSearchId)return;
- const hasFood=$("foodResults").children.length>0;
- const feedback=hasFood
-  ?"Choisis le bon aliment et vérifie la portion. Le calcul affiché est une estimation, sans dose d'insuline."
-  :"Je n'ai pas trouvé de glucides vérifiables pour cet aliment.";
- if(fromVoice){
-  $("foodVoiceStatus").textContent=feedback;
-  if(offline.length!==1||query.grams==null)speech(feedback,{force:true});
  }
- sessionReply(feedback,"Agent nutrition • source indiquée",false);
+ if(id!==foodSearchId)return;
+ const hasResult=$("foodResults").children.length>0;
+ let feedback;
+ if(hasResult&&query.grams==null)feedback="J'ai trouvé des aliments. Indique une portion en grammes pour obtenir la quantité de glucides, puis vérifie la marque.";
+ else if(hasResult&&options.length>1)feedback="Plusieurs aliments correspondent. Choisis le produit exact pour éviter une estimation trompeuse.";
+ else if(hasResult)feedback="Une estimation est affichée avec sa source. Vérifie la portion avant d'enregistrer ton repas.";
+ else feedback="Je n'ai pas de donnée fiable pour cet aliment hors connexion. Aucun résultat inventé.";
+ if(fromVoice&&!alreadySpoken){
+  $("foodVoiceStatus").textContent=feedback;
+  speech(feedback,{force:true});
+ }
+ sessionReply(feedback,"Agent nutrition • Open Food Facts / hors connexion",false);
 }
 function handleGluco(text){
  const result=parseGlucoCheck(cleanWake(text),data.profile.unit||"g");
@@ -177,7 +288,7 @@ function renderChat(){const chat=$("chat");chat.replaceChildren();data.chat.slic
 function visibleTab(id){
  $all("nav [data-tab]").forEach(b=>{const active=b.dataset.tab===id;b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");});
  $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));
- if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();
+ if(id==="journal")renderJournal();if(id==="nutrition"){renderMeals();refreshFoodLibrary().catch(()=>{});}
  try{window.scrollTo({top:0,behavior:"instant"});}catch{window.scrollTo(0,0);}
 }
 function requireUnlock(){
@@ -204,6 +315,7 @@ function activate(loaded,ephem=false){
  data=loaded;unlocked=true;ephemeral=ephem;
  $("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";
  renderChat();renderJournal();renderMeals();
+ refreshFoodLibrary().catch(()=>{});
  $("speakToggle").checked=data.prefs.speak!==false;
  $("backupBtn").disabled=ephem;
  $("backupBtn").title=ephem?"Le mode sans stockage ne produit aucune sauvegarde.":"Télécharger le coffre chiffré.";
@@ -486,7 +598,21 @@ function setup(){
   data.readings.push({mg:r.mg,ts:Date.now(),source:"vocal confirmé"});data.readings=data.readings.slice(-2500);
   renderJournal();save();sessionReply("GlucoCheck : valeur confirmée et consignée, "+formatGlucose(r.mg,r.unit)+". "+guidanceForMeasurement(r.mg),"GlucoCheck • saisie confirmée");
  };
- $("foodForm").onsubmit=ev=>{ev.preventDefault();foodVoicePending=false;foodLookup($("foodQuery").value);};
+ $("foodForm").onsubmit=ev=>{ev.preventDefault();foodVoicePending=false;foodLookup($("foodQuery").value).catch(e=>{
+  $("foodStatus").textContent="Erreur de recherche : "+String(e.message||e).slice(0,130);
+ });};
+ $("foodPackBtn").onclick=()=>downloadFoodPack();
+ $("foodLibraryRefresh").onclick=()=>refreshFoodLibrary({showList:true});
+ $("foodLibraryClear").onclick=async()=>{
+  if(!confirm("Vider uniquement les produits Open Food Facts téléchargés sur ce téléphone ? Le journal chiffré et les repas déjà enregistrés ne seront pas modifiés."))return;
+  try{
+   await clearCached();
+   $("foodResults").replaceChildren();foodSearchId++;
+   await refreshFoodLibrary({showList:true});
+   $("foodPackStatus").textContent="Bibliothèque alimentaire effacée. Les glycémies et les repas consignés ont été conservés.";
+   toast("Fiches alimentaires effacées. Journal préservé.");
+  }catch(e){$("foodPackStatus").textContent="Suppression impossible : "+String(e.message||e).slice(0,120);}
+ };
  $("foodReadPreview").onclick=()=>{
   if(!foodCandidate)return;
   try{

@@ -83,6 +83,20 @@
  <p class="hint" id="foodStatus">Les valeurs peuvent varier selon la marque et la préparation.</p>
  <div class="choice-list" id="foodResults"></div>
  </div>
+ <div class="card offline-food-card" aria-label="Bibliothèque Open Food Facts hors connexion">
+  <h2>Ma bibliothèque alimentaire hors connexion</h2>
+  <p class="hint">Quand Internet fonctionne, télécharge des produits Open Food Facts sur ce téléphone. Tu pourras ensuite rechercher leurs glucides sans réseau, y compris par code-barres saisi.</p>
+  <p id="foodLibraryStatus" class="hint" role="status" aria-live="polite">Vérification des produits mémorisés…</p>
+  <div class="food-library-actions">
+   <button id="foodPackBtn" type="button" class="primary">⬇ Préparer mes aliments pour une sortie</button>
+   <button id="foodLibraryRefresh" type="button">Afficher les produits téléchargés</button>
+   <button id="foodLibraryClear" type="button" class="danger">Vider cette bibliothèque</button>
+  </div>
+  <p id="foodPackStatus" class="hint" role="status" aria-live="polite">Téléchargement volontaire en Wi-Fi recommandé (jusqu'à six recherches limitées). Les produits consultés en ligne sont également mémorisés.</p>
+  <div id="foodSavedList" class="food-saved-list" aria-live="polite"></div>
+  <p class="hint">Source : <a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, licence <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>. Données collaboratives : vérifie l'étiquette. Les aliments de la table indicative DiabCare sont identifiés séparément.</p>
+  <p class="hint">Cette bibliothèque publique est stockée indépendamment du journal chiffré. Le navigateur peut effacer son cache, même après téléchargement.</p>
+ </div>
  <div class="card"><h2>Repas consignés</h2><p class="hint">Enregistrement descriptif. Aucune recommandation de bolus.</p><div id="mealHistory"></div></div>
  </section>
 <section class="screen" id="screen-experts" aria-label="Spécialistes">

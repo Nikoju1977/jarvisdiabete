@@ -134,3 +134,22 @@ Cette version apporte de vrais gestionnaires de clics aux huit cartes Experts, s
 **Confidentialité :** le mode **Sans stockage** permet maintenant de **Terminer la session** et protège les coffres existants contre toute suppression depuis cette session. La sauvegarde chiffrée est désactivée lorsqu'aucun coffre n'existe.
 
 Les tests Chromium reproduisent deux tailles d'écran mobile et vérifient les boutons de navigation, le chat clavier, le journal, le bilan texte téléchargé, le calcul et la confirmation des glucides, le dialogue micro (sans capture audio), les rôles Experts, les diagnostics et l'absence de suppression implicite. Ils peuvent aussi vérifier une recharge hors connexion après installation du service worker. Ils ne constituent pas un essai physique de microphones Android/iPhone ni une validation médicale.
+
+
+## DiabCare 4.5 — Bibliothèque Open Food Facts hors connexion
+
+Le calculateur intègre une bibliothèque **IndexedDB** distincte du journal de santé. Ce stockage local contient seulement des fiches de **produits alimentaires publics** (nom, marque, code-barres, glucides pour 100 g, date de téléchargement). **Il ne contient ni glycémies, ni doses, ni conversations**. Les fiches se consultent hors ligne après leur premier téléchargement.
+
+1. Avec Internet, dans l'onglet **Glucides**, cliquer sur **Préparer mes aliments pour une sortie**. DiabCare effectue *six recherches limitées* (riz, pâtes, pain, yaourt, céréales, lait), stocke des fiches valides, affiche le nombre téléchargé et la date de consultation. Les recherches manuelles en ligne enrichissent également la bibliothèque.
+2. Avant de partir, rechercher par **nom, marque ou code-barres** pour vérifier que le produit exact est enregistré. Les produits hors ligne doivent déjà avoir été téléchargés. Le référentiel générique DiabCare est affiché séparément comme **table indicative**, et non comme fiche Open Food Facts.
+3. En randonnée, sans Internet, demander à JARVIS « glucides pour 150 grammes de riz » ou saisir une référence : DiabCare affiche les fiches locales correspondant à la recherche, avec *marque*, *code-barres*, *valeur pour 100 g* et *calcul par portion*. Plusieurs correspondances imposent le choix manuel du produit exact.
+4. **Vider cette bibliothèque** supprime exclusivement les fiches alimentaires téléchargées ; les repas du journal chiffré et les glycémies sont conservés.
+5. L'application ne recommande **aucune dose d'insuline**. Les données Open Food Facts sont collaboratives, peuvent être anciennes, erronées ou manquer de portions. Comparer à l'étiquette du produit réel et choisir son état (cru/cuit) avant d'utiliser une estimation.
+
+Les données proviennent de [Open Food Facts](https://world.openfoodfacts.org/), réutilisées sous **Open Database License (ODbL)** : [conditions de réutilisation](https://world.openfoodfacts.org/terms-of-use). Les produits sont consultés via le service public sans transfert du journal de santé. Open Food Facts limite les recherches ; ce téléchargement de préparation effectue au maximum 6 requêtes par activation, sans autocomplétion constante. Le code-barres n'est pas numérisé par l'appareil : il est saisi manuellement ou vocalement, selon les capacités de reconnaissance de l'appareil.
+
+Les téléphones iPhone et Android peuvent supprimer les fichiers IndexedDB selon l'espace libre, le mode privé ou les politiques système. Il faut **vérifier la présence de la bibliothèque en mode avion** avant de dépendre de l'accès local en sortie. Une bibliothèque préchargée n'implique pas une garantie de disponibilité permanente.
+
+### Non-fonctionnalités volontaires
+
+Aucune importation de la totalité d'Open Food Facts : la base complète est beaucoup trop volumineuse pour une PWA mobile. Aucun remplacement silencieux des valeurs sauvegardées, aucune dose calculée à partir de glucides, aucune fausse mesure en temps réel. La bibliothèque OFF n'est pas fusionnée avec les informations de santé chiffrées.
