@@ -58,5 +58,5 @@ jobs:
         run: node diabcare/browser-smoke.mjs
       - name: Tester le cycle vocal Android et iPhone avec micro simulé
         run: node diabcare/voice-browser-smoke.mjs
-      - name: "Tester deux moteurs de navigateur : Android Chromium et iOS Safari WebKit"
+      - name: "Tester le moteur Safari WebKit en plus des tests Chromium Android"
         run: node diabcare/mobile-engines-smoke.mjs
