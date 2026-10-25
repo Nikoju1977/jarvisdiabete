@@ -32,3 +32,22 @@ jobs:
           node --check diabcare/sw.js
       - name: Tests locaux déterministes
         run: node --test diabcare/*.test.mjs api/diabcare-chat.test.mjs
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Démarrer le serveur local PWA
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/diabcare-http.log 2>&1 &
+          sleep 2
+      - name: Tester les clics en viewport Android et iPhone
+        run: node diabcare/browser-smoke.mjs
