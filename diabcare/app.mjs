@@ -109,7 +109,7 @@ async function mistralQuestion(q){
 
 function toast(t){const x=$("toast");x.textContent=t;x.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>x.hidden=true,5200);}
 function speech(text){
- if(!data.prefs.speak||!("speechSynthesis" in window))return;
+ if(!data.prefs.speak||!("speechSynthesis" in window)){setJarvisState("idle");return;}
  try{
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(String(text).slice(0,1800));u.lang="fr-FR";u.rate=1.04;u.pitch=0.9;
@@ -394,6 +394,7 @@ function setup(){
  };
  $("speakToggle").onchange=e=>{data.prefs.speak=e.target.checked;save();};
  $("remoteSpeechOpt").onchange=e=>{remoteVoiceConsent=e.target.checked;voiceHint(e.target.checked?"Dictée du navigateur en ligne autorisée pour cette session.":"Dictée en ligne désactivée.");};
+ if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
  $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
  $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.");};
