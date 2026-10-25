@@ -95,8 +95,12 @@ async function scenario(label,viewport){
  });
  if(viewport.width===412){
   await check(label+" : chargement complet sans réseau",async()=>{
-   await page.evaluate(()=>navigator.serviceWorker.ready);
-   await page.waitForFunction(async()=>{const names=await caches.keys();return names.some(n=>n.includes("diabcare-pwa-shell-4.4.0"));},{timeout:15000});
+   const swReady=await page.evaluate(async()=>Promise.race([
+    navigator.serviceWorker.ready.then(()=>true),
+    new Promise(resolve=>setTimeout(()=>resolve(false),9000))
+   ]));
+   assert.equal(swReady,true,"Service worker never became ready in Chromium");
+   await page.waitForFunction(async()=>{const names=await caches.keys();return names.some(n=>n.includes("diabcare-pwa-shell-4.4.0"));},null,{timeout:15000});
    await context.setOffline(true);
    await page.reload({waitUntil:"domcontentloaded",timeout:15000});
    await page.locator("#entryDialog").waitFor({state:"visible"});
