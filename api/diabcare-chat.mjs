@@ -28,6 +28,30 @@ export function canSend(q){
  if(/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s))return false;
  return true;
 }
+function allowedOrigin(req,env){
+ const origin=req.headers?.origin;
+ if(!origin)return {allowed:true,origin:null};
+ let parsed;
+ try{parsed=new URL(origin);}catch{return {allowed:false,origin:null};}
+ if(parsed.protocol!=="https:"&&parsed.hostname!=="localhost")return {allowed:false,origin:null};
+ if(parsed.pathname!=="/"||parsed.search||parsed.hash)return {allowed:false,origin:null};
+ const host=req.headers?.host;
+ const same=parsed.host===host;
+ const allow=new Set(["https://nikoju1977.github.io"]);
+ if(env.DIABCARE_ALLOWED_ORIGINS){
+  for(const value of env.DIABCARE_ALLOWED_ORIGINS.split(",").map(x=>x.trim()).filter(Boolean))
+   allow.add(value);
+ }
+ return {allowed:same||allow.has(origin),origin};
+}
+function corsHeaders(res,origin){
+ res.setHeader?.("Vary","Origin");
+ if(!origin)return;
+ res.setHeader?.("Access-Control-Allow-Origin",origin);
+ res.setHeader?.("Access-Control-Allow-Methods","POST, GET, OPTIONS");
+ res.setHeader?.("Access-Control-Allow-Headers","Content-Type, X-DiabCare-Code");
+ res.setHeader?.("Access-Control-Max-Age","600");
+}
 function send(res,status,data){
  res.statusCode=status;
  res.setHeader?.("Content-Type","application/json; charset=utf-8");
@@ -37,15 +61,23 @@ function send(res,status,data){
 }
 export function createHandler({fetchFn=fetch,env=process.env}={}){
  return async function handler(req,res){
-  if(req.method!=="POST"){res.setHeader?.("Allow","POST");return send(res,405,{error:"Méthode interdite."});}
-  const origin=req.headers?.origin;
-  if(origin){try{if(new URL(origin).host!==req.headers?.host)return send(res,403,{error:"Origine non autorisée."});}catch{return send(res,403,{error:"Origine invalide."});}}
+  const originCheck=allowedOrigin(req,env);
+  if(!originCheck.allowed)return send(res,403,{error:"Origine non autorisée."});
+  corsHeaders(res,originCheck.origin);
+  if(req.method==="OPTIONS"){
+   res.statusCode=204;res.setHeader?.("Cache-Control","no-store");return res.end("");
+  }
+  if(req.method==="GET"){
+   return send(res,200,{service:"diabcare-mistral",configured:Boolean(env.MISTRAL_API_KEY&&env.DIABCARE_GATE_CODE?.length>=16)});
+  }
+  if(req.method!=="POST"){res.setHeader?.("Allow","GET, POST, OPTIONS");return send(res,405,{error:"Méthode interdite."});}
   if(!env.MISTRAL_API_KEY||!env.DIABCARE_GATE_CODE||env.DIABCARE_GATE_CODE.length<16)return send(res,503,{error:"Mode Mistral non configuré sur ce serveur."});
   const provided=String(req.headers?.["x-diabcare-code"]||"");
   if(!constantEqual(provided,env.DIABCARE_GATE_CODE))return send(res,401,{error:"Accès Mistral refusé."});
   let payload=req.body;
   if(typeof payload==="string"&&payload.length<=MAX_REQUEST){try{payload=JSON.parse(payload);}catch{return send(res,400,{error:"JSON invalide."});}}
   if(!payload||typeof payload!=="object"||Array.isArray(payload)||JSON.stringify(payload).length>MAX_REQUEST)return send(res,413,{error:"Requête trop volumineuse."});
+  if(payload.action==="ping")return send(res,200,{ok:true,configured:true,model:env.MISTRAL_MODEL||"mistral-small-latest"});
   const q=payload.question;
   if(!canSend(q))return send(res,422,{error:"Cette question doit être traitée localement par les règles de sécurité."});
   const fallback=answer(q).text;
