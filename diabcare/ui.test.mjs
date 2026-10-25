@@ -82,7 +82,7 @@ test("les actions disponibles signalent leurs limites et laissent les données c
 test("une requête Open Food Facts trop lente est interrompue",()=>{
  assert.match(js,/AbortController/);
  assert.match(js,/controller\.abort\(\),6000/);
- assert.match(js,/Recherche Open Food Facts indisponible ou trop lente/);
+ assert.match(js,/Open Food Facts en ligne indisponible ou trop lent/);
 });
 
 test("OFF offline library actions have working controls",()=>{
