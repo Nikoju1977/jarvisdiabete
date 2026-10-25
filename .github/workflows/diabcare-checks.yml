@@ -25,6 +25,7 @@ jobs:
           node --check diabcare/voice.mjs
           node --check diabcare/speech-policy.mjs
           node --check diabcare/speech-offline.mjs
+          node --check diabcare/voice-session.mjs
           node --check diabcare/nutrition.mjs
           node --check diabcare/food-library.mjs
           node --check diabcare/ai-config.mjs
