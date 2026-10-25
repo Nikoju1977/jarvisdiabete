@@ -1,5 +1,5 @@
 /* Cache applicatif hors ligne, sans synchronisation ni téléversement de données santé. */
-const CACHE="diabcare-pwa-shell-4.3.1";
+const CACHE="diabcare-pwa-shell-4.3.2";
 const RUNTIME="diabcare-runtime-wllama-3.6.1";
 const VOICE_RUNTIME="diabcare-runtime-whisper-3.8.1";
 const VOICE_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
