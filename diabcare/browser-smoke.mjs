@@ -12,7 +12,24 @@ async function scenario(label,viewport){
  const context=await browser.newContext({viewport,isMobile:true,hasTouch:true,deviceScaleFactor:2,acceptDownloads:true});
  const page=await context.newPage();const failures=[];
  page.on("pageerror",e=>failures.push(String(e.message||e)));
- await page.route("https://world.openfoodfacts.org/**",route=>route.fulfill({status:503,headers:{"access-control-allow-origin":"*"},body:"Unavailable"}));
+
+ let offlineCatalogMock=false;
+ await page.route("https://world.openfoodfacts.org/**",route=>{
+  const reqUrl=new URL(route.request().url);
+  const term=reqUrl.searchParams.get("search_terms")||"";
+  if(offlineCatalogMock&&(term||reqUrl.pathname.includes("/product/"))){
+   const names={"riz basmati":"Riz basmati bio","riz":"Riz basmati bio","pâtes":"Pâtes complètes","pain":"Pain aux céréales","yaourt":"Yaourt nature","céréales":"Céréales muesli","lait":"Lait UHT"};
+   const name=names[term]||"Riz basmati bio";
+   const index=Object.keys(names).indexOf(term);
+   const code=term==="riz basmati"?"3274080005003":String(3000000000000+Math.max(1,index)*32112);
+   route.fulfill({status:200,contentType:"application/json",
+    headers:{"access-control-allow-origin":"*"},
+    body:JSON.stringify({products:[{code,product_name_fr:name,brands:"Marque test",nutriments:{carbohydrates_100g:76}}]})});
+  }else{
+   route.fulfill({status:503,headers:{"access-control-allow-origin":"*"},body:"Unavailable"});
+  }
+ });
+
  await check(label+" : ouverture et coffre",async()=>{
   await page.goto(url,{waitUntil:"domcontentloaded",timeout:20000});
   await page.locator("#entryDialog").waitFor({state:"visible"});
@@ -48,15 +65,54 @@ async function scenario(label,viewport){
   await page.locator(".food-estimate").first().waitFor({state:"visible"});
   assert.match(await page.locator(".food-estimate").first().innerText(),/42/);
   assert.ok(await page.locator(".read-carb-btn").first().isVisible());
-  await page.getByRole("button",{name:"Choisir et vérifier la portion"}).first().click();
+  await page.getByRole("button",{name:"Choisir et confirmer la portion"}).first().click();
   await page.locator("#confirmFood").waitFor({state:"visible"});
   assert.match(await page.locator("#foodPreview").innerText(),/42/);
   await page.locator("#foodReadPreview").click();
   await page.locator("#foodCancel").click();
   assert.match(await page.locator("#mealHistory").innerText(),/Aucun repas/);
-  await page.getByRole("button",{name:"Choisir et vérifier la portion"}).first().click();
+  await page.getByRole("button",{name:"Choisir et confirmer la portion"}).first().click();
   await page.locator("#foodApprove").click();
   assert.match(await page.locator("#mealHistory").innerText(),/42/);
+ });
+ await check(label+" : téléchargement volontaire de vrais produits simulés et réutilisation hors connexion",async()=>{
+  offlineCatalogMock=true;
+  await page.locator("#foodQuery").fill("150 g de riz basmati");
+  await page.locator('#foodForm button[type="submit"]').click();
+  await page.locator(".choice-item .product-source").first().waitFor({state:"visible"});
+  await page.waitForFunction(()=>document.querySelector("#foodResults")?.textContent?.includes("Riz basmati bio"),null,{timeout:9000});
+  assert.match(await page.locator("#foodResults").innerText(),/Riz basmati bio|Marque test/);
+  await page.waitForFunction(()=>document.querySelector("#foodLibraryStatus")?.textContent?.includes("1 produit"),null,{timeout:9000});
+  // Pas de cache médical : seule la fiche OFF est enregistrée dans IndexedDB.
+  const health=await page.evaluate(async()=>{
+   const db=await new Promise((resolve,reject)=>{
+    const req=indexedDB.open("diabcare-offline-foodfacts");
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+   });
+   const tx=db.transaction("products","readonly");
+   const values=await new Promise((resolve,reject)=>{
+    const req=tx.objectStore("products").getAll();
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+   });
+   db.close();return values;
+  });
+  assert.ok(health.every(x=>!Object.keys(x).some(k=>/glucose|insulin|patient|profile|meal|chat/i.test(k))));
+  await context.setOffline(true);
+  await page.locator("#foodQuery").fill("150 g de 3274080005003");
+  await page.locator('#foodForm button[type="submit"]').click();
+  await page.waitForFunction(()=>document.querySelector("#foodResults")?.textContent?.includes("Riz basmati bio"),null,{timeout:9000});
+  assert.match(await page.locator("#foodStatus").innerText(),/Open Food Facts mémorisée|fiche\(s\) Open Food Facts/);
+  assert.match(await page.locator("#foodResults").innerText(),/114/);
+  await context.setOffline(false);
+  offlineCatalogMock=false;
+ });
+ await check(label+" : boutons de la bibliothèque hors connexion",async()=>{
+  await page.locator("#foodLibraryRefresh").click();
+  await page.locator("#foodSavedList .food-saved-item").first().waitFor({state:"visible"});
+  assert.match(await page.locator("#foodLibraryStatus").innerText(),/produit/);
+  assert.ok(await page.locator("#foodPackBtn").isVisible());
+  assert.ok(await page.locator("#foodLibraryClear").isVisible());
  });
  await check(label+" : bouton micro glucides et clavier restent dans glucides",async()=>{
   await page.locator("#foodMicBtn").click();
