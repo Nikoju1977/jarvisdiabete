@@ -168,55 +168,78 @@ async function foodLookup(raw){
  const query=parseFoodQuery(cleanWake(raw));
  if(!query||query.error){
   foodVoicePending=false;
-  const msg=query?.error||"Indique un aliment et, si possible, sa portion en grammes.";
-  $("foodStatus").textContent=msg;toast(msg);return;
+  const message=query?.error||"Précise un aliment et, idéalement, une quantité en grammes.";
+  $("foodStatus").textContent=message;toast(message);return;
  }
  const id=++foodSearchId,fromVoice=foodVoicePending;foodVoicePending=false;
  visibleTab("nutrition");$("foodQuery").value=raw;
- const offline=findOffline(query.term);
- showFoodOptions(offline,query.grams);
- $("foodStatus").textContent=offline.length
-  ?offline.length+" aliment(s) indicatif(s) disponible(s) immédiatement. Vérifie l'étiquette et le mode de préparation."
-  :"Recherche de données nutritionnelles…";
- if(fromVoice&&offline.length===1&&query.grams!=null){
+ const local=findOffline(query.term);
+ showFoodOptions(local,query.grams);
+ const code=query.term.trim().replace(/\s/g,"");
+ let saved=[];
+ try{
+  saved=await cachedSearch(code||query.term,8);
+ }catch(e){
+  $("foodLibraryStatus").textContent="Bibliothèque locale inaccessible : "+String(e.message||e).slice(0,100);
+ }
+ if(id!==foodSearchId)return;
+ let options=uniqueFoods([...saved,...local]);
+ showFoodOptions(options,query.grams);
+ const offlineCount=saved.length;
+ if(offlineCount){
+  $("foodStatus").textContent=offlineCount+" fiche(s) Open Food Facts mémorisée(s) sur le téléphone"+(local.length?" et "+local.length+" référence(s) indicatives.":".")+" Vérifie la marque et les valeurs de l'étiquette.";
+ }else if(local.length){
+  $("foodStatus").textContent="Table DiabCare indicative, sans fiche Open Food Facts correspondante mémorisée. Vérifie l'aliment préparé.";
+ }else{
+  $("foodStatus").textContent=navigator.onLine?"Recherche Open Food Facts en cours…":"Aucun produit en mémoire correspondant. Prépare la bibliothèque avant de partir en nature.";
+ }
+ // Une seule correspondance permet de répondre directement avec sa source explicite.
+ let alreadySpoken=false;
+ if(fromVoice&&options.length===1&&query.grams!=null){
   try{
-   const rec=prepareRecord(offline[0],query.grams);
-   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+query.grams+" g de "+rec.name+".";
-   speech(speakFood(rec),{force:true});
+   const rec=prepareRecord(options[0],query.grams);
+   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g estimés pour "+query.grams+" g de "+rec.name+". Source : "+rec.source+".";
+   speech(speakFood(rec),{force:true});alreadySpoken=true;
   }catch{}
  }
- // La recherche distante ne peut jamais bloquer indéfiniment le calcul local.
  if(navigator.onLine){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5500);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
   try{
-   const code=query.term.replace(/\s/g,"");
    const online=/^\d{8,14}$/.test(code)
     ?[await barcodeOpenFoodFacts(code,{signal:controller.signal})]
     :await searchOpenFoodFacts(query.term,{signal:controller.signal});
    if(id!==foodSearchId)return;
    if(online.length){
-    showFoodOptions([...online,...offline],query.grams);
-    $("foodStatus").textContent="Données Open Food Facts (collaboratives) trouvées. Confirme marque, poids et glucides.";
-    if(fromVoice&&offline.length===0&&online.length===1&&query.grams!=null){
-     const rec=prepareRecord(online[0],query.grams);
-     speech(speakFood(rec),{force:true});
+    options=uniqueFoods([...online,...saved,...local]);
+    showFoodOptions(options,query.grams);
+    $("foodStatus").textContent=online.length+" résultat(s) Open Food Facts consulté(s), avec "+offlineCount+" fiche(s) mémorisée(s) et "+local.length+" approximation(s) locale(s). Vérifie le nom et la préparation.";
+    try{await storeFoodProducts(online);await refreshFoodLibrary();}catch(e){
+     $("foodLibraryStatus").textContent="La recherche en ligne fonctionne, mais le stockage hors connexion a échoué : "+String(e.message||e).slice(0,100);
     }
-   }else if(!offline.length)$("foodStatus").textContent="Aucun produit renseigné. Essaie une description plus précise.";
+    if(fromVoice&&!alreadySpoken&&options.length===1&&query.grams!=null){
+     const record=prepareRecord(options[0],query.grams);
+     speech(speakFood(record),{force:true});alreadySpoken=true;
+    }
+   }else if(!options.length)$("foodStatus").textContent="Aucune fiche exploitable trouvée. Recherche d'autres termes ou utilise l'étiquette du produit.";
   }catch(e){
    if(id!==foodSearchId)return;
-   $("foodStatus").textContent="Recherche Open Food Facts indisponible ou trop lente. "+(offline.length?"Résultats locaux conservés.":"Aucune valeur fiable : ne pas deviner.");
+   $("foodStatus").textContent=(options.length
+    ?"Open Food Facts en ligne indisponible ou trop lent : les produits locaux restent calculables."
+    :"Aucune fiche locale trouvée ; Open Food Facts indisponible. Aucun chiffre ne sera inventé.");
   }finally{clearTimeout(timer);}
- }else if(!offline.length)$("foodStatus").textContent="Hors connexion : produit absent du référentiel local. Aucun chiffre inventé.";
- if(id!==foodSearchId)return;
- const hasFood=$("foodResults").children.length>0;
- const feedback=hasFood
-  ?"Choisis le bon aliment et vérifie la portion. Le calcul affiché est une estimation, sans dose d'insuline."
-  :"Je n'ai pas trouvé de glucides vérifiables pour cet aliment.";
- if(fromVoice){
-  $("foodVoiceStatus").textContent=feedback;
-  if(offline.length!==1||query.grams==null)speech(feedback,{force:true});
  }
- sessionReply(feedback,"Agent nutrition • source indiquée",false);
+ if(id!==foodSearchId)return;
+ const hasResult=$("foodResults").children.length>0;
+ let feedback;
+ if(hasResult&&query.grams==null)feedback="J'ai trouvé des aliments. Indique une portion en grammes pour obtenir la quantité de glucides, puis vérifie la marque.";
+ else if(hasResult&&options.length>1)feedback="Plusieurs aliments correspondent. Choisis le produit exact pour éviter une estimation trompeuse.";
+ else if(hasResult)feedback="Une estimation est affichée avec sa source. Vérifie la portion avant d'enregistrer ton repas.";
+ else feedback="Je n'ai pas de donnée fiable pour cet aliment hors connexion. Aucun résultat inventé.";
+ if(fromVoice&&!alreadySpoken){
+  $("foodVoiceStatus").textContent=feedback;
+  speech(feedback,{force:true});
+ }
+ sessionReply(feedback,"Agent nutrition • Open Food Facts / hors connexion",false);
 }
 function handleGluco(text){
  const result=parseGlucoCheck(cleanWake(text),data.profile.unit||"g");
