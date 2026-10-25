@@ -25,7 +25,7 @@ test("aucune dépendance d'un service de suivi exclu dans les fichiers chargés"
  }
 });
 test("cache versionné pour ne pas afficher le vieux cockpit",()=>{
- assert.match(sw,/diabcare-pwa-shell-4\.3\.1/);
+ assert.match(sw,/diabcare-pwa-shell-4\.3\.2/);
  assert.match(sw,/"\.\/ui\.css"/);
  assert.match(sw,/"\.\/speech-offline\.mjs"/);
  assert.match(rootSW,/jarvis-diabete-/);
