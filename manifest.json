@@ -1,15 +1,19 @@
 {
-  "name": "Jarvis Diabète",
-  "short_name": "Jarvis Diabète",
-  "description": "Suivi du diabète avec agents de contrôle et données chiffrées sur l'appareil",
+  "name": "DiabCare — Assistant vocal DT1",
+  "short_name": "DiabCare",
+  "description": "Assistant vocal et journal personnel du diabète de type 1",
   "lang": "fr",
-  "start_url": "./",
+  "start_url": "./diabcare/",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F3F6F9",
-  "theme_color": "#0A1628",
+  "background_color": "#071421",
+  "theme_color": "#071421",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "./diabcare/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }
