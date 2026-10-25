@@ -9,8 +9,10 @@ import {isRecordingSupported,recordClip,loadWhisper,transcribeWhisper} from "./s
 import {createVoiceSession} from "./voice-session.mjs";
 import {cachedSearch,allCached,cachedStats,storeFoodProducts,clearCached,libraryStatus,OFFLINE_PACK_QUERIES} from "./food-library.mjs";
 import {SUGGESTED_GATEWAY,GATEWAY_STORAGE_KEY,testGateway,gatewayError,renderAiStatus} from "./ai-config.mjs";
+import {createWriteQueue} from "./write-queue.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
-let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,saveQueue=Promise.resolve(),pendingInstall=null;
+let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,pendingInstall=null,locking=false;
+const writeQueue=createWriteQueue(persist,error=>toast("Sauvegarde du coffre échouée : "+String(error.message||error).slice(0,160)));
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
 let voiceSession=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
@@ -82,7 +84,7 @@ function sessionReply(text,label="Assistant local",say=true){
 function cleanWake(s){return String(s||"").trim().replace(/^(?:hey|hé|bonjour|ok|salut)?\s*(?:jarvis|diabcare)[\s,.:!-]*/i,"").trim();}
 function isFoodQuestion(s){return /\b(?:glucide|glucides|aliment|aliments)\b/i.test(s)&&/(?:combien|dans|pour|calcule|chercher|cherche|\d+\s*(?:g|kg|grammes?))/.test(s.toLowerCase());}
 function educationalOnly(question){
- const s=String(question||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete");
+ const s=String(question||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete").replace(/\btype\s+1\b/g,"type un");
  return s.length<=1000 && !/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s);
 }
 function liveMode(){return $("aiSelect")?.value||"offline";}
@@ -324,8 +326,11 @@ function speech(text,{force=false}={}){
   speechSynthesis.speak(u);
  }catch{setJarvisState("idle");if(force)toast("Lecture vocale non prise en charge dans ce navigateur.");}
 }
-function save(){if(!unlocked||ephemeral||!key)return Promise.resolve();const snapshot=structuredClone(data);
- saveQueue=saveQueue.catch(()=>{}).then(()=>persist(key,snapshot)).catch(e=>toast("Enregistrement impossible : "+e.message));return saveQueue;
+function save(){
+ if(!unlocked||ephemeral||!key)return Promise.resolve();
+ // Key and patient data captured before any await; later locks and unlocks
+ // must never encrypt this snapshot with a different session key.
+ return writeQueue.enqueue(key,data);
 }
 function msg(role,text,small=""){const d=document.createElement("div");d.className="msg"+(role==="user"?" user":"");d.textContent=text;
  if(small){const e=document.createElement("small");e.textContent=small;d.appendChild(e);}
@@ -370,10 +375,21 @@ function activate(loaded,ephem=false){
  $("eraseBtn").disabled=ephem;
  $("eraseBtn").title=ephem?"Déverrouille d'abord ton coffre pour le supprimer.":"Effacer définitivement le coffre";
 }
-function lock(){
+async function lock(){
+ if(locking)return;
+ locking=true;
+ try{
+  // Do not drop the last entry while AES-GCM encryption is still running.
+  // In case of quota/storage errors keep the session open and explain why.
+  await writeQueue.flush();
+ }catch(e){
+  toast("Impossible de verrouiller sans perdre la dernière saisie : "+String(e.message||e).slice(0,120)+". Libère de l'espace et sauvegarde tes données.");
+  locking=false;
+  return;
+ }
  silence();data=fresh();key=null;unlocked=false;ephemeral=false;model=null;
  $("chat").replaceChildren();$("vaultStatus").textContent="Verrouillé";
- entry(exists());
+ locking=false;entry(exists());
 }
 function entry(already=exists()){$("entryTitle").textContent=already?"Déverrouiller DiabCare":"Créer mon coffre chiffré";$("entryText").textContent=already?"Entre ta phrase secrète. Aucun serveur ne peut la récupérer.":"Crée une phrase secrète d'au moins 8 caractères. Les données de santé seront chiffrées localement, sans cloud."; $("consentField").hidden=already;$("pin").value="";$("pinError").textContent="";
  $("entrySubmit").textContent=already?"Déverrouiller le coffre":"Créer un coffre sécurisé";
@@ -754,7 +770,7 @@ function setup(){
  data.profile.unit=unit;data.readings.push({mg:r.mg,ts:Date.now(),source:"manuel"});data.readings=data.readings.slice(-2500);$("glucose").value="";save();renderJournal();let info=guidanceForMeasurement(r.mg);toast("Mesure enregistrée : "+formatGlucose(r.mg,unit));$("safetyNotice").textContent=info;$("safetyNotice").className="alert"+(stateOf(r.mg)==="verylow"||stateOf(r.mg)==="low"?" critical":"");};
  $("injectionForm").onsubmit=e=>{e.preventDefault();if(!requireUnlock())return;const txt=$("injection").value.trim().replace(",",".");const u=Number(txt);if(!/^\d+(?:\.\d+)?$/.test(txt)||!(u>0&&u<=100)){toast("Valeur invalide. Il s'agit uniquement d'une injection réellement effectuée.");return;}data.injections.push({u,ts:Date.now()});data.injections=data.injections.slice(-1000);$("injection").value="";save();renderJournal();toast("Injection déjà réalisée consignée.");};
  $("reportBtn").onclick=()=>{if(requireUnlock())reportDownload("diabcare-bilan.txt",exportReport(data));};
- $("backupBtn").onclick=async()=>{try{await saveQueue;reportDownload("diabcare-coffre-chiffre.json",exportEncrypted(),"application/json");toast("Sauvegarde chiffrée téléchargée.");}catch(e){toast(e.message);}};
+ $("backupBtn").onclick=async()=>{try{await writeQueue.flush();reportDownload("diabcare-coffre-chiffre.json",exportEncrypted(),"application/json");toast("Sauvegarde chiffrée téléchargée.");}catch(e){toast(e.message);}};
  $("restoreBtn").onclick=()=>{
   if(ephemeral&&exists()){toast("Déverrouille ton coffre existant avant de restaurer une sauvegarde.");return;}
   $("restoreFile").click();
@@ -762,7 +778,7 @@ function setup(){
  $("restoreFile").onchange=async ev=>{const file=ev.target.files?.[0];ev.target.value="";if(!file)return;if(file.size>10000000){toast("Sauvegarde trop volumineuse.");return;}
   const phrase=prompt("Phrase secrète de la sauvegarde chiffrée :");if(!phrase)return;
   if(!confirm("Remplacer le coffre local actuel par cette sauvegarde, après vérification ?"))return;
-  try{await restoreEncryptedBackup(await file.text(),phrase);toast("Sauvegarde vérifiée et restaurée. Rechargement…");location.reload();}catch(err){toast("Restauration refusée : "+String(err.message||err).slice(0,140));}
+  try{await writeQueue.flush();await restoreEncryptedBackup(await file.text(),phrase);toast("Sauvegarde vérifiée et restaurée. Rechargement…");location.reload();}catch(err){toast("Restauration refusée : "+String(err.message||err).slice(0,140));}
  };
  $("speakToggle").onchange=e=>{data.prefs.speak=e.target.checked;save();};
  $("remoteSpeechOpt").onchange=e=>{
@@ -772,11 +788,12 @@ function setup(){
  };
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
- $("eraseBtn").onclick=()=>{
+ $("eraseBtn").onclick=async()=>{
   if(!unlocked||ephemeral){toast("Le coffre doit être déverrouillé avant suppression.");return;}
   if(!confirm("Supprimer définitivement le coffre chiffré DiabCare ?"))return;
   if(!confirm("Dernière confirmation : les données seront perdues sans sauvegarde."))return;
-  erase();location.reload();
+  try{await writeQueue.flush();erase();location.reload();}
+  catch(e){toast("Suppression annulée : sauvegarde en cours non terminée. "+String(e.message||e).slice(0,110));}
  };
  $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
  $("modelBtn").onclick=loadAI;
