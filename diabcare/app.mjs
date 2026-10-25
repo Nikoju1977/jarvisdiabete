@@ -525,7 +525,19 @@ function updateVoiceActivity(stage,details=""){
 function setupVoiceSession(){
  voiceSession=createVoiceSession({
   capture:({onProgress})=>recordClip({durationMs:16000,onStatus:onProgress}),
-  transcribe:(blob,{onProgress})=>transcribeWhisper(blob,onProgress),
+  transcribe:async(blob,{onProgress})=>{
+   // A 484 MB Qwen model + Whisper can exhaust memory on an Android phone.
+   // Release only Qwen's runtime, not its downloaded weights or the user's diary.
+   if(model){
+    onProgress("Optimisation mémoire : mise en pause de Qwen avant transcription Whisper…");
+    try{await model.unload?.();}catch{}
+    model=null;
+    $("aiMode").textContent="Assistant local disponible · voix prioritaire";
+    $("modelStatus").textContent="Qwen mis en pause pour libérer de la mémoire pendant la dictée. Recharge-le depuis Réglages si nécessaire.";
+    updateAiStatuses();
+   }
+   return transcribeWhisper(blob,onProgress);
+  },
   onState:(stage,details)=>{
    updateVoiceActivity(stage,details);
    if(details&&stage!=="listening")voiceHint(details);
