@@ -1,0 +1,71 @@
+name: Publish DiabCare on GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "diabcare/**"
+      - ".github/workflows/diabcare-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: diabcare-github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node for tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check diabcare/app.mjs
+          node --check diabcare/core.mjs
+          node --check diabcare/vault.mjs
+          node --check diabcare/voice.mjs
+          node --check diabcare/nutrition.mjs
+          node --check diabcare/model.mjs
+          node --check diabcare/specialists.mjs
+          node --check diabcare/llm-sources.mjs
+          node --check diabcare/sw.js
+          node --check api/diabcare-chat.mjs
+
+      - name: Run reliability regression tests
+        run: node --test diabcare/*.test.mjs api/diabcare-chat.test.mjs
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare PWA bundle
+        run: |
+          test -f diabcare/index.html
+          test -f diabcare/manifest.webmanifest
+          test -f diabcare/sw.js
+          touch diabcare/.nojekyll
+
+      - name: Upload DiabCare static website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./diabcare
+
+      - name: Publish on GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
