@@ -86,7 +86,7 @@
  <div class="card"><h2>Repas consignés</h2><p class="hint">Enregistrement descriptif. Aucune recommandation de bolus.</p><div id="mealHistory"></div></div>
  </section>
 <section class="screen" id="screen-experts" aria-label="Spécialistes">
- <div class="card"><h2>Un assistant, plusieurs compétences</h2><p class="hint">Ces agents sont des rôles logiciels spécialisés et non des professionnels humains. L'agent de sécurité intervient avant toute IA générative.</p><div class="grid" id="agents"></div></div>
+ <div class="card"><h2>Un assistant, plusieurs compétences</h2><p class="hint">Appuie sur une expertise pour ouvrir une question adaptée. Il s'agit de rôles logiciels, et non de professionnels humains. Le contrôle de sécurité passe avant l'IA.</p><div class="grid" id="agents"></div></div>
  <div class="card" id="emergencyCard"><h2>Carte d'urgence</h2><p>Numéros français : <a href="tel:15">15 (SAMU)</a> ou <a href="tel:112">112</a>.</p><p class="hint">Perte de connaissance : rien par la bouche. Glucagon si disponible et administrable selon la formation reçue et les secours.</p><button id="emergencyRead" class="danger">Lire les consignes à voix haute</button></div>
  <div class="card"><h2>Références</h2><div id="sources"></div></div>
 </section>
@@ -100,7 +100,8 @@
  <p id="mistralState" class="hint">Désactivé par défaut. Configuration serveur requise.</p></div>
  <div class="card"><h2>Voix JARVIS</h2><label><input type="checkbox" id="speakToggle" style="width:auto;min-height:auto"> Lire les réponses à voix haute</label><p class="hint">Le mode Whisper utilise le calcul local après téléchargement. La dictée fournie par le navigateur peut envoyer l’audio à un service distant et nécessite ton accord explicite.</p><label><input type="checkbox" id="remoteSpeechOpt" style="width:auto;min-height:auto"> Autoriser, pour cette session, la dictée vocale du navigateur avec Internet</label><p class="hint">L’écoute permanente en arrière-plan n’est pas disponible sur iPhone et Android dans une PWA.</p><button id="voiceInstallBtn" type="button">Préparer Whisper hors connexion</button><p id="voiceInstallStatus" class="hint">La première installation nécessite du réseau. La voix native peut également demander Internet.</p></div>
  <div class="card"><h2>IA open source sur l'appareil</h2><p class="hint">Option locale avec GGUF et wllama. Premier téléchargement important (~500 Mo), téléphone récent recommandé. En cas d'échec, le moteur déterministe hors ligne reste disponible.</p><p id="modelStatus" class="muted mini">Modèle non chargé</p><div id="llmSources" class="hint"></div><button id="modelBtn" class="primary">Télécharger / activer le modèle local</button><button id="modelCheck" style="margin-top:8px">Vérifier la mise à jour du modèle</button><p class="hint">Pas de changement automatique des poids sans contrôle de leur intégrité. Aucune donnée de santé n'est envoyée pour générer une réponse.</p></div>
- <div class="card"><h2>Application et mises à jour</h2><div class="row"><button id="appUpdate">Vérifier une nouvelle version</button><button id="installBtn" hidden>Installer l'application</button></div><p id="appVersion" class="hint">DiabCare 4.0</p></div>
+ <div class="card"><h2>Application et mises à jour</h2><div class="row"><button id="appUpdate" type="button">Vérifier une nouvelle version</button><button id="installBtn" type="button" hidden>Installer l'application</button></div><p id="appVersion" class="hint">DiabCare</p><p id="updateStatus" class="hint" role="status" aria-live="polite">Les données chiffrées du journal ne sont pas supprimées lors d'une mise à jour.</p></div>
+ <div class="card"><h2>Vérification des fonctions</h2><p class="hint">Diagnostic local de ton navigateur Android/iPhone. Aucun résultat n'est transmis à un serveur.</p><button id="diagnosticBtn" type="button">Tester les boutons et les capacités du navigateur</button><div id="diagnosticResults" class="hint" role="status" aria-live="polite"></div></div>
 </section>
 </main><p class="footer">DiabCare est un compagnon d'information et de journal personnel. Il ne constitue pas un dispositif médical certifié, un diabétologue ou un système d'alerte en temps réel.</p>
 </div>
@@ -111,9 +112,10 @@
 <dialog id="confirmFood"><h2>Confirmer la portion</h2><p id="foodCandidateName"></p><label for="foodPortion">Poids consommé en grammes</label><input id="foodPortion" inputmode="decimal" placeholder="Ex. 150"><p id="foodPreview" class="hint"></p><button type="button" id="foodReadPreview" class="read-carb-btn">🔊 Écouter le calcul (sans enregistrer)</button><div class="row"><button id="foodCancel">Annuler</button><button id="foodApprove" class="primary">Confirmer et enregistrer</button></div></dialog>
 <dialog id="voiceChoice" aria-labelledby="voiceChoiceTitle">
  <h2 id="voiceChoiceTitle">Parler à JARVIS</h2>
- <p id="voiceChoiceDetails" class="hint">Choisis une méthode qui fonctionne sur ce téléphone. La dictée via Internet nécessite ton accord.</p>
+ <p id="voiceChoiceDetails" class="hint">Choisis une méthode qui fonctionne sur ce téléphone. Le navigateur ne peut pas être forcé à fournir une reconnaissance hors connexion.</p>
  <div class="stack">
-  <button id="voiceBrowserBtn" class="primary" type="button">🎤 Dictée Android • avec mon accord</button>
+  <label class="voice-consent"><input type="checkbox" id="voiceConsentCheck"> Je comprends que la dictée du navigateur peut transmettre ma voix à son fournisseur. J'autorise cette dictée pour cette session.</label>
+  <button id="voiceBrowserBtn" class="primary" type="button">🎤 Activer la dictée du navigateur</button>
   <p class="hint" id="remoteVoiceExplainer">La reconnaissance du navigateur peut envoyer l'audio à son fournisseur. Aucune donnée du journal n'est envoyée par DiabCare.</p>
   <button id="voiceOfflineBtn" type="button">⬇ Préparer Whisper • hors connexion</button>
   <p class="hint">Premier téléchargement volumineux en Wi-Fi, calcul sur le téléphone. La vitesse et le stockage dépendent de l'appareil.</p>
