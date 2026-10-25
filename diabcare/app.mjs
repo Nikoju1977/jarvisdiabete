@@ -288,7 +288,7 @@ function renderChat(){const chat=$("chat");chat.replaceChildren();data.chat.slic
 function visibleTab(id){
  $all("nav [data-tab]").forEach(b=>{const active=b.dataset.tab===id;b.classList.toggle("active",active);b.setAttribute("aria-current",active?"page":"false");});
  $all(".screen").forEach(x=>x.classList.toggle("active",x.id==="screen-"+id));
- if(id==="journal")renderJournal();if(id==="nutrition")renderMeals();
+ if(id==="journal")renderJournal();if(id==="nutrition"){renderMeals();refreshFoodLibrary().catch(()=>{});}
  try{window.scrollTo({top:0,behavior:"instant"});}catch{window.scrollTo(0,0);}
 }
 function requireUnlock(){
@@ -315,6 +315,7 @@ function activate(loaded,ephem=false){
  data=loaded;unlocked=true;ephemeral=ephem;
  $("entryDialog").close();$("vaultStatus").textContent=ephem?"Session sans stockage":"Coffre déverrouillé";
  renderChat();renderJournal();renderMeals();
+ refreshFoodLibrary().catch(()=>{});
  $("speakToggle").checked=data.prefs.speak!==false;
  $("backupBtn").disabled=ephem;
  $("backupBtn").title=ephem?"Le mode sans stockage ne produit aucune sauvegarde.":"Télécharger le coffre chiffré.";
@@ -597,7 +598,21 @@ function setup(){
   data.readings.push({mg:r.mg,ts:Date.now(),source:"vocal confirmé"});data.readings=data.readings.slice(-2500);
   renderJournal();save();sessionReply("GlucoCheck : valeur confirmée et consignée, "+formatGlucose(r.mg,r.unit)+". "+guidanceForMeasurement(r.mg),"GlucoCheck • saisie confirmée");
  };
- $("foodForm").onsubmit=ev=>{ev.preventDefault();foodVoicePending=false;foodLookup($("foodQuery").value);};
+ $("foodForm").onsubmit=ev=>{ev.preventDefault();foodVoicePending=false;foodLookup($("foodQuery").value).catch(e=>{
+  $("foodStatus").textContent="Erreur de recherche : "+String(e.message||e).slice(0,130);
+ });};
+ $("foodPackBtn").onclick=()=>downloadFoodPack();
+ $("foodLibraryRefresh").onclick=()=>refreshFoodLibrary({showList:true});
+ $("foodLibraryClear").onclick=async()=>{
+  if(!confirm("Vider uniquement les produits Open Food Facts téléchargés sur ce téléphone ? Le journal chiffré et les repas déjà enregistrés ne seront pas modifiés."))return;
+  try{
+   await clearCached();
+   $("foodResults").replaceChildren();foodSearchId++;
+   await refreshFoodLibrary({showList:true});
+   $("foodPackStatus").textContent="Bibliothèque alimentaire effacée. Les glycémies et les repas consignés ont été conservés.";
+   toast("Fiches alimentaires effacées. Journal préservé.");
+  }catch(e){$("foodPackStatus").textContent="Suppression impossible : "+String(e.message||e).slice(0,120);}
+ };
  $("foodReadPreview").onclick=()=>{
   if(!foodCandidate)return;
   try{
