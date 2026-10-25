@@ -66,7 +66,7 @@ function showFoodOptions(items,grams){
   const badge=document.createElement("div");badge.className="product-source";
   badge.textContent=food.kind==="local"?"Table DiabCare : approximation indicative":food.offline?"Open Food Facts : fiche déjà téléchargée":"Open Food Facts : fiche collaborative en ligne";
   const info=document.createElement("p");info.className="product-metadata";
-  info.textContent=food.per100.toLocaleString("fr-FR")+" g de glucides / 100 g de produit"
+  info.textContent=food.per100.toLocaleString("fr-FR")+" g de glucides / 100 g de produit"+(food.kind==="off"?" (tel que vendu : vérifier sec/cru ou préparé)":" (table indicative selon aliment)")
    +(food.quantity?" · conditionnement : "+food.quantity:"")
    +(food.servingSize?" · portion indiquée sur la fiche : "+food.servingSize:"")
    +(food.cachedAt?" · téléchargé : "+new Date(food.cachedAt).toLocaleDateString("fr-FR"):"");
