@@ -94,7 +94,7 @@
  <label for="accessCode">Code d'accès Mistral (session uniquement)</label><input id="accessCode" type="password" autocomplete="off" placeholder="Code privé configuré sur Vercel">
  <label><input type="checkbox" id="mistralConsent" style="width:auto;min-height:auto"> J'autorise l'envoi de mes questions pédagogiques à Mistral.</label>
  <p id="mistralState" class="hint">Désactivé par défaut. Configuration serveur requise.</p></div>
- <div class="card"><h2>Voix JARVIS</h2><label><input type="checkbox" id="speakToggle" style="width:auto;min-height:auto"> Lire les réponses à voix haute</label><p class="hint">En mode hors connexion, le micro exige une reconnaissance locale disponible. En mode connecté, tu peux autoriser explicitement le service vocal du navigateur, susceptible de transmettre l’audio au fournisseur du navigateur.</p><label><input type="checkbox" id="remoteSpeechOpt" style="width:auto;min-height:auto"> Autoriser la reconnaissance vocale du navigateur nécessitant Internet</label><p class="hint">L’écoute permanente en arrière-plan n’est pas disponible sur iPhone et Android dans une PWA.</p><button id="voiceInstallBtn" type="button">Préparer Whisper hors connexion</button><p id="voiceInstallStatus" class="hint">La première installation nécessite du réseau. La voix native peut également demander Internet.</p></div>
+ <div class="card"><h2>Voix JARVIS</h2><label><input type="checkbox" id="speakToggle" style="width:auto;min-height:auto"> Lire les réponses à voix haute</label><p class="hint">Le mode Whisper utilise le calcul local après téléchargement. La dictée fournie par le navigateur peut envoyer l’audio à un service distant et nécessite ton accord explicite.</p><label><input type="checkbox" id="remoteSpeechOpt" style="width:auto;min-height:auto"> Autoriser, pour cette session, la dictée vocale du navigateur avec Internet</label><p class="hint">L’écoute permanente en arrière-plan n’est pas disponible sur iPhone et Android dans une PWA.</p><button id="voiceInstallBtn" type="button">Préparer Whisper hors connexion</button><p id="voiceInstallStatus" class="hint">La première installation nécessite du réseau. La voix native peut également demander Internet.</p></div>
  <div class="card"><h2>IA open source sur l'appareil</h2><p class="hint">Option locale avec GGUF et wllama. Premier téléchargement important (~500 Mo), téléphone récent recommandé. En cas d'échec, le moteur déterministe hors ligne reste disponible.</p><p id="modelStatus" class="muted mini">Modèle non chargé</p><div id="llmSources" class="hint"></div><button id="modelBtn" class="primary">Télécharger / activer le modèle local</button><button id="modelCheck" style="margin-top:8px">Vérifier la mise à jour du modèle</button><p class="hint">Pas de changement automatique des poids sans contrôle de leur intégrité. Aucune donnée de santé n'est envoyée pour générer une réponse.</p></div>
  <div class="card"><h2>Application et mises à jour</h2><div class="row"><button id="appUpdate">Vérifier une nouvelle version</button><button id="installBtn" hidden>Installer l'application</button></div><p id="appVersion" class="hint">DiabCare 4.0</p></div>
 </section>
@@ -114,6 +114,27 @@
   <button id="voiceOfflineBtn" type="button">Installer Whisper • voix hors connexion</button>
   <p class="hint">Premier téléchargement volumineux en Wi-Fi, calcul sur le téléphone. La vitesse et le stockage dépendent de l'appareil.</p>
   <button id="voiceCloseBtn" type="button">Annuler</button>
+ </div>
+</dialog>
+<dialog id="voiceChooser" aria-labelledby="voiceChooserTitle">
+ <h2 id="voiceChooserTitle">Parler à JARVIS</h2>
+ <p class="hint" id="voicePrivacy">Choisis le mode vocal que ton téléphone peut utiliser. Aucun audio n'est envoyé sans ton accord.</p>
+ <div class="stack">
+  <button type="button" class="primary" id="voiceWebBtn">🎤 Dictée Android / navigateur (Internet)</button>
+  <p class="hint" id="webVoiceHint">Avec ton accord, le navigateur peut transmettre ta voix à son service de reconnaissance. Ne dicte pas de données de santé sensibles.</p>
+  <button type="button" id="voiceWhisperBtn">⬇ Télécharger Whisper (hors connexion)</button>
+  <p class="hint" id="offlineVoiceHint">Téléchargement initial important (Wi-Fi recommandé). Ensuite, transcription sur l'appareil si son navigateur le permet.</p>
+  <button type="button" id="voiceKeyboardBtn">⌨ Utiliser le clavier</button>
+ </div>
+ <p class="hint" id="voiceProgress" aria-live="polite"></p>
+ <button type="button" id="voiceChooserClose">Fermer</button>
+</dialog>
+<dialog id="voiceRecording" aria-labelledby="voiceRecordingTitle">
+ <h2 id="voiceRecordingTitle">JARVIS écoute</h2>
+ <p id="voiceRecordingStatus">Parle clairement puis appuie sur Terminer.</p>
+ <div class="row">
+  <button type="button" id="voiceRecordCancel">Annuler</button>
+  <button class="primary" type="button" id="voiceRecordStop">Terminer</button>
  </div>
 </dialog>
 <div id="toast" hidden role="status"></div>
