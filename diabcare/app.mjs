@@ -209,6 +209,17 @@ async function loadAI(){if(modelBusy)return;if(!navigator.onLine){toast("Pour le
  finally{modelBusy=false;$("modelBtn").disabled=false;}
 }
 function setup(){
+ const staticHosting=location.hostname.toLowerCase().endsWith(".github.io");
+ if(staticHosting){
+   const select=$("aiSelect");if(select){
+     select.value="offline";
+     for(const option of select.options){if(option.value!=="offline")option.disabled=true;}
+     select.disabled=true;
+   }
+   $("mistralConsent").disabled=true;
+   $("accessCode").disabled=true;
+   $("mistralState").textContent="Hébergement GitHub Pages : le mode Mistral nécessite une passerelle serveur distincte. Ici, l'assistant local reste disponible hors connexion.";
+ }
  updateNet();addEventListener("online",updateNet);addEventListener("offline",updateNet);
  $all("nav [data-tab]").forEach(b=>b.addEventListener("click",()=>visibleTab(b.dataset.tab)));
  $all("[data-ask]").forEach(b=>b.addEventListener("click",()=>ask(b.dataset.ask)));
