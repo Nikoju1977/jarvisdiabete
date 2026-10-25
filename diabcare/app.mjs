@@ -473,7 +473,7 @@ async function installWhisper(){
   voiceHint("Installation de Whisper : connexion initiale nécessaire, téléchargement important…");
   setJarvisState("thinking","Préparation de la voix locale");
   await loadWhisper(voiceHint);
-  whisperReady=true;
+  whisperReady=true;updateAiStatuses();
   voiceHint("Whisper chargé. Appuie sur le micro pour dicter une phrase (20 secondes maximum).");
   toast("Voix locale prête.");
   return true;
