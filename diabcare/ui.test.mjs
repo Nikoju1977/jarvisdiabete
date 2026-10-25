@@ -36,7 +36,8 @@ test("les boutons vocaux possèdent de vrais gestionnaires",()=>{
   assert.ok(page.includes('id="'+id+'"'),"bouton absent : "+id);
   assert.ok(js.includes('"'+id+'").onclick='),"action absente : "+id);
  }
- assert.match(js,/confirm\("Autorises-tu la dictée en ligne/);
+ assert.match(js,/voiceConsentCheck/);
+ assert.match(page,/id="voiceConsentCheck"/);
  assert.match(js,/voiceChooser\(/);
  assert.match(js,/clip\.stop\(\)/);
  assert.match(js,/speech\(.*\{force:true\}\)/);
@@ -62,4 +63,24 @@ test("le calculateur de glucides expose une commande micro reliée à la transcr
  assert.match(js,/\$\("foodReadPreview"\)\.onclick=/);
  assert.match(page,/Confirmer et enregistrer/);
  assert.doesNotMatch(js,/data\.meals\.push\(rec\)[^}]*foodReadPreview/);
+});
+
+test("toutes les cartes spécialistes sont de vrais boutons avec un gestionnaire",()=>{
+ assert.match(js,/button\.className="agent agent-action"/);
+ assert.match(js,/button\.onclick=\(\)=>/);
+ assert.match(js,/visibleTab\("nutrition"\)/);
+});
+test("les actions disponibles signalent leurs limites et laissent les données chiffrées intactes",()=>{
+ for(const id of ["reloadAppBtn","diagnosticBtn","updateStatus","voiceConsentCheck"]){
+  assert.ok(page.includes('id="'+id+'"'),"contrôle manquant : "+id);
+  assert.ok(js.includes('"'+id+'"'),"gestionnaire manquant : "+id);
+ }
+ assert.match(js,/if\(!unlocked\|\|ephemeral\)/);
+ assert.match(js,/navigator\.serviceWorker\.getRegistration/);
+ assert.match(js,/reg\.update\(\)/);
+});
+test("une requête Open Food Facts trop lente est interrompue",()=>{
+ assert.match(js,/AbortController/);
+ assert.match(js,/controller\.abort\(\),5500/);
+ assert.match(js,/Recherche Open Food Facts indisponible ou trop lente/);
 });
