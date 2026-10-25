@@ -1,0 +1,27 @@
+name: DiabCare PWA checks
+on:
+  push:
+    branches: [main, diabcare-pwa]
+    paths: ['diabcare/**', '.github/workflows/diabcare-checks.yml']
+  pull_request:
+    paths: ['diabcare/**', '.github/workflows/diabcare-checks.yml']
+permissions:
+  contents: read
+jobs:
+  static-and-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntaxe JavaScript
+        run: |
+          node --check diabcare/app.mjs
+          node --check diabcare/core.mjs
+          node --check diabcare/vault.mjs
+          node --check diabcare/model.mjs
+          node --check diabcare/sw.js
+      - name: Tests locaux déterministes
+        run: node --test diabcare/core.test.mjs diabcare/vault.test.mjs

@@ -1,0 +1,19 @@
+{
+  "name": "DiabCare — Compagnon DT1",
+  "short_name": "DiabCare",
+  "description": "Assistant DT1 avec fonctions essentielles hors connexion et coffre chiffré local.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#081120",
+  "theme_color": "#081120",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
