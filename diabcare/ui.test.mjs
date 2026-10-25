@@ -119,3 +119,18 @@ test("états réels Qwen, Whisper, Mistral et repli documentaire",()=>{
  assert.match(js,/Connexion non établie/);
  assert.match(page,/GitHub Pages ne peut pas exécuter le serveur Mistral/);
 });
+
+test("JARVIS : un seul panneau vocal non bloquant, avec étapes explicites",()=>{
+ for(const id of ["voiceChatSlot","voiceFoodSlot","voiceActivity","voiceActivityTitle","voiceActivityDetail",
+  "voiceRecordStop","voiceRecordCancel"]){
+  assert.ok(page.includes('id="'+id+'"'),"panneau vocal manquant : "+id);
+ }
+ assert.doesNotMatch(page,/<dialog id="voiceRecording"/);
+ assert.match(js,/createVoiceSession\(/);
+ assert.match(js,/voiceSession\?\.stop\(\)/);
+ assert.match(js,/voiceSession\?\.cancel\(\)/);
+ assert.match(js,/updateVoiceActivity\(/);
+ assert.match(js,/voiceRecordCancel/);
+ assert.match(speechCSS,/#voiceActivity\[data-stage="transcribing"\] #voiceRecordStop/);
+ assert.match(sw,/"\.\/voice-session\.mjs"/);
+});
