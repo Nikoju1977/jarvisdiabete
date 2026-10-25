@@ -174,7 +174,7 @@ async function ask(text){
  }
 }
 
-function updateNet(){$("netStatus").textContent=navigator.onLine?"Réseau disponible":"Hors ligne";$("netStatus").style.color=navigator.onLine?"var(--green)":"var(--amber)";}
+function updateNet(){$("netStatus").textContent=navigator.onLine?"En ligne":"Hors ligne";$("netStatus").dataset.offline=navigator.onLine?"false":"true";}
 async function dictate(){
  if(!requireUnlock())return;
  silence();
