@@ -22,6 +22,11 @@ jobs:
           node --check diabcare/core.mjs
           node --check diabcare/vault.mjs
           node --check diabcare/model.mjs
+          node --check diabcare/voice.mjs
+          node --check diabcare/nutrition.mjs
+          node --check diabcare/specialists.mjs
+          node --check diabcare/llm-sources.mjs
+          node --check api/diabcare-chat.mjs
           node --check diabcare/sw.js
       - name: Tests locaux déterministes
-        run: node --test diabcare/core.test.mjs diabcare/vault.test.mjs
+        run: node --test diabcare/*.test.mjs api/diabcare-chat.test.mjs

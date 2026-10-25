@@ -1,8 +1,8 @@
 /* Cache applicatif hors ligne, sans synchronisation ni téléversement de données santé. */
-const CACHE="diabcare-pwa-shell-4.0.1";
+const CACHE="diabcare-pwa-shell-4.1.0";
 const RUNTIME="diabcare-runtime-wllama-3.6.1";
 const LIB="https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/";
-const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./model.mjs","./manifest.webmanifest","./icon.svg"];
+const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./model.mjs","./voice.mjs","./nutrition.mjs","./specialists.mjs","./llm-sources.mjs","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));
 });
