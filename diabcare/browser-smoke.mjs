@@ -34,6 +34,10 @@ async function scenario(label,viewport){
   await page.locator("#unit").selectOption("g");
   await page.locator('#glucoseForm button[type="submit"]').click();
   assert.match(await page.locator("#journalSummary").innerText(),/1,20/);
+  const downloadEvent=page.waitForEvent("download",{timeout:8000});
+  await page.locator("#reportBtn").click();
+  const report=await downloadEvent;
+  assert.match(report.suggestedFilename(),/diabcare-bilan/);
   await page.locator('nav [data-tab="chat"]').click();
   assert.match(await page.locator("#glanceValue").innerText(),/1,20/);
  });
@@ -84,9 +88,27 @@ async function scenario(label,viewport){
   assert.ok(await page.locator("#eraseBtn").isDisabled());
   await page.locator("#modelCheck").click();
   assert.match(await page.locator("#modelStatus").innerText(),/modèle/i);
+  await page.locator("#appUpdate").click();
+  assert.match(await page.locator("#updateStatus").innerText(),/Vérification|mode hors connexion|mise à jour|n'autorise/i);
   await page.locator("#lockBtn").click();
   await page.locator("#entryDialog").waitFor({state:"visible"});
  });
+ if(viewport.width===412){
+  await check(label+" : chargement complet sans réseau",async()=>{
+   await page.evaluate(()=>navigator.serviceWorker.ready);
+   await page.waitForFunction(async()=>{const names=await caches.keys();return names.some(n=>n.includes("diabcare-pwa-shell-4.4.0"));},{timeout:15000});
+   await context.setOffline(true);
+   await page.reload({waitUntil:"domcontentloaded",timeout:15000});
+   await page.locator("#entryDialog").waitFor({state:"visible"});
+   await page.locator("#ephemeralBtn").click();
+   await page.locator('nav [data-tab="nutrition"]').click();
+   await page.locator("#foodQuery").fill("150 g de riz blanc cuit");
+   await page.locator('#foodForm button[type="submit"]').click();
+   await page.locator(".food-estimate").first().waitFor({state:"visible"});
+   assert.match(await page.locator(".food-estimate").first().innerText(),/42/);
+   await context.setOffline(false);
+  });
+ }
  assert.deepEqual(failures,[],"Console errors in "+label+": "+failures.join("; "));
  await context.close();
 }
