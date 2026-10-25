@@ -33,7 +33,7 @@ Lors de l'ouverture, créer une phrase secrète longue (8 caractères minimum) e
 
 ## Tests
 
-\`cd diabcare && node --test core.test.mjs\`
+\`cd diabcare && node --test core.test.mjs vault.test.mjs\`
 
 Tests unitaires de conversion, seuils, triage, refus de dose et distinction mesures manuelles/TIR. Vérifier sur de vrais appareils : installation PWA, rechargement en mode avion, qualité de l'audio, durée des sessions, stockage et interruption du téléchargement. Ces tests ne constituent **pas** une validation médicale.
 
