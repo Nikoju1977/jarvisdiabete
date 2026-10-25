@@ -22,7 +22,7 @@
  <div class="card"><h2>Journal glycémique</h2><p class="hint">Saisie manuelle : aucune connexion à un capteur ni à une pompe.</p>
   <form id="glucoseForm" class="stack"><div class="row"><div><label for="glucose">Glycémie</label><input id="glucose" inputmode="decimal" required placeholder="ex. 1,20"></div><div><label for="unit">Unité</label><select id="unit"><option value="g">g/L</option><option value="mg">mg/dL</option><option value="mmol">mmol/L</option></select></div></div><button class="primary" type="submit">Enregistrer une mesure</button></form>
  </div>
- <div class="card"><h2>Dernières mesures</h2><p class="hint" id="journalSummary">Aucune mesure.</p><div id="readings"></div><div class="row" style="margin-top:12px"><button id="reportBtn">Bilan texte</button><button id="backupBtn">Sauvegarde chiffrée</button></div></div>
+ <div class="card"><h2>Dernières mesures</h2><p class="hint" id="journalSummary">Aucune mesure.</p><div id="readings"></div><div class="row" style="margin-top:12px"><button id="reportBtn">Bilan texte</button><button id="backupBtn">Sauvegarde chiffrée</button></div><button id="restoreBtn" style="margin-top:10px;width:100%">Restaurer une sauvegarde chiffrée</button><input type="file" id="restoreFile" accept=".json,application/json" hidden></div>
  <div class="card"><h2>Injection déjà réalisée</h2><p class="hint">Journal uniquement. Aucune suggestion de bolus ou d'insuline active.</p><form id="injectionForm" class="row"><input aria-label="Unités effectivement injectées" id="injection" placeholder="Unités déjà injectées" inputmode="decimal" required><button class="narrow" type="submit">Consigner</button></form><div id="injections"></div></div>
 </section>
 <section class="screen" id="screen-experts" aria-label="Spécialistes">
