@@ -1,0 +1,56 @@
+/* Android/iOS : le formulaire ne doit jamais recouvrir les commandes JARVIS. */
+#chatForm.composer{
+ position:relative!important;
+ bottom:auto!important;
+ margin:5px 0 8px;
+ padding:9px;
+ z-index:2;
+ box-shadow:none;
+}
+#toast{
+ width:max-content;
+ max-width:min(calc(100vw - 28px),380px);
+ min-width:0;
+ max-height:27vh;
+ overflow:auto;
+ bottom:calc(104px + env(safe-area-inset-bottom));
+ padding:11px 14px;
+ line-height:1.4;
+ font-size:.85rem;
+ border-color:#4d8293;
+ background:#143c51;
+ border-radius:15px;
+ box-shadow:0 10px 30px #000b;
+}
+#voiceChoice{
+ border:1px solid #4f8193;
+ background:#102d40;
+ width:min(94vw,490px);
+ padding:20px;
+ max-height:min(85dvh,660px);
+ overflow:auto;
+}
+#voiceChoice p{font-size:.85rem;line-height:1.5}
+#voiceChoice .stack{gap:6px}
+#voiceChoice button{width:100%;text-align:center}
+#voiceChoice .primary{min-height:55px;background:#6fe3cb;color:#072b32}
+#voiceChoiceDetails{margin:4px 0 18px}
+#voiceInstallBtn{width:100%;margin-top:14px;border-color:#539fa5}
+#voiceStatus{
+ color:#a4dce6;
+ background:rgba(31,81,97,.36);
+ border:1px solid rgba(86,156,174,.48);
+ border-radius:13px;
+ padding:11px 13px;
+ font-size:.79rem;
+ line-height:1.5;
+}
+#voiceStatus:empty{display:none}
+#chatForm input{min-width:0}
+#chatForm button{white-space:nowrap}
+@media(max-width:400px){
+ #chatForm.composer{padding:6px;gap:5px}
+ #chatForm .icon-btn{flex:0 0 42px;min-width:42px}
+ #chatForm .primary{padding:7px 10px}
+ #chatForm input{padding:8px;min-width:0;font-size:.85rem}
+}
