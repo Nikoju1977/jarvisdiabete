@@ -109,8 +109,8 @@ async function mistralQuestion(q){
 }
 
 function toast(t){const x=$("toast");x.textContent=t;x.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>x.hidden=true,5200);}
-function speech(text){
- if(!data.prefs.speak||!("speechSynthesis" in window)){setJarvisState("idle");return;}
+function speech(text,{force=false}={}){
+ if((!force&&!data.prefs.speak)||!("speechSynthesis" in window)){setJarvisState("idle");if(force)toast("Lecture vocale indisponible sur ce navigateur.");return;}
  try{
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(String(text).slice(0,1800));u.lang="fr-FR";u.rate=1.04;u.pitch=0.9;
@@ -361,9 +361,8 @@ function setup(){
 
  $("voiceCloseBtn").onclick=()=>$("voiceChoice").close();
  $("voiceBrowserBtn").onclick=()=>{
-  $("voiceChoice").close();
   if(!confirm("Autorises-tu la dictée en ligne pour cette session ? Le navigateur peut envoyer le son de ton micro à son fournisseur. N’énonce pas de données médicales sensibles.")){voiceHint("Dictée en ligne refusée. Whisper et le clavier restent possibles.");return;}
-  remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
+  $("voiceChoice").close();remoteVoiceConsent=true;$("remoteSpeechOpt").checked=true;
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR&&navigator.onLine)browserSpeech(SR,false);
   else voiceHint("Aucune dictée native disponible. Installe Whisper pour l'enregistrement local.");
@@ -413,7 +412,7 @@ function setup(){
  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!isRecordingSupported())voiceHint("Le navigateur actuel ne donne pas accès au micro : utilise Chrome ou Safari dans une fenêtre normale, pas un navigateur intégré. Le clavier reste disponible.");
  $("lockBtn").onclick=lock;
  $("eraseBtn").onclick=()=>{if(!confirm("Supprimer définitivement les données locales de DiabCare ?"))return;if(!confirm("Dernière confirmation. Cette action est irréversible."))return;erase();location.reload();};
- $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.");};
+ $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
  $("modelBtn").onclick=loadAI;
  $("modelCheck").onclick=()=>toast("Les versions du moteur sont mises à jour avec la PWA. Les poids IA ne changent pas automatiquement sans validation d'intégrité.");
  $("appUpdate").onclick=async()=>{if(!("serviceWorker" in navigator)){toast("Mises à jour automatiques non disponibles.");return;}const reg=await navigator.serviceWorker.getRegistration();if(reg){await reg.update();toast("Vérification lancée. Recharge l'application si une version nouvelle est proposée.");}else toast("Installe la PWA depuis un site HTTPS.");};
