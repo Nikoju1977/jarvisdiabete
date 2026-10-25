@@ -33,6 +33,7 @@ header .logo{
 header h1{font-size:1.28rem;font-weight:850;letter-spacing:-.055em}
 header p{font-size:.72rem;color:#a5c4d5;letter-spacing:.03em}
 .net{font-weight:650;white-space:nowrap;color:#92dcb7!important;background:#112d35;border:1px solid #305c60;padding:8px 11px;font-size:.72rem}
+.net[data-offline="true"]{background:#322a20;color:#ffdb9a!important;border-color:#8d6b3e}
 .net::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block;margin-right:7px;box-shadow:0 0 7px currentColor}
 main{padding:22px 16px 4px}
 .screen{gap:17px;animation:fadeIn .26s ease-out}
