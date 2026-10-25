@@ -141,3 +141,19 @@ dialog::backdrop{background:#000b}
 @media (prefers-reduced-motion:reduce){
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* Offline Open Food Facts: dedicated controls and small-screen library. */
+.offline-food-card{background:linear-gradient(150deg,#113246,#0c2536);border-color:#427986}
+.food-library-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+.food-library-actions .primary{grid-column:1/-1}
+.food-library-actions button{min-height:50px;border-radius:13px;font-size:.84rem;line-height:1.25}
+.food-saved-list{display:grid;gap:7px;max-height:235px;overflow:auto;scrollbar-gutter:stable}
+.food-saved-item{display:flex;flex-wrap:wrap;gap:7px;align-items:center;justify-content:space-between;padding:11px;border-radius:12px;background:#173447;border:1px solid #31596a}
+.food-saved-item b{font-size:.84rem}
+.food-saved-item small{display:block;color:#b8d4df;font-size:.73rem}
+.food-saved-item button{font-size:.74rem;min-height:38px}
+.choice-item .product-source{color:#a6ebda;display:block;font-weight:750;font-size:.77rem;margin:6px 0}
+.choice-item .product-metadata{color:#c1d6df;font-size:.78rem;margin:4px 0;line-height:1.48}
+.choice-item .product-metadata a{color:#aee8ff}
+#foodPackStatus{font-size:.82rem;line-height:1.55}
+@media(max-width:390px){.food-library-actions{grid-template-columns:1fr}.food-library-actions .primary{grid-column:auto}}
