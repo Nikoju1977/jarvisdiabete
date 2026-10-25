@@ -11,6 +11,7 @@ let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=fa
 const TIMEOUT=10*60*1000;let awayAt=null;
 let glucoseCandidate=null,foodCandidate=null,recognition=null,listenNonce=0,requestBusy=false;
 let clipRecorder=null,whisperReady=false,whisperBusy=false,remoteVoiceConsent=false;
+let voiceIntent="general",foodVoicePending=false;
 function setJarvisState(mode,label){
  const orb=$("jarvisOrb"),state=$("jarvisState");
  if(orb)orb.className="orb"+(mode==="listening"?" listening":mode==="speaking"?" speaking":mode==="thinking"?" thinking":"");
@@ -53,6 +54,18 @@ function showFoodOptions(items,grams){
   const info=document.createElement("p");info.className="hint";info.textContent=food.per100+" g de glucides pour 100 g · "+food.source;
   const button=document.createElement("button");button.textContent="Choisir et vérifier la portion";
   button.onclick=()=>{foodCandidate=food;$("foodCandidateName").textContent=food.name+" — "+food.source;$("foodPortion").value=grams??"";refreshFoodPreview();$("confirmFood").showModal();};
+
+  if(grams!=null){
+   try{
+    const estimate=prepareRecord(food,grams);
+    const count=document.createElement("p");count.className="food-estimate";
+    count.textContent=estimate.carbs.toLocaleString("fr-FR")+" g de glucides estimés pour "+grams+" g.";
+    const play=document.createElement("button");play.type="button";play.className="read-carb-btn";
+    play.textContent="🔊 Écouter l'estimation";
+    play.onclick=()=>speech(speakFood(estimate),{force:true});
+    card.append(count,play);
+   }catch{}
+  }
   card.append(title,info,button);box.append(card);
  });
 }
@@ -70,6 +83,14 @@ async function foodLookup(raw){
  const offline=findOffline(query.term);
  showFoodOptions(offline,query.grams);
  $("foodStatus").textContent=offline.length?"Source locale indicative. Vérifie l'aliment et sa préparation.":"Aucune correspondance locale.";
+ // Une réponse locale est affichée sans attendre le réseau.
+ if(foodVoicePending&&offline.length===1&&query.grams!=null){
+  try{
+   const rec=prepareRecord(offline[0],query.grams);
+   $("foodVoiceStatus").textContent=rec.carbs.toLocaleString("fr-FR")+" g estimés pour "+query.grams+" g de "+rec.name+". Vérifier la source.";
+   speech(speakFood(rec),{force:true});
+  }catch{}
+ }
  if(navigator.onLine){
   try{
    const code=query.term.replace(/\s/g,""),online=/^\d{8,14}$/.test(code)?[await barcodeOpenFoodFacts(code)]:await searchOpenFoodFacts(query.term);
@@ -79,7 +100,12 @@ async function foodLookup(raw){
  }
  setJarvisState("idle");
  const feedback=offline.length||$("foodResults").children.length?"J'ai affiché les aliments correspondants. Choisis le bon produit, puis confirme la portion avant d'enregistrer.":"Je ne trouve pas de données suffisamment fiables pour ce produit.";
- sessionReply(feedback,"Agent nutrition • source indiquée");
+ const wasVoice=foodVoicePending;foodVoicePending=false;
+ if(wasVoice){
+  $("foodVoiceStatus").textContent=feedback;
+  if(offline.length!==1||query.grams==null)speech(feedback,{force:true});
+ }
+ sessionReply(feedback,"Agent nutrition • source indiquée",false);
 }
 function handleGluco(text){
  const result=parseGlucoCheck(cleanWake(text),data.profile.unit||"g");
@@ -186,12 +212,20 @@ function voiceHint(message){
  const status=$("voiceInstallStatus");if(status)status.textContent=message;
 }
 function deliverTranscript(transcript){
- const text=String(transcript||"").trim();
+ const text=String(transcript||"").trim(),intent=voiceIntent;voiceIntent="general";
  if(!transcriptSafe(text)){
   voiceHint("Je n'ai pas compris. Réessaie en parlant distinctement ou utilise le clavier.");
   setJarvisState("idle");return;
  }
  voiceHint('J’ai entendu : « '+text.slice(0,150)+' ». Vérifie la mesure ou la portion si nécessaire.');
+ if(intent==="nutrition"){
+  if(urgentQuestion(text)||doseQuestion(text)){ask(text);return;}
+  $("foodQuery").value=text;
+  $("foodVoiceStatus").textContent='J’ai compris : « '+text.slice(0,150)+' ». Vérifie le nom et les quantités.';
+  foodVoicePending=true;
+  foodLookup(text).catch(e=>{foodVoicePending=false;$("foodVoiceStatus").textContent="Recherche impossible : "+String(e.message||e);});
+  return;
+ }
  $("question").value=text;
  ask(text);
  $("question").value="";
@@ -291,8 +325,9 @@ function browserSpeech(SR,localOnly){
   rec.start();
  }catch(e){recognition=null;setJarvisState("idle");voiceHint("Le navigateur a refusé de lancer la dictée : "+String(e.message||e).slice(0,120));}
 }
-async function dictate(){
+async function dictate(intent="general"){
  if(!requireUnlock())return;
+ voiceIntent=intent==="nutrition"?"nutrition":"general";
  // Deuxième appui pendant l'enregistrement Whisper : arrêter et transcrire.
  if(clipRecorder){const clip=clipRecorder;try{await clip.stop();}catch{}return;}
  if(recognition){try{recognition.stop();}catch{}return;}
@@ -347,7 +382,8 @@ function setup(){
  $("entryDialog").addEventListener("cancel",e=>e.preventDefault());
  $("ephemeralBtn").onclick=()=>activate(fresh(),true);
  $("chatForm").onsubmit=e=>{e.preventDefault();const q=$("question").value;$("question").value="";ask(q);};
- $("micBtn").onclick=dictate;$("jarvisOrb").onclick=dictate;$("talkBtn").onclick=dictate;
+ $("micBtn").onclick=()=>dictate("general");$("jarvisOrb").onclick=()=>dictate("general");$("talkBtn").onclick=()=>dictate("general");
+ $("foodMicBtn").onclick=()=>dictate("nutrition");
  $("stopVoice").onclick=()=>{silence();voiceHint("Micro et synthèse vocale arrêtés.");};
  $("voiceKeyboardBtn").onclick=()=>{
   $("voiceChoice").close();
@@ -380,7 +416,14 @@ function setup(){
   data.readings.push({mg:r.mg,ts:Date.now(),source:"vocal confirmé"});data.readings=data.readings.slice(-2500);
   renderJournal();save();sessionReply("GlucoCheck : valeur confirmée et consignée, "+formatGlucose(r.mg,r.unit)+". "+guidanceForMeasurement(r.mg),"GlucoCheck • saisie confirmée");
  };
- $("foodForm").onsubmit=ev=>{ev.preventDefault();foodLookup($("foodQuery").value);};
+ $("foodForm").onsubmit=ev=>{ev.preventDefault();foodVoicePending=false;foodLookup($("foodQuery").value);};
+ $("foodReadPreview").onclick=()=>{
+  if(!foodCandidate)return;
+  try{
+   const grams=Number($("foodPortion").value.trim().replace(",","."));
+   speech(speakFood(prepareRecord(foodCandidate,grams)),{force:true});
+  }catch{toast("Vérifie et indique une portion valide.");}
+ };
  $("foodPortion").addEventListener("input",refreshFoodPreview);
  $("foodCancel").onclick=()=>{$("confirmFood").close();foodCandidate=null;};
  $("foodApprove").onclick=()=>{
