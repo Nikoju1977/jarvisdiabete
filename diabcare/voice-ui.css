@@ -54,3 +54,22 @@
  #chatForm .primary{padding:7px 10px}
  #chatForm input{padding:8px;min-width:0;font-size:.85rem}
 }
+
+/* Calculateur de glucides : bouton vocal visible et atteignable au pouce sur mobile. */
+.nutrition-voice-panel{
+ display:flex;flex-direction:column;gap:10px;margin:10px 0 18px;
+ padding:15px;border-radius:18px;border:1px solid #488799;
+ background:linear-gradient(135deg,#143c4e,#0d293b);
+}
+#foodMicBtn.nutrition-mic{
+ display:flex;align-items:center;justify-content:center;gap:12px;
+ background:#61dcc9;color:#052630;border:0;border-radius:14px;
+ font-weight:850;font-size:1rem;min-height:63px;width:100%;
+ box-shadow:0 8px 20px #0002;
+}
+#foodMicBtn.nutrition-mic span{font-size:1.6rem}
+#foodVoiceStatus{margin:0;line-height:1.5;color:#cee7ef}
+.food-estimate{font-weight:800;color:#a8ffdf;font-size:1.07rem;margin:8px 0}
+.read-carb-btn{min-height:48px;width:100%;border-color:#5290a7!important;background:#1a4656!important;color:#e4fff7!important;font-weight:750;margin:7px 0 12px}
+#foodForm .primary{min-height:53px}
+#confirmFood .read-carb-btn{margin-bottom:16px}

@@ -75,7 +75,11 @@
 <section class="screen" id="screen-nutrition" aria-label="Glucides">
  <div class="card"><h2>Calculateur vocal de glucides</h2>
  <p class="hint">Dis « JARVIS, glucides pour 150 grammes de riz blanc cuit ». Recherche en ligne sur Open Food Facts, ou table indicative hors connexion. Chaque aliment et portion doivent être confirmés.</p>
- <form id="foodForm" class="stack"><label for="foodQuery">Aliment ou code-barres</label><input id="foodQuery" placeholder="150 g de riz blanc cuit" autocomplete="off" required><button class="primary" type="submit">Rechercher les glucides</button></form>
+ <div class="nutrition-voice-panel">
+  <button id="foodMicBtn" type="button" class="nutrition-mic" aria-describedby="foodVoiceStatus"><span aria-hidden="true">🎤</span> Parler à JARVIS pour les glucides</button>
+  <p id="foodVoiceStatus" class="hint" role="status" aria-live="polite">Appuie ici, dicte par exemple « 150 grammes de riz blanc cuit ». Tu peux choisir la dictée du navigateur ou Whisper local.</p>
+ </div>
+ <form id="foodForm" class="stack"><label for="foodQuery">Ou saisir l'aliment / le code-barres</label><input id="foodQuery" placeholder="Ex. 150 g de riz blanc cuit" autocomplete="off" required><button class="primary" type="submit">Calculer les glucides</button></form>
  <p class="hint" id="foodStatus">Les valeurs peuvent varier selon la marque et la préparation.</p>
  <div class="choice-list" id="foodResults"></div>
  </div>
@@ -104,7 +108,7 @@
 <dialog id="entryDialog"><h2 id="entryTitle">Bienvenue sur DiabCare</h2><p class="hint" id="entryText">Pour enregistrer tes données de santé, crée une phrase secrète d'au moins 8 caractères. La clé n'est pas récupérable.</p><label for="pin">Phrase secrète</label><input id="pin" type="password" minlength="8" autocomplete="off"><div id="consentField"><label><input id="consent" type="checkbox" style="min-height:auto;width:auto"> J'accepte le stockage local chiffré de mes données de santé.</label></div><p class="mini warning" id="pinError"></p><div class="row"><button id="ephemeralBtn">Sans stockage</button><button class="primary" id="entrySubmit">Valider</button></div></dialog>
 
 <dialog id="confirmGlucose"><h2>GlucoCheck — confirmer</h2><p class="hint">La reconnaissance vocale peut se tromper. Vérifie sur ton lecteur ou ton capteur.</p><p id="glucoseCandidate" style="font-size:1.7rem;font-weight:700"></p><p class="hint">Source : valeur dictée manuellement ; pas de mesure en direct.</p><div class="row"><button id="glucoseCancel">Annuler</button><button class="primary" id="glucoseApprove">Confirmer la saisie</button></div></dialog>
-<dialog id="confirmFood"><h2>Confirmer la portion</h2><p id="foodCandidateName"></p><label for="foodPortion">Poids consommé en grammes</label><input id="foodPortion" inputmode="decimal" placeholder="Ex. 150"><p id="foodPreview" class="hint"></p><div class="row"><button id="foodCancel">Annuler</button><button id="foodApprove" class="primary">Enregistrer les glucides</button></div></dialog>
+<dialog id="confirmFood"><h2>Confirmer la portion</h2><p id="foodCandidateName"></p><label for="foodPortion">Poids consommé en grammes</label><input id="foodPortion" inputmode="decimal" placeholder="Ex. 150"><p id="foodPreview" class="hint"></p><button type="button" id="foodReadPreview" class="read-carb-btn">🔊 Écouter le calcul (sans enregistrer)</button><div class="row"><button id="foodCancel">Annuler</button><button id="foodApprove" class="primary">Confirmer et enregistrer</button></div></dialog>
 <dialog id="voiceChoice" aria-labelledby="voiceChoiceTitle">
  <h2 id="voiceChoiceTitle">Parler à JARVIS</h2>
  <p id="voiceChoiceDetails" class="hint">Choisis une méthode qui fonctionne sur ce téléphone. La dictée via Internet nécessite ton accord.</p>
