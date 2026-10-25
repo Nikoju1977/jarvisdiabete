@@ -107,36 +107,17 @@
 <dialog id="confirmFood"><h2>Confirmer la portion</h2><p id="foodCandidateName"></p><label for="foodPortion">Poids consommé en grammes</label><input id="foodPortion" inputmode="decimal" placeholder="Ex. 150"><p id="foodPreview" class="hint"></p><div class="row"><button id="foodCancel">Annuler</button><button id="foodApprove" class="primary">Enregistrer les glucides</button></div></dialog>
 <dialog id="voiceChoice" aria-labelledby="voiceChoiceTitle">
  <h2 id="voiceChoiceTitle">Parler à JARVIS</h2>
- <p id="voiceChoiceDetails" class="hint">Choisis comment transcrire ta voix sur ce téléphone.</p>
+ <p id="voiceChoiceDetails" class="hint">Choisis une méthode qui fonctionne sur ce téléphone. La dictée via Internet nécessite ton accord.</p>
  <div class="stack">
-  <button id="voiceBrowserBtn" class="primary" type="button">Micro en ligne • avec mon accord</button>
+  <button id="voiceBrowserBtn" class="primary" type="button">🎤 Dictée Android • avec mon accord</button>
   <p class="hint" id="remoteVoiceExplainer">La reconnaissance du navigateur peut envoyer l'audio à son fournisseur. Aucune donnée du journal n'est envoyée par DiabCare.</p>
-  <button id="voiceOfflineBtn" type="button">Installer Whisper • voix hors connexion</button>
+  <button id="voiceOfflineBtn" type="button">⬇ Préparer Whisper • hors connexion</button>
   <p class="hint">Premier téléchargement volumineux en Wi-Fi, calcul sur le téléphone. La vitesse et le stockage dépendent de l'appareil.</p>
-  <button id="voiceCloseBtn" type="button">Annuler</button>
+  <button id="voiceKeyboardBtn" type="button">⌨️ Écrire au clavier</button>
+  <button id="voiceCloseBtn" type="button">Fermer</button>
  </div>
 </dialog>
-<dialog id="voiceChooser" aria-labelledby="voiceChooserTitle">
- <h2 id="voiceChooserTitle">Parler à JARVIS</h2>
- <p class="hint" id="voicePrivacy">Choisis le mode vocal que ton téléphone peut utiliser. Aucun audio n'est envoyé sans ton accord.</p>
- <div class="stack">
-  <button type="button" class="primary" id="voiceWebBtn">🎤 Dictée Android / navigateur (Internet)</button>
-  <p class="hint" id="webVoiceHint">Avec ton accord, le navigateur peut transmettre ta voix à son service de reconnaissance. Ne dicte pas de données de santé sensibles.</p>
-  <button type="button" id="voiceWhisperBtn">⬇ Télécharger Whisper (hors connexion)</button>
-  <p class="hint" id="offlineVoiceHint">Téléchargement initial important (Wi-Fi recommandé). Ensuite, transcription sur l'appareil si son navigateur le permet.</p>
-  <button type="button" id="voiceKeyboardBtn">⌨ Utiliser le clavier</button>
- </div>
- <p class="hint" id="voiceProgress" aria-live="polite"></p>
- <button type="button" id="voiceChooserClose">Fermer</button>
-</dialog>
-<dialog id="voiceRecording" aria-labelledby="voiceRecordingTitle">
- <h2 id="voiceRecordingTitle">JARVIS écoute</h2>
- <p id="voiceRecordingStatus">Parle clairement puis appuie sur Terminer.</p>
- <div class="row">
-  <button type="button" id="voiceRecordCancel">Annuler</button>
-  <button class="primary" type="button" id="voiceRecordStop">Terminer</button>
- </div>
-</dialog>
+<dialog id="voiceRecording" aria-labelledby="voiceRecordingTitle"><h2 id="voiceRecordingTitle">JARVIS écoute</h2><p class="hint">Parle puis appuie sur « Terminer » pour transcrire.</p><div class="row"><button type="button" id="voiceRecordCancel">Annuler</button><button class="primary" type="button" id="voiceRecordStop">Terminer</button></div></dialog>
 <div id="toast" hidden role="status"></div>
 <script type="module" src="./app.mjs"></script>
 </body></html>
