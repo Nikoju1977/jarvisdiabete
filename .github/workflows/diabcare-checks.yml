@@ -49,9 +49,11 @@ jobs:
         with:
           node-version: '22'
       - name: Installer Playwright Chromium et WebKit (Safari)
+        timeout-minutes: 8
         run: |
-          npm install --no-save playwright@1.56.1
-          npx playwright install --with-deps chromium webkit
+          # npm/apt mirrors can hang on hosted runners; keep the job bounded.
+          timeout 150s npm install --no-save playwright@1.56.1 --prefer-offline --no-audit --no-fund
+          timeout 300s npx playwright install --with-deps chromium webkit
       - name: Démarrer le serveur local PWA
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/diabcare-http.log 2>&1 &
