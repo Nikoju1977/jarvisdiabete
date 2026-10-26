@@ -134,3 +134,13 @@ test("JARVIS : un seul panneau vocal non bloquant, avec étapes explicites",()=>
  assert.match(speechCSS,/#voiceActivity\[data-stage="transcribing"\] #voiceRecordStop/);
  assert.match(sw,/"\.\/voice-session\.mjs"/);
 });
+
+test("diagnostic des données locales : boutons actifs Android/iOS sans garantie trompeuse",()=>{
+ for(const id of ["storageSafetyPanel","storageHealth","storageCheckBtn","storageProtectBtn"]){
+  assert.ok(page.includes('id="'+id+'"'),"contrôle absent : "+id);
+ }
+ assert.match(js,/\$\("storageCheckBtn"\)\.onclick=updateStorageStatus/);
+ assert.match(js,/\$\("storageProtectBtn"\)\.onclick=protectStorage/);
+ assert.match(sw,/"\.\/storage-health\.mjs"/);
+ assert.match(page,/sauvegarde chiffrée/);
+});
