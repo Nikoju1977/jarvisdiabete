@@ -1,4 +1,4 @@
-import {VERSION,AGENTS,SOURCES,answer,doseQuestion,urgentQuestion,safeGenerated,parseGlucose,formatGlucose,summary,stateOf,guidanceForMeasurement,exportReport} from "./core.mjs";
+import {VERSION,AGENTS,SOURCES,answer,doseQuestion,urgentQuestion,safeGenerated,safeEducationalQuestion,parseGlucose,formatGlucose,summary,stateOf,guidanceForMeasurement,exportReport} from "./core.mjs";
 import {fresh,exists,createVault,unlock,persist,erase,exportEncrypted,restoreEncryptedBackup} from "./vault.mjs";
 import {isGlucoCheck,parseGlucoCheck,describeLast} from "./voice.mjs";
 import {parseFoodQuery,findOffline,carbsFor,searchOpenFoodFacts,barcodeOpenFoodFacts,prepareRecord,speakFood} from "./nutrition.mjs";
@@ -104,10 +104,6 @@ function sessionReply(text,label="Assistant local",say=true){
 }
 function cleanWake(s){return String(s||"").trim().replace(/^(?:hey|hé|bonjour|ok|salut)?\s*(?:jarvis|diabcare)[\s,.:!-]*/i,"").trim();}
 function isFoodQuestion(s){return /\b(?:glucide|glucides|aliment|aliments)\b/i.test(s)&&/(?:combien|dans|pour|calcule|chercher|cherche|\d+\s*(?:g|kg|grammes?))/.test(s.toLowerCase());}
-function educationalOnly(question){
- const s=String(question||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete").replace(/\btype\s+1\b/g,"type un");
- return s.length<=1000 && !/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s);
-}
 function liveMode(){return $("aiSelect")?.value||"offline";}
 function consentedMistral(){return !!verifiedMistralEndpoint && !!$("mistralConsent")?.checked && !!$("accessCode")?.value.trim();}
 function renderMeals(){
@@ -323,7 +319,7 @@ function handleGluco(text){
  return false;
 }
 async function mistralQuestion(q){
- if(!navigator.onLine||liveMode()==="offline"||!consentedMistral()||!educationalOnly(q)||doseQuestion(q)||urgentQuestion(q))return null;
+ if(!navigator.onLine||liveMode()==="offline"||!consentedMistral()||!safeEducationalQuestion(q)||doseQuestion(q)||urgentQuestion(q))return null;
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),22000);
  try{
   const r=await fetch(verifiedMistralEndpoint,{
@@ -432,7 +428,7 @@ async function ask(text){
   const result=answer(q,data),experts=routeExperts(q).map(e=>e.name);
   let reply=result.text,label=(result.agents||[]).map(id=>AGENTS.find(a=>a[0]===id)?.[1]||id).join(" · ")+" • local";
   // Filtrage médical AVANT l'accès aux modèles, y compris pour les commandes vocales.
-  if(result.level==="info"&&educationalOnly(q)&&!urgentQuestion(q)&&!doseQuestion(q)){
+  if(result.level==="info"&&safeEducationalQuestion(q)&&!urgentQuestion(q)&&!doseQuestion(q)){
    let answeredCloud=false;
    if(liveMode()!=="offline"&&consentedMistral()){
     try{
