@@ -22,6 +22,7 @@ jobs:
           node --check diabcare/core.mjs
           node --check diabcare/vault.mjs
           node --check diabcare/write-queue.mjs
+          node --check diabcare/storage-health.mjs
           node --check diabcare/model.mjs
           node --check diabcare/voice.mjs
           node --check diabcare/speech-policy.mjs
