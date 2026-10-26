@@ -10,6 +10,7 @@ import {createVoiceSession} from "./voice-session.mjs";
 import {cachedSearch,allCached,cachedStats,storeFoodProducts,clearCached,libraryStatus,OFFLINE_PACK_QUERIES} from "./food-library.mjs";
 import {SUGGESTED_GATEWAY,GATEWAY_STORAGE_KEY,testGateway,gatewayError,renderAiStatus} from "./ai-config.mjs";
 import {createWriteQueue} from "./write-queue.mjs";
+import {readStorageHealth,storageStatusText,requestStoragePersistence} from "./storage-health.mjs";
 const $=id=>document.getElementById(id), $all=s=>[...document.querySelectorAll(s)];
 let data=fresh(),key=null,ephemeral=false,unlocked=false,model=null,modelBusy=false,pendingInstall=null,locking=false;
 const writeQueue=createWriteQueue(persist,error=>toast("Sauvegarde du coffre échouée : "+String(error.message||error).slice(0,160)));
@@ -56,6 +57,26 @@ async function verifyMistral(){
  }finally{
   clearTimeout(timer);mistralTestInProgress=false;button.disabled=false;updateAiStatuses();
  }
+}
+async function updateStorageStatus(){
+ const out=$("storageHealth");
+ if(!out)return;
+ try{out.textContent=storageStatusText(await readStorageHealth());}
+ catch{out.textContent="Le navigateur n'a pas permis de vérifier son stockage. Une sauvegarde chiffrée indépendante reste indispensable.";}
+}
+async function protectStorage(){
+ const btn=$("storageProtectBtn"),out=$("storageHealth");
+ btn.disabled=true;
+ out.textContent="Demande de conservation persistante au navigateur…";
+ try{
+  // Ask within the user's click event; some browsers require user activation.
+  const status=await requestStoragePersistence();
+  const details=storageStatusText(await readStorageHealth());
+  out.textContent=(status.granted?"Demande acceptée. ":status.supported?
+   "Demande refusée par ce navigateur. ":"Cette option n'est pas fournie par ce navigateur. ")+details;
+ }catch(e){
+  out.textContent="Conservation impossible : "+String(e?.message||e).slice(0,110)+". Exporte ta sauvegarde chiffrée.";
+ }finally{btn.disabled=false;}
 }
 function resetMistral(message){
  verifiedMistralEndpoint=null;
@@ -796,6 +817,9 @@ function setup(){
   catch(e){toast("Suppression annulée : sauvegarde en cours non terminée. "+String(e.message||e).slice(0,110));}
  };
  $("emergencyRead").onclick=()=>{speech("Urgence : appelez le 15 ou le 112. Si la personne est inconsciente, ne rien donner par la bouche. Suivez les consignes des secours.",{force:true});};
+ $("storageCheckBtn").onclick=updateStorageStatus;
+ $("storageProtectBtn").onclick=protectStorage;
+ void updateStorageStatus();
  $("modelBtn").onclick=loadAI;
  $("modelCheck").onclick=()=>{
   const state=model?"Le modèle local est actif.":"Le modèle local n'est pas chargé.";
