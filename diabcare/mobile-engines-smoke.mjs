@@ -70,6 +70,13 @@ async function scenario(name,engine,viewport){
    assert.equal(await page.locator("#question").evaluate(e=>document.activeElement===e),true);
    assert.equal(await page.locator("#voiceActivity").isVisible(),false);
   });
+  await check("diagnostic de stockage local sans données envoyées",async()=>{
+   await page.locator('nav [data-tab="settings"]').click();
+   await page.locator("#storageCheckBtn").click();
+   await page.waitForFunction(()=>document.querySelector("#storageHealth")?.textContent?.includes("sauvegarde chiffrée"),null,{timeout:6000});
+   assert.match(await page.locator("#storageHealth").innerText(),/Stockage|stockage/);
+   assert.ok(await page.locator("#storageProtectBtn").isEnabled());
+  });
   await check("états Qwen/Whisper/Mistral explicites",async()=>{
    await page.locator('nav [data-tab="settings"]').click();
    assert.match(await page.locator("#aiHealthSummary").innerText(),/Mistral : non connecté/);
