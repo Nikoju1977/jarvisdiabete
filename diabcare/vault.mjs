@@ -6,7 +6,11 @@ const enc=new TextEncoder(),dec=new TextDecoder();
 const b64=u=>{let s="";for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode(...u.subarray(i,i+32768));return btoa(s);};
 const un64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 export function fresh(){return {v:4,profile:{unit:"g"},readings:[],injections:[],meals:[],notes:[],chat:[],prefs:{speak:true},createdAt:Date.now()};}
-export function exists(){try{return !!(localStorage.getItem(STORAGE_KEY)&&localStorage.getItem(META_KEY));}catch{return false;}}
+export function exists(){
+ // A partially written vault must never look like a new, empty installation:
+ // that could overwrite the only encrypted copy after quota/storage errors.
+ try{return localStorage.getItem(STORAGE_KEY)!==null||localStorage.getItem(META_KEY)!==null;}catch{return true;}
+}
 export async function derive(pin,salt){
  if(typeof pin!=="string"||pin.length<8||pin.length>128)throw Error("Utilise au moins 8 caractères pour protéger les données.");
  const key=await crypto.subtle.importKey("raw",enc.encode(pin),"PBKDF2",false,["deriveKey"]);
@@ -30,15 +34,27 @@ export async function createVault(pin,data){
  const salt=crypto.getRandomValues(new Uint8Array(16));
  const key=await derive(pin,salt);
  const encrypted=await encrypt(key,data);
- localStorage.setItem(STORAGE_KEY,encrypted);
- localStorage.setItem(META_KEY,JSON.stringify({salt:b64(salt),v:4}));
+ try{
+  localStorage.setItem(STORAGE_KEY,encrypted);
+  localStorage.setItem(META_KEY,JSON.stringify({salt:b64(salt),v:4}));
+ }catch(error){
+  // Two localStorage keys are not atomic. Roll back the first write if metadata
+  // could not be saved; if rollback itself fails, exists() remains fail-closed.
+  try{localStorage.removeItem(STORAGE_KEY);}catch{}
+  try{localStorage.removeItem(META_KEY);}catch{}
+  throw Error("Création du coffre impossible : stockage plein ou bloqué. Aucun nouveau coffre n'a été confirmé. "+String(error?.message||error));
+ }
  return key;
 }
 export async function unlock(pin){
- const meta=JSON.parse(localStorage.getItem(META_KEY)||"null");
- if(!meta||meta.v!==4||!meta.salt)throw Error("Coffre introuvable ou version différente.");
- const key=await derive(pin,un64(meta.salt));
- const state=await decrypt(key,localStorage.getItem(STORAGE_KEY));
+ const encrypted=localStorage.getItem(STORAGE_KEY),rawMeta=localStorage.getItem(META_KEY);
+ if(!encrypted||!rawMeta)throw Error("Coffre chiffré incomplet. Ne crée pas un nouveau coffre ; retrouve ta sauvegarde chiffrée avant toute action.");
+ const meta=JSON.parse(rawMeta);
+ if(meta?.v!==4||typeof meta.salt!=="string")throw Error("Métadonnées du coffre invalides. Conserve ta sauvegarde.");
+ const salt=un64(meta.salt);
+ if(salt.byteLength!==16)throw Error("Sel du coffre invalide. Conserve ta sauvegarde.");
+ const key=await derive(pin,salt);
+ const state=await decrypt(key,encrypted);
  return {key,state};
 }
 export async function persist(key,state){
