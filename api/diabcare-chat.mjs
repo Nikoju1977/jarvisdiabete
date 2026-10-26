@@ -2,7 +2,7 @@
   Désactivée tant que MISTRAL_API_KEY et DIABCARE_GATE_CODE ne sont pas configurés.
   Un déploiement public doit ajouter quotas / WAF avant ouverture à plusieurs comptes. */
 import {timingSafeEqual} from "node:crypto";
-import {answer,doseQuestion,urgentQuestion,safeGenerated} from "../diabcare/core.mjs";
+import {answer,doseQuestion,urgentQuestion,safeGenerated,safeEducationalQuestion} from "../diabcare/core.mjs";
 import {expertInstructions,auditPrompt,passedAudit} from "../diabcare/specialists.mjs";
 const MAX_REQUEST=4000;
 const system=[
@@ -21,12 +21,8 @@ function constantEqual(a,b){
  return timingSafeEqual(aa,bb);
 }
 export function canSend(q){
- if(typeof q!=="string"||!q.trim()||q.length>1000)return false;
- if(doseQuestion(q)||urgentQuestion(q))return false;
- const s=q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\bdt1\b/g,"diabete").replace(/\btype\s+1\b/g,"type un");
- // Ne jamais envoyer au modèle les mesures, bilans personnels, médicaments/doses, ni l'analyse d'une situation médicale.
- if(/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s))return false;
- return true;
+ // Same deterministic safety/privacy policy as the browser, enforced again server-side.
+ return safeEducationalQuestion(q)&&!doseQuestion(q)&&!urgentQuestion(q);
 }
 function allowedOrigin(req,env){
  const origin=req.headers?.origin;
