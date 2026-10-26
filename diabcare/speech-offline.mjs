@@ -106,7 +106,16 @@ export async function recordClip({durationMs=12000,onStop,onStatus=()=>{}}={}){
   },4500);
   return completion;
  };
- try{recorder.start(250);}catch(e){stopTracks();throw Error("Démarrage du micro refusé : "+String(e.message||e));}
+ // WebKit on some iPhones rejects MediaRecorder.start(timeslice). Fallback to
+ // start() without a timeslice; stop() still flushes a final dataavailable.
+ try{recorder.start(250);}catch(error){
+  if(recorder.state==="inactive"&&["NotSupportedError","TypeError"].includes(error?.name)){
+   try{recorder.start();}
+   catch(e){stopTracks();throw Error("Démarrage du micro refusé : "+String(e.message||e));}
+  }else{
+   stopTracks();throw Error("Démarrage du micro refusé : "+String(error.message||error));
+  }
+ }
  onStatus("Le microphone enregistre. Parle, puis touche Terminer et transcrire.");
  timeout=setTimeout(stop,durationMs);
  return {
