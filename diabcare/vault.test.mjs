@@ -47,3 +47,34 @@ test("restauration : mot de passe incorrect n'écrase pas le coffre",async()=>{
  assert.equal((await unlock("MotDePasseLong-1")).state.readings.length,1);
  erase();
 });
+
+
+test("coffre incomplet : ne peut pas être écrasé ni déverrouillé sans sauvegarde",async()=>{
+ erase();
+ mem.set("diabcare4.vault",'{"iv":"corrompu"}');
+ assert.equal(exists(),true,"un coffre partiel doit rester réservé");
+ await assert.rejects(createVault("NouvellePhraseTresLongue",fresh()),/coffre existe déjà/);
+ await assert.rejects(unlock("NouvellePhraseTresLongue"),/incomplet/i);
+ erase();
+ mem.set("diabcare4.meta",'{"v":4,"salt":"corrompu"}');
+ assert.equal(exists(),true);
+ await assert.rejects(createVault("NouvellePhraseTresLongue",fresh()),/coffre existe déjà/);
+ await assert.rejects(unlock("NouvellePhraseTresLongue"),/incomplet/i);
+ erase();
+});
+test("quota : création partielle automatiquement annulée sans coffre fictif",async()=>{
+ erase();
+ const original=globalThis.localStorage;
+ globalThis.localStorage={
+  ...original,
+  setItem(key,value){
+   if(key==="diabcare4.meta")throw Error("QuotaExceededError");
+   return original.setItem(key,value);
+  }
+ };
+ try{
+  await assert.rejects(createVault("PhraseTresLongue2026!",fresh()),/stockage plein ou bloqué/);
+  assert.equal(mem.has("diabcare4.vault"),false);
+  assert.equal(mem.has("diabcare4.meta"),false);
+ }finally{globalThis.localStorage=original;erase();}
+});
