@@ -108,6 +108,15 @@
 </section>
 <section class="screen" id="screen-settings" aria-label="Réglages">
  <div class="card"><h2>Confidentialité</h2><p class="hint">Données de santé chiffrées localement par AES-GCM et PBKDF2. Aucune transmission automatique. Le stockage du navigateur peut néanmoins être supprimé par le système.</p><p id="vaultStatus" class="pill">Verrouillé</p><div class="row"><button id="lockBtn">Verrouiller</button><button id="eraseBtn" class="danger">Effacer le coffre</button></div></div>
+ <div class="card" id="storageSafetyPanel"><h2>Conservation des données — Android et iPhone</h2>
+  <p class="hint">Le journal est chiffré, mais le téléphone peut supprimer les données du navigateur. Le stockage persistant réduit ce risque lorsqu'il est accepté ; il ne remplace pas une sauvegarde chiffrée.</p>
+  <p id="storageHealth" role="status" aria-live="polite" class="hint">État du stockage en cours de vérification…</p>
+  <div class="row">
+   <button id="storageCheckBtn" type="button">Vérifier le stockage de ce téléphone</button>
+   <button id="storageProtectBtn" type="button" class="primary">Demander la conservation persistante</button>
+  </div>
+  <p class="hint">Avant une réinstallation, un changement de téléphone ou une randonnée : déverrouille ton coffre, puis exporte une sauvegarde chiffrée depuis le Journal. Conserve le fichier et ta phrase secrète en lieu sûr, séparément.</p>
+ </div>
  <div class="card" id="aiConfigPanel"><h2>Configuration des IA — état réel</h2>
  <p class="hint">Les spécialistes DiabCare sont des rôles documentaires, pas sept médecins ni sept modèles distincts. Les règles de sécurité fonctionnent même sans IA générative.</p>
  <div id="aiHealthSummary" class="ai-health" role="status" aria-live="polite">Assistant local documentaire : disponible. Mistral : non connecté. Qwen et Whisper : à vérifier.</div>

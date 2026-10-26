@@ -1,10 +1,10 @@
 /* Cache applicatif hors ligne, sans synchronisation ni téléversement de données santé. */
-const CACHE="diabcare-pwa-shell-4.7.1";
+const CACHE="diabcare-pwa-shell-4.7.2";
 const RUNTIME="diabcare-runtime-wllama-3.6.1";
 const VOICE_RUNTIME="diabcare-runtime-whisper-3.8.1";
 const VOICE_LIB="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 const LIB="https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.1/";
-const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./write-queue.mjs","./model.mjs","./ui.css","./voice-ui.css","./speech-policy.mjs","./voice-session.mjs","./speech-offline.mjs","./voice.mjs","./nutrition.mjs","./food-library.mjs","./ai-config.mjs","./specialists.mjs","./llm-sources.mjs","./manifest.webmanifest","./icon.svg"];
+const FILES=["./","./index.html","./app.mjs","./core.mjs","./vault.mjs","./write-queue.mjs","./storage-health.mjs","./model.mjs","./ui.css","./voice-ui.css","./speech-policy.mjs","./voice-session.mjs","./speech-offline.mjs","./voice.mjs","./nutrition.mjs","./food-library.mjs","./ai-config.mjs","./specialists.mjs","./llm-sources.mjs","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{
  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));
 });

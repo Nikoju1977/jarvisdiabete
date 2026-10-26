@@ -177,3 +177,11 @@ dialog::backdrop{background:#000b}
 #mistralHelp code{white-space:normal;overflow-wrap:anywhere;padding:2px 4px;background:#031d2c;border-radius:3px}
 #mistralPanel input:focus-visible,#aiConfigPanel select:focus-visible{outline:3px solid #a0f1e2}
 @media(max-width:390px){#mistralPanel,#aiConfigPanel{padding:15px}#mistralPanel h2{font-size:1.02rem}}
+
+
+/* v4.7.2: browser persistence status (clear on small Android/iOS screens). */
+#storageSafetyPanel{scroll-margin-top:92px}
+#storageHealth{background:#0b2b3b;border-left:3px solid #67bacb;border-radius:8px;padding:12px 13px;line-height:1.55}
+#storageSafetyPanel .row{display:flex;flex-wrap:wrap;gap:9px}
+#storageSafetyPanel .row button{flex:1 1 205px;min-height:49px;white-space:normal}
+#storageSafetyPanel p.hint{overflow-wrap:anywhere}

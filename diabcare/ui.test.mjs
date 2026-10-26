@@ -25,7 +25,7 @@ test("aucune dépendance d'un service de suivi exclu dans les fichiers chargés"
  }
 });
 test("cache versionné pour ne pas afficher le vieux cockpit",()=>{
- assert.match(sw,/diabcare-pwa-shell-4\.7\.1/);
+ assert.match(sw,/diabcare-pwa-shell-4\.7\.2/);
  assert.match(sw,/"\.\/ui\.css"/);
  assert.match(sw,/"\.\/speech-offline\.mjs"/);
  assert.match(rootSW,/jarvis-diabete-/);
@@ -133,4 +133,14 @@ test("JARVIS : un seul panneau vocal non bloquant, avec étapes explicites",()=>
  assert.match(js,/voiceRecordCancel/);
  assert.match(speechCSS,/#voiceActivity\[data-stage="transcribing"\] #voiceRecordStop/);
  assert.match(sw,/"\.\/voice-session\.mjs"/);
+});
+
+test("diagnostic des données locales : boutons actifs Android/iOS sans garantie trompeuse",()=>{
+ for(const id of ["storageSafetyPanel","storageHealth","storageCheckBtn","storageProtectBtn"]){
+  assert.ok(page.includes('id="'+id+'"'),"contrôle absent : "+id);
+ }
+ assert.match(js,/\$\("storageCheckBtn"\)\.onclick=updateStorageStatus/);
+ assert.match(js,/\$\("storageProtectBtn"\)\.onclick=protectStorage/);
+ assert.match(sw,/"\.\/storage-health\.mjs"/);
+ assert.match(page,/sauvegarde chiffrée/);
 });

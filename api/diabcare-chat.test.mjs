@@ -81,3 +81,10 @@ test("DT1 et diabète de type 1 : pédagogie autorisée, valeurs personnelles re
  assert.equal(canSend("Quel bolus pour mon diabète de type 1 ?"),false);
  assert.equal(canSend("Je prends 5 unités d'insuline"),false);
 });
+
+test("passerelle Mistral : aucune formulation personnelle transmise",()=>{
+ for(const phrase of ["Je suis diabétique depuis longtemps", "J'ai un diabète de type 1", "Mon état aujourd'hui", "Quels sont mes symptômes ?", "Quel débit basal pour ma pompe ?"]){
+  assert.equal(canSend(phrase),false,phrase);
+ }
+ assert.equal(canSend("Explique le diabète de type 1"),true);
+});

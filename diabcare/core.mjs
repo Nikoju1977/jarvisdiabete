@@ -1,5 +1,5 @@
 /* DiabCare 4.0 — moteur hors ligne. Aucune posologie ni prédiction. */
-export const VERSION = "4.7.1";
+export const VERSION = "4.7.2";
 export const AGENTS = [
   ["securite","Sécurité et urgences"],["diabeto","Diabétologie"],["infirmier","Éducation thérapeutique"],
   ["nutrition","Diététique"],["pharmacie","Pharmacie"],["sport","Activité physique"],
@@ -16,12 +16,22 @@ export const SOURCES = Object.freeze([
 export function doseQuestion(q) {
  const s=normalize(q);
  if(/\bbolus\b|\bdose d.insuline\b/.test(s))return true;
- return /(?:combien|calcul|quelle|quel|recommand|ajust|inject|prescri|augment|diminu|corrig|dois.je|bolus).{0,65}(?:insuline|unit|bolus|dose)|(?:insuline|bolus|dose).{0,65}(?:combien|inject|calcul|modifier|augment|diminuer|faire|prendre)/.test(s);
+ if(/(?:quel|quelle|combien|calcul|ajust|augment|diminu|regl|corrig|change|modifi|arret|suspend).{0,65}(?:debit basal|basale|facteur de correction|sensibilite|ratio (?:insuline|glucide)|pompe a insuline)/.test(s))return true;
+ return /(?:combien|calcul|quelle|quel|recommand|ajust|inject|prescri|augment|diminu|corrig|arreter|suspendre|dois.je|bolus).{0,65}(?:insuline|unit|bolus|dose)|(?:insuline|bolus|dose).{0,65}(?:combien|inject|calcul|modifier|augment|diminuer|faire|prendre|arreter|suspendre)/.test(s);
+}
+export function safeEducationalQuestion(q){
+ if(typeof q!=="string"||!q.trim()||q.length>1000)return false;
+ const s=normalize(q).replace(/[’]/g,"'").replace(/\bdt1\b/g,"diabete").replace(/\btype\s+1\b/g,"type un");
+ // Fail closed on measurements, doses, treatments and personal medical context.
+ // "diabète de type 1" on its own is educational, not a personal measurement.
+ if(/(?:\d|mg\/?dl|mmol|g\/l|bolus|dose|inject|corrig|traitement|medicament|ordonnance|cetone|vomiss|acidocetose|malaise|suis en hypo|glycemie actuelle|mes donnees|mon journal|mon bilan|mes mesures|cette nuit|aujourd hui|maintenant|urgence)/.test(s))return false;
+ if(/\b(?:je suis|j'ai|j ai|je prends|je recois|je porte|j'utilise|j utilise|mes|ma|mon|pour moi|ma situation|mes symptomes)\b/.test(s))return false;
+ return true;
 }
 export function urgentQuestion(q) {
  const s=normalize(q);
- if(/inconscien|coma|convuls|ne repond plus|perte de connaissance|ne respire|difficulte.*respir|douleur thoracique/.test(s)) return {level:"critical",text:"Urgence potentielle. Appelle le 15 ou le 112 immédiatement. Si la personne ne peut pas avaler ou est inconsciente, ne donne rien par la bouche. Si du glucagon est disponible et si tu sais l'administrer, suis sa notice et les instructions des secours."};
- if(/acidocetose|vomiss|je vomis|haleine fruitee|cetones? elevee/.test(s)) return {level:"urgent",text:"Un risque d'acidocétose doit être évalué sans délai. Mesure les cétones si tu le peux sans retarder les soins. En cas de vomissements, respiration anormale, confusion ou dégradation : appelle le 15 ou le 112. Ne suspends pas ton insuline basale sans indication médicale."};
+ if(/inconscien|coma|convuls|ne repond plus|ne reagit (?:pas|plus)|ne se reveille (?:pas|plus)|impossible (?:de|a) (?:le |la )?reveiller|perte de connaissance|ne respire|difficulte.*respir|douleur thoracique|douleur (?:dans la )?poitrine|(?:ne peux|ne peut|incapable|impossible).{0,28}aval|je n.arrive (?:pas|plus) a avaler/.test(s)) return {level:"critical",text:"Urgence potentielle. Appelle le 15 ou le 112 immédiatement. Si la personne ne peut pas avaler ou est inconsciente, ne donne rien par la bouche. Si du glucagon est disponible et si tu sais l'administrer, suis sa notice et les instructions des secours."};
+ if(/acidocetose|vomiss|je vomis|je vomit|vomit|haleine fruitee|cetones? elevee/.test(s)) return {level:"urgent",text:"Un risque d'acidocétose doit être évalué sans délai. Mesure les cétones si tu le peux sans retarder les soins. En cas de vomissements, respiration anormale, confusion ou dégradation : appelle le 15 ou le 112. Ne suspends pas ton insuline basale sans indication médicale."};
  if(/je suis en hypo|je fais une hypo|hypoglycemie maintenant|sueurs froides|je tremble|malaise/.test(s)) return {level:"urgent",text:"Arrête ton activité et mets-toi en sécurité. Contrôle ta glycémie si possible. Si tu es conscient et peux avaler, suis ton protocole de resucrage (souvent 15 g de glucides rapides et un contrôle 15 min après chez l'adulte). Si tu ne peux pas avaler ou si ton état s'aggrave : fais appeler les secours."};
  return null;
 }
@@ -91,7 +101,7 @@ export function safeGenerated(text){
  const s=String(text||"").trim();
  if(!s||s.length>4000)return false;
  if(/(?:\d+(?:[.,]\d+)?\s*(?:unités?|UI|U)\s*(?:d.insuline)?)/i.test(s))return false;
- if(/(?:inject|augmente|diminue|arrete|suspend|modifie)\w*[^.!?\n]{0,65}(?:dose|insuline|bolus|basale)/i.test(s))return false;
+ if(/(?:inject|augmente|diminue|arrete|suspend|modifie)\w*[^.!?\n]{0,65}(?:(?:dose|insuline|bolus|basale)|debit basal|pompe a insuline)/i.test(normalize(s)))return false;
  return true;
 }
 export function exportReport(data,now=Date.now()){

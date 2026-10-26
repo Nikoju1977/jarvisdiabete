@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseGlucose,stateOf,answer,doseQuestion,urgentQuestion,summary,safeGenerated,formatGlucose} from "./core.mjs";
+import {parseGlucose,stateOf,answer,doseQuestion,urgentQuestion,summary,safeGenerated,formatGlucose,safeEducationalQuestion} from "./core.mjs";
 test("unités de glycémie",()=>{
  assert.equal(parseGlucose("1,20","g").mg,120);
  assert.equal(parseGlucose("120","mg").mg,120);
@@ -31,4 +31,29 @@ test("journal non confondu avec TIR continu",()=>{
  const s=summary([{mg:80,ts:now-10000},{mg:250,ts:now-5000}],14,now);
  assert.equal(s.n,2);
  assert.equal(answer("Fais le bilan", {readings:[{mg:80,ts:now}],profile:{unit:"g"}},now).text.includes("ne permettent pas de calculer le temps dans la cible"),true);
+});
+
+test("triage d'urgence : inconscience, impossibilité d'avaler et vomissements",()=>{
+ for(const phrase of ["Il ne se réveille pas", "La personne ne réagit plus", "Je ne peux pas avaler", "douleur dans la poitrine"]){
+  assert.equal(urgentQuestion(phrase)?.level,"critical",phrase);
+  assert.equal(answer(phrase).agents[0],"securite");
+ }
+ assert.equal(urgentQuestion("Je vomis")?.level,"urgent");
+ assert.equal(urgentQuestion("Je vomit depuis une heure")?.level,"urgent");
+});
+test("aucune modification de paramètres d'insuline ou de pompe suggérée",()=>{
+ for(const phrase of ["Quel débit basal pour ma pompe ?", "Ajuste mon ratio insuline glucides", "Quel facteur de correction utiliser ?", "Puis-je arrêter l'insuline ?"]){
+  assert.equal(doseQuestion(phrase),true,phrase);
+  assert.equal(answer(phrase).level,"blocked",phrase);
+ }
+ assert.equal(safeGenerated("Arrête ta pompe à insuline maintenant."),false);
+ assert.equal(safeGenerated("Modifie le débit basal."),false);
+});
+test("questions éducatives anonymes acceptées, situations personnelles jamais transmises",()=>{
+ for(const phrase of ["Explique le diabète de type 1", "Pourquoi le DT1 est-il auto-immun ?", "Comment fonctionne le pancréas ?"]){
+  assert.equal(safeEducationalQuestion(phrase),true,phrase);
+ }
+ for(const phrase of ["Je suis diabétique", "J'ai un diabète de type 1", "Mon diabète va mal", "Mes valeurs hier", "Ma situation en randonnée", "Explique 6,7 mmol/L", "Combien de bolus ?"]){
+  assert.equal(safeEducationalQuestion(phrase),false,phrase);
+ }
 });
