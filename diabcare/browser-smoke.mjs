@@ -148,6 +148,9 @@ async function scenario(label,viewport){
  });
  await check(label+" : réglages, diagnostics et coffre sécurisé",async()=>{
   await page.locator('nav [data-tab="settings"]').click();
+  await page.locator("#storageCheckBtn").click();
+  await page.waitForFunction(()=>document.querySelector("#storageHealth")?.textContent?.includes("sauvegarde chiffrée"),null,{timeout:8000});
+  assert.ok(await page.locator("#storageProtectBtn").isEnabled());
   await page.locator("#diagnosticBtn").click();
   assert.match(await page.locator("#diagnosticResults").innerText(),/Navigation/);
   assert.ok(await page.locator("#backupBtn").isDisabled());
