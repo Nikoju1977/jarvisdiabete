@@ -17,7 +17,7 @@ export function doseQuestion(q) {
  const s=normalize(q);
  if(/\bbolus\b|\bdose d.insuline\b/.test(s))return true;
  if(/(?:quel|quelle|combien|calcul|ajust|augment|diminu|regl|corrig|change|modifi|arret|suspend).{0,65}(?:debit basal|basale|facteur de correction|sensibilite|ratio (?:insuline|glucide)|pompe a insuline)/.test(s))return true;
- return /(?:combien|calcul|quelle|quel|recommand|ajust|inject|prescri|augment|diminu|corrig|dois.je|bolus).{0,65}(?:insuline|unit|bolus|dose)|(?:insuline|bolus|dose).{0,65}(?:combien|inject|calcul|modifier|augment|diminuer|faire|prendre|arreter|suspendre)/.test(s);
+ return /(?:combien|calcul|quelle|quel|recommand|ajust|inject|prescri|augment|diminu|corrig|arreter|suspendre|dois.je|bolus).{0,65}(?:insuline|unit|bolus|dose)|(?:insuline|bolus|dose).{0,65}(?:combien|inject|calcul|modifier|augment|diminuer|faire|prendre|arreter|suspendre)/.test(s);
 }
 export function safeEducationalQuestion(q){
  if(typeof q!=="string"||!q.trim()||q.length>1000)return false;
@@ -101,7 +101,7 @@ export function safeGenerated(text){
  const s=String(text||"").trim();
  if(!s||s.length>4000)return false;
  if(/(?:\d+(?:[.,]\d+)?\s*(?:unités?|UI|U)\s*(?:d.insuline)?)/i.test(s))return false;
- if(/(?:inject|augmente|diminue|arrete|suspend|modifie)\w*[^.!?\n]{0,65}(?:(?:dose|insuline|bolus|basale)|debit basal|pompe a insuline)/i.test(s))return false;
+ if(/(?:inject|augmente|diminue|arrete|suspend|modifie)\w*[^.!?\n]{0,65}(?:(?:dose|insuline|bolus|basale)|debit basal|pompe a insuline)/i.test(normalize(s)))return false;
  return true;
 }
 export function exportReport(data,now=Date.now()){
